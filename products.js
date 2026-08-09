@@ -11,8 +11,8 @@
 // { key: 'fanta', label: 'Fanta', emoji: '🍊' },
 
 const PRODUCTS = [
-  { key: 'cola',      label: 'Cola Zero',       emoji: '🥤' },
   { key: 'vlaai',     label: 'Vlaai',           emoji: '🥧' },
+  { key: 'cola',      label: 'Cola Zero',       emoji: '🥤' },
   { key: 'koffie',    label: 'Koffie',          emoji: '☕' },
   { key: 'sparood',   label: 'Spa Rood',        emoji: '💧' },
   { key: 'icetea',    label: 'Ice Tea Green',   emoji: '🧊' },
