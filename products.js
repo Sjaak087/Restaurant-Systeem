@@ -22,5 +22,9 @@ const PRODUCTS = [
   { key: 'rose',      label: 'Rosé',            emoji: '🍷' },
   { key: 'wittewijn', label: 'Witte Wijn',      emoji: '🥂' },
   { key: 'weizner',   label: 'Weizner',         emoji: '🍺' },
-  { key: 'hertogjan', label: 'Hertog Jan Bier', emoji: '🍻' }
+  { key: 'hertogjan', label: 'Hertog Jan Bier', emoji: '🍻' },
+  { key: 'chips',     label: 'Chips',           emoji: '🍟' },
+  { key: 'nootjes',   label: 'Nootjes',         emoji: '🥜' },
+  { key: 'mms',       label: 'M&M's',          emoji: '🍬' },
+  { key: 'stokjes',   label: 'Stokjes',         emoji: '🥖' }
 ];
