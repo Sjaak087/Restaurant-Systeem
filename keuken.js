@@ -92,3 +92,45 @@ ordersRef.on('child_removed', snap => {
   delete nieuweOrders[snap.key];
   render();
 });
+
+// ---- Voorraadbeheer ----
+const stockList = document.getElementById('stock-list');
+const toggleStockBtn = document.getElementById('toggle-stock');
+const stockStatus = {}; // true = uitverkocht
+
+toggleStockBtn.addEventListener('click', () => {
+  stockList.classList.toggle('open');
+});
+
+function renderStockList() {
+  stockList.innerHTML = '';
+
+  PRODUCTS.forEach(product => {
+    const isOut = !!stockStatus[product.key];
+    const row = document.createElement('div');
+    row.className = 'stock-row' + (isOut ? ' out' : '');
+    row.innerHTML = `
+      <span class="stock-name">${product.emoji} ${product.label}</span>
+      <button type="button" class="stock-btn${isOut ? ' active' : ''}" data-key="${product.key}">
+        ${isOut ? 'Weer op voorraad' : 'Uitverkocht'}
+      </button>
+    `;
+    stockList.appendChild(row);
+  });
+
+  stockList.querySelectorAll('.stock-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-key');
+      db.ref('stock/' + key).set(!stockStatus[key]);
+    });
+  });
+}
+
+// Live luisteren naar voorraadwijzigingen (vanuit keuken of bestelpagina)
+db.ref('stock').on('value', snapshot => {
+  const data = snapshot.val() || {};
+  PRODUCTS.forEach(product => {
+    stockStatus[product.key] = !!data[product.key];
+  });
+  renderStockList();
+});
