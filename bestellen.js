@@ -1,18 +1,40 @@
-// ---- Stepper (aantal cola / vlaai) ----
-const counts = { cola: 0, vlaai: 0 };
+// ---- Product-kaartjes automatisch opbouwen op basis van products.js ----
+const counts = {};
+const productsContainer = document.getElementById('products');
 
-function updateCountDisplay(product) {
-  document.getElementById(`${product}-count`).textContent = counts[product];
+PRODUCTS.forEach(product => {
+  counts[product.key] = 0;
+
+  const card = document.createElement('div');
+  card.className = 'product-card';
+  card.innerHTML = `
+    <div class="name">${product.emoji} ${product.label}</div>
+    <div class="stepper">
+      <button type="button" class="min-btn" data-key="${product.key}">−</button>
+      <span class="count" id="${product.key}-count">0</span>
+      <button type="button" class="plus-btn" data-key="${product.key}">+</button>
+    </div>
+  `;
+  productsContainer.appendChild(card);
+});
+
+function updateCountDisplay(key) {
+  document.getElementById(`${key}-count`).textContent = counts[key];
 }
 
-['cola', 'vlaai'].forEach(product => {
-  document.getElementById(`${product}-plus`).addEventListener('click', () => {
-    counts[product]++;
-    updateCountDisplay(product);
+productsContainer.querySelectorAll('.plus-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.getAttribute('data-key');
+    counts[key]++;
+    updateCountDisplay(key);
   });
-  document.getElementById(`${product}-min`).addEventListener('click', () => {
-    if (counts[product] > 0) counts[product]--;
-    updateCountDisplay(product);
+});
+
+productsContainer.querySelectorAll('.min-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.getAttribute('data-key');
+    if (counts[key] > 0) counts[key]--;
+    updateCountDisplay(key);
   });
 });
 
@@ -21,11 +43,12 @@ const statusMsg = document.getElementById('status-msg');
 
 document.getElementById('plaats-bestelling').addEventListener('click', () => {
   const items = {};
-  if (counts.cola > 0) items.cola = counts.cola;
-  if (counts.vlaai > 0) items.vlaai = counts.vlaai;
+  PRODUCTS.forEach(product => {
+    if (counts[product.key] > 0) items[product.key] = counts[product.key];
+  });
 
   if (Object.keys(items).length === 0) {
-    statusMsg.textContent = 'Kies eerst iets, bijv. cola of vlaai.';
+    statusMsg.textContent = 'Kies eerst iets, bijv. een drankje of vlaai.';
     statusMsg.style.color = '#c1552f';
     return;
   }
@@ -40,10 +63,10 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
     tijd: Date.now()
   }).then(() => {
     // Reset formulier
-    counts.cola = 0;
-    counts.vlaai = 0;
-    updateCountDisplay('cola');
-    updateCountDisplay('vlaai');
+    PRODUCTS.forEach(product => {
+      counts[product.key] = 0;
+      updateCountDisplay(product.key);
+    });
     document.getElementById('opmerking').value = '';
 
     statusMsg.style.color = '#4a7856';
@@ -65,10 +88,14 @@ toggleBtn.addEventListener('click', () => {
 });
 
 // ---- Live lijst met klaar-gemelde bestellingen ----
+function productLabel(key) {
+  const product = PRODUCTS.find(p => p.key === key);
+  return product ? product.label : key;
+}
+
 function itemsToText(items) {
-  const namen = { cola: 'Cola', vlaai: 'Vlaai' };
   return Object.entries(items)
-    .map(([key, aantal]) => `${aantal}x ${namen[key] || key}`)
+    .map(([key, aantal]) => `${aantal}x ${productLabel(key)}`)
     .join(', ');
 }
 
