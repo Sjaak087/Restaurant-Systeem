@@ -132,11 +132,72 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   line-height: 1;
 }
 .stepper button:active { transform: scale(0.94); }
+.stepper button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 .stepper .count {
   min-width: 24px;
   font-size: 1.1rem;
   font-weight: 600;
   font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Uitverkocht */
+.product-card.out-of-stock {
+  background: #f2efe7;
+}
+.product-card.out-of-stock .name {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.stock-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.stock-btn:hover { border-color: var(--clay); color: var(--clay); }
+.stock-btn.active {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: white;
+}
+.stock-btn.active:hover { background: var(--clay-dark); }
+
+/* Voorraadbeheer (keukenscherm) */
+.stock-list {
+  margin-top: 16px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+.stock-list.open { display: flex; }
+.stock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+.stock-row .stock-name { font-size: 0.95rem; }
+.stock-row.out .stock-name {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.stock-row .stock-btn {
+  margin-top: 0;
+  width: auto;
+  padding: 7px 14px;
 }
 
 .note-field {
