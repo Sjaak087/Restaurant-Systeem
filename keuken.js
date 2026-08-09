@@ -4,10 +4,14 @@ const kitchenCount = document.getElementById('kitchen-count');
 
 const nieuweOrders = {};
 
+function productLabel(key) {
+  const product = PRODUCTS.find(p => p.key === key);
+  return product ? product.label : key;
+}
+
 function itemsToText(items) {
-  const namen = { cola: 'Cola', vlaai: 'Vlaai' };
   return Object.entries(items)
-    .map(([key, aantal]) => `${aantal}x ${namen[key] || key}`)
+    .map(([key, aantal]) => `${aantal}x ${productLabel(key)}`)
     .join(', ');
 }
 
