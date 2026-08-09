@@ -25,6 +25,6 @@ const PRODUCTS = [
   { key: 'hertogjan', label: 'Hertog Jan Bier', emoji: '🍻' },
   { key: 'chips',     label: 'Chips',           emoji: '🍟' },
   { key: 'nootjes',   label: 'Nootjes',         emoji: '🥜' },
-  { key: 'mms',       label: 'M&M's',          emoji: '🍬' },
+  { key: 'mms',       label: 'M&M\'s',          emoji: '🍬' },
   { key: 'stokjes',   label: 'Stokjes',         emoji: '🥖' }
 ];
