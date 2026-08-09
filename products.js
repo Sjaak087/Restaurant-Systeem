@@ -12,6 +12,7 @@
 
 const PRODUCTS = [
   { key: 'vlaai',     label: 'Vlaai',           emoji: '🥧' },
+  { key: 'Test',      label: 'Test',            emoji: 'i'   }, 
   { key: 'cola',      label: 'Cola Zero',       emoji: '🥤' },
   { key: 'koffie',    label: 'Koffie',          emoji: '☕' },
   { key: 'sparood',   label: 'Spa Rood',        emoji: '💧' },
