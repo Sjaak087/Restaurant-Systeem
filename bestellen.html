@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bestellen</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Bestellen</h1>
+    <a href="index.html">← Terug</a>
+  </header>
+
+  <div class="products">
+    <div class="product-card">
+      <div class="name">🥤 Cola</div>
+      <div class="stepper">
+        <button type="button" id="cola-min">−</button>
+        <span class="count" id="cola-count">0</span>
+        <button type="button" id="cola-plus">+</button>
+      </div>
+    </div>
+    <div class="product-card">
+      <div class="name">🥧 Vlaai</div>
+      <div class="stepper">
+        <button type="button" id="vlaai-min">−</button>
+        <span class="count" id="vlaai-count">0</span>
+        <button type="button" id="vlaai-plus">+</button>
+      </div>
+    </div>
+  </div>
+
+  <textarea class="note-field" id="opmerking" placeholder="Opmerking (optioneel), bijv. 'geen ijs' of 'tafel 4'"></textarea>
+
+  <button class="primary-btn" id="plaats-bestelling">Bestelling plaatsen</button>
+  <div class="status-msg" id="status-msg"></div>
+
+  <hr class="divider">
+
+  <button class="toggle-btn" id="toggle-ready">Gemaakte bestellingen</button>
+  <div class="ready-list" id="ready-list">
+    <div class="empty-msg" id="empty-msg">Geen gemaakte bestellingen</div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="bestellen.js"></script>
+
+</body>
+</html>
