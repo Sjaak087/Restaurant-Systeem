@@ -1,0 +1,274 @@
+:root {
+  --cream: #faf6ef;
+  --ink: #2b2420;
+  --clay: #c1552f;
+  --clay-dark: #9c4224;
+  --green: #4a7856;
+  --line: #e4dccb;
+  --card: #ffffff;
+  --muted: #8a8072;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Georgia", "Iowan Old Style", serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+header.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 14px;
+}
+
+header.top h1 {
+  font-size: 1.6rem;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+header.top a {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+header.top a:hover { color: var(--ink); border-color: var(--ink); }
+
+/* Kies-pagina */
+.choice-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 20px;
+  text-align: center;
+}
+.choice-screen h1 {
+  font-size: 2rem;
+  margin-bottom: 6px;
+}
+.choice-screen p.sub {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+.choice-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.big-choice {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 26px 40px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  min-width: 160px;
+}
+.big-choice.order { background: var(--clay); color: white; }
+.big-choice.order:hover { background: var(--clay-dark); }
+.big-choice.kitchen { background: var(--ink); color: var(--cream); }
+.big-choice.kitchen:hover { background: #454037; }
+
+/* Producten */
+.products {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.product-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: center;
+}
+.product-card .name {
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+.stepper button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  background: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.stepper button:active { transform: scale(0.94); }
+.stepper .count {
+  min-width: 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+.note-field {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 12px 14px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 60px;
+  margin-bottom: 18px;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 15px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--clay);
+  color: white;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.primary-btn:hover { background: var(--clay-dark); }
+.primary-btn:disabled { background: #cbbfae; cursor: not-allowed; }
+
+.status-msg {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.9rem;
+  text-align: center;
+  min-height: 20px;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+/* Gemaakte bestellingen sectie */
+.divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 30px 0 20px;
+}
+
+.toggle-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ink);
+  background: transparent;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+}
+.toggle-btn:hover { background: var(--ink); color: var(--cream); }
+
+.ready-list {
+  margin-top: 16px;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+.ready-list.open { display: flex; }
+
+.empty-msg {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.order-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+.order-card.nieuw { border-left-color: var(--clay); }
+.order-card .items-line {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.order-card .note-line {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.order-card .time-line {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.order-card .actions {
+  display: flex;
+  gap: 8px;
+}
+.chip-btn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.chip-btn.ready { background: var(--green); color: white; }
+.chip-btn.ready:hover { background: #3a6144; }
+.chip-btn.delivered { background: var(--ink); color: var(--cream); }
+.chip-btn.delivered:hover { background: #454037; }
+
+/* Keuken */
+.kitchen-count {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+.kitchen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 420px) {
+  .products { grid-template-columns: 1fr; }
+}
