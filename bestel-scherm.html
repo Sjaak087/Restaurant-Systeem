@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kassa</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 10%;
+      margin: 0;
+    }
+    h1 {
+      font-size: 40px;
+      margin-bottom: 30px;
+    }
+    .bestel-knop {
+      background-color: #333;
+      color: white;
+      border: 2px solid white;
+      padding: 25px 40px;
+      font-size: 28px;
+      margin: 15px;
+      border-radius: 12px;
+      cursor: pointer;
+      width: 80%;
+      max-width: 400px;
+    }
+    .bestel-knop:active {
+      background-color: #555;
+    }
+    #error-bericht {
+      color: red;
+      font-size: 20px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Bestelling Doorvoeren</h1>
+  
+  <button class="bestel-knop" onclick="bestel('🍔 Hamburger')">🍔 Hamburger</button><br>
+  <button class="bestel-knop" onclick="bestel('🍟 Friet')">🍟 Friet</button><br>
+  <button class="bestel-knop" onclick="bestel('🥤 Cola')">🥤 Cola</button>
+
+  <div id="error-bericht"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ⚠️ LET OP: Vul hier JOUW unieke Firebase gegevens in!
+    const firebaseConfig = {
+      apiKey: "VUL_HIER_JE_API_KEY_IN",
+      projectId: "VUL_HIER_JE_PROJECT_ID_IN"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      window.bestel = async function(item) {
+        try {
+          await addDoc(collection(db, "bestellingen"), {
+            product: item,
+            tijd: serverTimestamp()
+          });
+          
+          // Laat de knop even groen knipperen ter bevestiging
+          const btn = event.target;
+          const oudeKleur = btn.style.backgroundColor;
+          btn.style.backgroundColor = "green";
+          setTimeout(() => btn.style.backgroundColor = oudeKleur, 500);
+          
+        } catch (e) {
+          document.getElementById('error-bericht').innerText = "Fout bij verzenden: " + e.message;
+        }
+      };
+    } catch (e) {
+      document.getElementById('error-bericht').innerText = "Firebase kon niet laden. Check je API keys!";
+    }
+  </script>
+</body>
+</html>
