@@ -1,12 +1,15 @@
 // ---- Product-kaartjes automatisch opbouwen op basis van products.js ----
 const counts = {};
+const stockStatus = {}; // true = uitverkocht
 const productsContainer = document.getElementById('products');
 
 PRODUCTS.forEach(product => {
   counts[product.key] = 0;
+  stockStatus[product.key] = false;
 
   const card = document.createElement('div');
   card.className = 'product-card';
+  card.id = `card-${product.key}`;
   card.innerHTML = `
     <div class="name">${product.emoji} ${product.label}</div>
     <div class="stepper">
@@ -14,6 +17,7 @@ PRODUCTS.forEach(product => {
       <span class="count" id="${product.key}-count">0</span>
       <button type="button" class="plus-btn" data-key="${product.key}">+</button>
     </div>
+    <button type="button" class="stock-btn" data-key="${product.key}">Uitverkocht</button>
   `;
   productsContainer.appendChild(card);
 });
@@ -25,6 +29,7 @@ function updateCountDisplay(key) {
 productsContainer.querySelectorAll('.plus-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const key = btn.getAttribute('data-key');
+    if (stockStatus[key]) return; // uitverkocht, niet aanklikbaar
     counts[key]++;
     updateCountDisplay(key);
   });
@@ -33,8 +38,45 @@ productsContainer.querySelectorAll('.plus-btn').forEach(btn => {
 productsContainer.querySelectorAll('.min-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const key = btn.getAttribute('data-key');
+    if (stockStatus[key]) return;
     if (counts[key] > 0) counts[key]--;
     updateCountDisplay(key);
+  });
+});
+
+// ---- Uitverkocht-knop per product ----
+productsContainer.querySelectorAll('.stock-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.getAttribute('data-key');
+    db.ref('stock/' + key).set(!stockStatus[key]);
+  });
+});
+
+function applyStockUI(key) {
+  const card = document.getElementById(`card-${key}`);
+  if (!card) return;
+  const isOut = !!stockStatus[key];
+
+  card.classList.toggle('out-of-stock', isOut);
+  card.querySelector('.plus-btn').disabled = isOut;
+  card.querySelector('.min-btn').disabled = isOut;
+
+  const stockBtn = card.querySelector('.stock-btn');
+  stockBtn.textContent = isOut ? 'Weer op voorraad' : 'Uitverkocht';
+  stockBtn.classList.toggle('active', isOut);
+
+  if (isOut && counts[key] > 0) {
+    counts[key] = 0;
+    updateCountDisplay(key);
+  }
+}
+
+// Live luisteren naar voorraadwijzigingen (vanuit keuken of bestelpagina)
+db.ref('stock').on('value', snapshot => {
+  const data = snapshot.val() || {};
+  PRODUCTS.forEach(product => {
+    stockStatus[product.key] = !!data[product.key];
+    applyStockUI(product.key);
   });
 });
 
@@ -44,11 +86,13 @@ const statusMsg = document.getElementById('status-msg');
 document.getElementById('plaats-bestelling').addEventListener('click', () => {
   const items = {};
   PRODUCTS.forEach(product => {
-    if (counts[product.key] > 0) items[product.key] = counts[product.key];
+    if (!stockStatus[product.key] && counts[product.key] > 0) {
+      items[product.key] = counts[product.key];
+    }
   });
 
   if (Object.keys(items).length === 0) {
-    statusMsg.textContent = 'Kies eerst iets, bijv. een drankje of vlaai.';
+    statusMsg.textContent = 'Kies eerst iets, bijv. een drankje of snack.';
     statusMsg.style.color = '#c1552f';
     return;
   }
