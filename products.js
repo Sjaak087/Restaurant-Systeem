@@ -12,12 +12,13 @@
 
 const PRODUCTS = [
   { key: 'vlaai',       label: 'Vlaai',           emoji: '🥧' },
-  { key: 'cola',        label: 'Cola Zero',       emoji: '🥤' },
   { key: 'koffie',      label: 'Koffie',          emoji: '☕' },
   { key: 'cappuccino',  label: 'Cappuccino',      emoji: '☕' },
+  { key: 'cola',        label: 'Cola Zero',       emoji: '🥤' },
+  { key: 'icetea',      label: 'Ice Tea Green',   emoji: '🧊' },
   { key: 'sparood',     label: 'Spa Rood',        emoji: '💧' },
-  { key: 'icetea',    label: 'Ice Tea Green',   emoji: '🧊' },
-  { key: 'water',     label: 'Water',           emoji: '🚰' },
+  { key: 'water',       label: 'Water',           emoji: '🚰' },
+  { key: 'martinitonic', label: 'Martini Tonic',  emoji: '🍸' },
   { key: 'rose',      label: 'Rosé',            emoji: '🍷' },
   { key: 'wittewijn', label: 'Witte Wijn',      emoji: '🥂' },
   { key: 'weizner',   label: 'Weizner',         emoji: '🍺' },
