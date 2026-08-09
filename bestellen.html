@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bestellen</title>
+</head>
+<body>
+  <h1>Opnemen</h1>
+  <button onclick="bestel('Cola')">1x Cola</button>
+  <button onclick="bestel('Friet met')">1x Friet met</button>
+
+  <!-- Firebase Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Plak hier jouw Firebase configuratie
+    const firebaseConfig = {
+      apiKey: "JOUW_API_KEY",
+      projectId: "JOUW_PROJECT_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.bestel = async function(item) {
+      await addDoc(collection(db, "bestellingen"), {
+        product: item,
+        tijd: serverTimestamp()
+      });
+      alert(item + " doorgegeven!");
+    };
+  </script>
+</body>
+</html>
