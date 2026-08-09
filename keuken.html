@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keuken</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Keuken</h1>
+    <a href="index.html">← Terug</a>
+  </header>
+
+  <div class="kitchen-count" id="kitchen-count">Nieuwe bestellingen worden hier automatisch getoond.</div>
+
+  <div class="kitchen-list" id="kitchen-list">
+    <div class="empty-msg" id="kitchen-empty">Nog geen nieuwe bestellingen</div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="keuken.js"></script>
+
+</body>
+</html>
