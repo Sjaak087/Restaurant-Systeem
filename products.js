@@ -11,20 +11,26 @@
 // { key: 'fanta', label: 'Fanta', emoji: '🍊' },
 
 const PRODUCTS = [
-  { key: 'vlaai',       label: 'Vlaai',           emoji: '🥧' },
+  { key: 'aardbeienvlaai',      label: 'Aardbeien Vlaai',        emoji: '🍓' },
+  { key: 'kersenbastognevlaai', label: 'Kersen Bastogne Vlaai',  emoji: '🥧' },
+  { key: 'americancookies',     label: 'American Cookies',       emoji: '🍪' },
   { key: 'koffie',      label: 'Koffie',          emoji: '☕' },
   { key: 'cappuccino',  label: 'Cappuccino',      emoji: '☕' },
   { key: 'cola',        label: 'Cola Zero',       emoji: '🥤' },
+  { key: 'fantalemon',  label: 'Fanta Lemon',     emoji: '🍋' },
   { key: 'icetea',      label: 'Ice Tea Green',   emoji: '🧊' },
   { key: 'sparood',     label: 'Spa Rood',        emoji: '💧' },
   { key: 'water',       label: 'Water',           emoji: '🚰' },
+  { key: 'ranja',       label: 'Ranja',           emoji: '🧃' },
   { key: 'martinitonic', label: 'Martini Tonic',  emoji: '🍸' },
   { key: 'rose',      label: 'Rosé',            emoji: '🍷' },
   { key: 'wittewijn', label: 'Witte Wijn',      emoji: '🥂' },
+  { key: 'radler',    label: 'Radler 0.0%',     emoji: '🍺' },
   { key: 'weizner',   label: 'Weizner',         emoji: '🍺' },
   { key: 'hertogjan', label: 'Hertog Jan Bier', emoji: '🍻' },
   { key: 'chips',     label: 'Chips',           emoji: '🍟' },
   { key: 'nootjes',   label: 'Nootjes',         emoji: '🥜' },
-  { key: 'mms',       label: 'M&M\'s',          emoji: '🍬' },
-  { key: 'stokjes',   label: 'Stokjes',         emoji: '🥖' }
+  { key: 'worstjeskaasjes', label: 'Worstjes/Kaasjes', emoji: '🧀' },
+  { key: 'crackertjes',     label: 'Crackertjes',      emoji: '🍘' },
+  { key: 'groenten',        label: 'Groenten',         emoji: '🥕' }
 ];
