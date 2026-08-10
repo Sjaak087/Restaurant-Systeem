@@ -32,6 +32,7 @@ productsContainer.querySelectorAll('.plus-btn').forEach(btn => {
     if (stockStatus[key]) return; // uitverkocht, niet aanklikbaar
     counts[key]++;
     updateCountDisplay(key);
+    updateIceSelectorVisibility();
   });
 });
 
@@ -41,6 +42,7 @@ productsContainer.querySelectorAll('.min-btn').forEach(btn => {
     if (stockStatus[key]) return;
     if (counts[key] > 0) counts[key]--;
     updateCountDisplay(key);
+    updateIceSelectorVisibility();
   });
 });
 
@@ -72,13 +74,41 @@ function applyStockUI(key) {
 }
 
 // Live luisteren naar voorraadwijzigingen (vanuit keuken of bestelpagina)
+let ijsklontjesOut = false;
+
 db.ref('stock').on('value', snapshot => {
   const data = snapshot.val() || {};
   PRODUCTS.forEach(product => {
     stockStatus[product.key] = !!data[product.key];
     applyStockUI(product.key);
   });
+  ijsklontjesOut = !!data['ijsklontjes'];
+  updateIceSelectorVisibility();
 });
+
+// ---- IJsklontjes-keuze ----
+const iceSelector = document.getElementById('ice-selector');
+const iceButtons = iceSelector.querySelectorAll('.ice-btn');
+let iceChoice = null; // 'met' | 'zonder' | null
+
+iceButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    iceChoice = btn.getAttribute('data-choice');
+    iceButtons.forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
+function updateIceSelectorVisibility() {
+  const heeftIjsDrankje = ICE_OPTION_KEYS.some(key => counts[key] > 0);
+  const moetTonen = heeftIjsDrankje && !ijsklontjesOut;
+
+  iceSelector.classList.toggle('hidden', !moetTonen);
+
+  if (!moetTonen) {
+    iceChoice = null;
+    iceButtons.forEach(b => b.classList.remove('active'));
+  }
+}
 
 // ---- Bestelling plaatsen ----
 const statusMsg = document.getElementById('status-msg');
@@ -97,21 +127,33 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
     return;
   }
 
+  if (!iceSelector.classList.contains('hidden') && !iceChoice) {
+    statusMsg.textContent = 'Kies nog even met of zonder ijsklontjes.';
+    statusMsg.style.color = '#c1552f';
+    return;
+  }
+
   const opmerking = document.getElementById('opmerking').value.trim();
 
-  const newOrderRef = db.ref('orders').push();
-  newOrderRef.set({
+  const orderData = {
     items: items,
     opmerking: opmerking,
     status: 'nieuw',
     tijd: Date.now()
-  }).then(() => {
+  };
+  if (iceChoice) orderData.ijs = iceChoice;
+
+  const newOrderRef = db.ref('orders').push();
+  newOrderRef.set(orderData).then(() => {
     // Reset formulier
     PRODUCTS.forEach(product => {
       counts[product.key] = 0;
       updateCountDisplay(product.key);
     });
     document.getElementById('opmerking').value = '';
+    iceChoice = null;
+    iceButtons.forEach(b => b.classList.remove('active'));
+    updateIceSelectorVisibility();
 
     statusMsg.style.color = '#4a7856';
     statusMsg.textContent = 'Bestelling geplaatst! Deze is nu naar de keuken gestuurd.';
@@ -143,6 +185,12 @@ function itemsToText(items) {
     .join(', ');
 }
 
+function iceLineHtml(order) {
+  if (!order.ijs) return '';
+  const tekst = order.ijs === 'met' ? '🧊 Met ijsklontjes' : '🚫 Zonder ijsklontjes';
+  return `<div class="note-line">${tekst}</div>`;
+}
+
 const readyOrders = {};
 
 function renderReadyList() {
@@ -167,6 +215,7 @@ function renderReadyList() {
 
     card.innerHTML = `
       <div class="items-line">${itemsToText(order.items)}</div>
+      ${iceLineHtml(order)}
       ${noteHtml}
       <div class="actions">
         <button class="chip-btn delivered" data-id="${id}">Bezorgd</button>
@@ -257,6 +306,7 @@ function renderHistoryList() {
 
     card.innerHTML = `
       <div class="items-line">${itemsToText(order.items)}</div>
+      ${iceLineHtml(order)}
       ${noteHtml}
       ${timeHtml}
     `;
