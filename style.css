@@ -52,6 +52,66 @@ header.top a {
 }
 header.top a:hover { color: var(--ink); border-color: var(--ink); }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-btn {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.history-btn:hover { border-color: var(--ink); }
+
+.history-panel {
+  display: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.history-panel.open { display: block; }
+
+.history-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.reset-btn {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--clay);
+  background: transparent;
+  color: var(--clay);
+  cursor: pointer;
+}
+.reset-btn:hover { background: var(--clay); color: white; }
+
+#history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#history-list .order-card {
+  border-left-color: var(--muted);
+}
+
 /* Kies-pagina */
 .choice-screen {
   min-height: 100vh;
