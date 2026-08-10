@@ -34,3 +34,14 @@ const PRODUCTS = [
   { key: 'crackertjes',     label: 'Crackertjes',      emoji: '🍘' },
   { key: 'groenten',        label: 'Groenten',         emoji: '🥕' }
 ];
+
+// IJsklontjes is geen apart te bestellen item (geen +/- knop), maar wordt
+// wel meegenomen in de voorraad van de keuken, en bepaalt of de
+// "met/zonder ijs"-keuze bij de onderstaande drankjes beschikbaar is.
+const EXTRA_STOCK_ITEMS = [
+  { key: 'ijsklontjes', label: 'IJsklontjes', emoji: '🧊' }
+];
+
+// Bij deze drankjes verschijnt de keuze "met/zonder ijsklontjes" zodra
+// je er minstens 1 van bestelt.
+const ICE_OPTION_KEYS = ['cola', 'fantalemon', 'water', 'sparood', 'icetea', 'martinitonic', 'ranja'];
