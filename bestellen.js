@@ -178,7 +178,7 @@ function renderReadyList() {
   readyList.querySelectorAll('.chip-btn.delivered').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-id');
-      db.ref('orders/' + id).remove();
+      db.ref('orders/' + id).update({ status: 'bezorgd', bezorgdTijd: Date.now() });
     });
   });
 }
@@ -212,4 +212,82 @@ ordersRef.on('child_changed', snap => {
 ordersRef.on('child_removed', snap => {
   delete readyOrders[snap.key];
   renderReadyList();
+  delete historyOrders[snap.key];
+  renderHistoryList();
+});
+
+// ---- Historie (bezorgde bestellingen) ----
+const historyBtn = document.getElementById('history-btn');
+const historyPanel = document.getElementById('history-panel');
+const historyList = document.getElementById('history-list');
+const resetHistoryBtn = document.getElementById('reset-history');
+const historyOrders = {};
+
+historyBtn.addEventListener('click', () => {
+  historyPanel.classList.toggle('open');
+});
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('nl-NL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderHistoryList() {
+  const ids = Object.keys(historyOrders);
+  historyList.innerHTML = '';
+
+  if (ids.length === 0) {
+    historyList.innerHTML = '<div class="empty-msg">Nog geen bezorgde bestellingen</div>';
+    return;
+  }
+
+  ids.sort((a, b) => (historyOrders[b].bezorgdTijd || 0) - (historyOrders[a].bezorgdTijd || 0));
+
+  ids.forEach(id => {
+    const order = historyOrders[id];
+    const card = document.createElement('div');
+    card.className = 'order-card';
+
+    const noteHtml = order.opmerking
+      ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>`
+      : '';
+    const timeHtml = order.bezorgdTijd
+      ? `<div class="time-line">Bezorgd om ${formatTime(order.bezorgdTijd)}</div>`
+      : '';
+
+    card.innerHTML = `
+      <div class="items-line">${itemsToText(order.items)}</div>
+      ${noteHtml}
+      ${timeHtml}
+    `;
+    historyList.appendChild(card);
+  });
+}
+
+resetHistoryBtn.addEventListener('click', () => {
+  const ids = Object.keys(historyOrders);
+  if (ids.length === 0) return;
+  if (!confirm('Weet je zeker dat je alle bezorgde bestellingen wilt wissen?')) return;
+
+  const updates = {};
+  ids.forEach(id => { updates['orders/' + id] = null; });
+  db.ref().update(updates);
+});
+
+ordersRef.on('child_added', snap => {
+  const order = snap.val();
+  if (order.status === 'bezorgd') {
+    historyOrders[snap.key] = order;
+    renderHistoryList();
+  }
+});
+
+ordersRef.on('child_changed', snap => {
+  const order = snap.val();
+  if (order.status === 'bezorgd') {
+    historyOrders[snap.key] = order;
+  } else {
+    delete historyOrders[snap.key];
+  }
+  renderHistoryList();
 });
