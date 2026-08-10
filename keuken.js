@@ -48,9 +48,13 @@ function render() {
     const noteHtml = order.opmerking
       ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>`
       : '';
+    const iceHtml = order.ijs
+      ? `<div class="note-line">${order.ijs === 'met' ? '🧊 Met ijsklontjes' : '🚫 Zonder ijsklontjes'}</div>`
+      : '';
 
     card.innerHTML = `
       <div class="items-line">${itemsToText(order.items)}</div>
+      ${iceHtml}
       ${noteHtml}
       <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
       <div class="actions">
@@ -105,7 +109,7 @@ toggleStockBtn.addEventListener('click', () => {
 function renderStockList() {
   stockList.innerHTML = '';
 
-  PRODUCTS.forEach(product => {
+  [...PRODUCTS, ...EXTRA_STOCK_ITEMS].forEach(product => {
     const isOut = !!stockStatus[product.key];
     const row = document.createElement('div');
     row.className = 'stock-row' + (isOut ? ' out' : '');
@@ -129,7 +133,7 @@ function renderStockList() {
 // Live luisteren naar voorraadwijzigingen (vanuit keuken of bestelpagina)
 db.ref('stock').on('value', snapshot => {
   const data = snapshot.val() || {};
-  PRODUCTS.forEach(product => {
+  [...PRODUCTS, ...EXTRA_STOCK_ITEMS].forEach(product => {
     stockStatus[product.key] = !!data[product.key];
   });
   renderStockList();
