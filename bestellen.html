@@ -11,8 +11,21 @@
 <div class="wrap">
   <header class="top">
     <h1>Bestellen</h1>
-    <a href="index.html">← Terug</a>
+    <div class="header-actions">
+      <button type="button" class="history-btn" id="history-btn" title="Bekijk bezorgde bestellingen">🧾 Historie</button>
+      <a href="index.html">← Terug</a>
+    </div>
   </header>
+
+  <div class="history-panel" id="history-panel">
+    <div class="history-panel-head">
+      <span>Bezorgde bestellingen</span>
+      <button type="button" class="reset-btn" id="reset-history">Resetten</button>
+    </div>
+    <div id="history-list">
+      <div class="empty-msg">Nog geen bezorgde bestellingen</div>
+    </div>
+  </div>
 
   <div class="products" id="products"></div>
 
