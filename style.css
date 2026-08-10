@@ -273,6 +273,43 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   margin-bottom: 18px;
 }
 
+.ice-selector {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.ice-selector.hidden { display: none; }
+.ice-selector-label {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.ice-buttons {
+  display: flex;
+  gap: 10px;
+}
+.ice-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+}
+.ice-btn:hover { border-color: var(--ink); }
+.ice-btn.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
 .primary-btn {
   width: 100%;
   padding: 15px;
