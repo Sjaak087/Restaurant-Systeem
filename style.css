@@ -18,10 +18,11 @@ body {
   background: var(--cream);
   color: var(--ink);
   min-height: 100vh;
+  font-size: 17px;
 }
 
 .wrap {
-  max-width: 640px;
+  max-width: 680px;
   margin: 0 auto;
   padding: 32px 20px 80px;
 }
@@ -36,7 +37,7 @@ header.top {
 }
 
 header.top h1 {
-  font-size: 1.6rem;
+  font-size: 1.9rem;
   margin: 0;
   letter-spacing: 0.02em;
 }
@@ -156,38 +157,46 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 .big-choice.kitchen { background: var(--ink); color: var(--cream); }
 .big-choice.kitchen:hover { background: #454037; }
 
-/* Producten */
+/* Producten - verticale lijst */
 .products {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 .product-card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 18px;
-  text-align: center;
+  padding: 20px 22px;
+  text-align: left;
 }
 .product-card .name {
-  font-size: 1.15rem;
-  margin-bottom: 12px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.product-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 .stepper {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  justify-content: flex-start;
+  gap: 16px;
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
 .stepper button {
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: 1px solid var(--ink);
   background: white;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   cursor: pointer;
   line-height: 1;
 }
@@ -197,11 +206,38 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   cursor: not-allowed;
 }
 .stepper .count {
-  min-width: 24px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  min-width: 28px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
+
+/* IJs-chips per besteld stuk, direct onder het product */
+.ice-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.ice-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+}
+.ice-chip:hover { border-color: var(--ink); color: var(--ink); }
+.ice-chip.met {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+.ice-chip.met:hover { background: #3a6144; }
 
 /* Uitverkocht */
 .product-card.out-of-stock {
@@ -212,15 +248,15 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   color: var(--muted);
 }
 .stock-btn {
-  margin-top: 12px;
-  width: 100%;
-  padding: 7px;
+  margin-top: 14px;
+  width: auto;
+  padding: 8px 16px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
   font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 .stock-btn:hover { border-color: var(--clay); color: var(--clay); }
@@ -273,72 +309,16 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   margin-bottom: 18px;
 }
 
-.ice-selector {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 18px;
-}
-.ice-selector.hidden { display: none; }
-.ice-selector-label {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-.ice-buttons {
-  display: flex;
-  gap: 10px;
-}
-.ice-btn {
-  flex: 1;
-  padding: 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: transparent;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: var(--ink);
-}
-.ice-btn:hover { border-color: var(--ink); }
-.ice-btn.active {
-  background: var(--green);
-  border-color: var(--green);
-  color: white;
-}
-
-.ice-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.ice-row:last-child { margin-bottom: 0; }
-.ice-row-label {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.88rem;
-}
-.ice-row .ice-buttons { flex: 0 0 auto; gap: 6px; }
-.ice-row .ice-btn {
-  flex: 0 0 auto;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-}
-
 .primary-btn {
   width: 100%;
-  padding: 15px;
+  padding: 17px;
   border-radius: var(--radius);
   border: none;
   background: var(--clay);
   color: white;
   font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
   cursor: pointer;
   margin-bottom: 10px;
 }
@@ -347,7 +327,7 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 
 .status-msg {
   font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   text-align: center;
   min-height: 20px;
   color: var(--green);
@@ -401,8 +381,8 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 }
 .order-card.nieuw { border-left-color: var(--clay); }
 .order-card .items-line {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
   margin-bottom: 4px;
 }
 .order-card .note-line {
@@ -444,8 +424,4 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-@media (max-width: 420px) {
-  .products { grid-template-columns: 1fr; }
 }
