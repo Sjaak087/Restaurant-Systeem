@@ -378,10 +378,16 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   border: 1px solid var(--line);
   border-left: 5px solid var(--green);
   border-radius: var(--radius);
-  padding: 16px 18px;
+  padding: 18px 20px;
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
 .order-card.nieuw { border-left-color: var(--clay); }
+.items-block { margin-bottom: 8px; }
+.item-line {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
 .order-card .items-line {
   font-size: 1.15rem;
   font-weight: 700;
