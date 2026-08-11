@@ -220,6 +220,7 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   gap: 8px;
   margin-top: 14px;
 }
+.ice-toggles:empty { margin-top: 0; }
 .ice-chip {
   padding: 8px 14px;
   border-radius: 999px;
@@ -282,10 +283,10 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 10px 14px;
+  padding: 14px 16px;
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
-.stock-row .stock-name { font-size: 0.95rem; }
+.stock-row .stock-name { font-size: 1.05rem; font-weight: 600; }
 .stock-row.out .stock-name {
   text-decoration: line-through;
   color: var(--muted);
@@ -293,7 +294,8 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 .stock-row .stock-btn {
   margin-top: 0;
   width: auto;
-  padding: 7px 14px;
+  padding: 9px 16px;
+  font-size: 0.85rem;
 }
 
 .note-field {
@@ -343,13 +345,13 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 
 .toggle-btn {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   border-radius: var(--radius);
   border: 1px solid var(--ink);
   background: transparent;
   font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   color: var(--ink);
 }
@@ -386,13 +388,13 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   margin-bottom: 4px;
 }
 .order-card .note-line {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--muted);
   font-style: italic;
   margin-bottom: 10px;
 }
 .order-card .time-line {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: var(--muted);
   margin-bottom: 10px;
 }
@@ -401,12 +403,12 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   gap: 8px;
 }
 .chip-btn {
-  padding: 8px 16px;
+  padding: 11px 20px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
 }
 .chip-btn.ready { background: var(--green); color: white; }
 .chip-btn.ready:hover { background: #3a6144; }
@@ -417,11 +419,11 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 .kitchen-count {
   font-family: "Helvetica Neue", Arial, sans-serif;
   color: var(--muted);
-  font-size: 0.85rem;
-  margin-bottom: 16px;
+  font-size: 1rem;
+  margin-bottom: 18px;
 }
 .kitchen-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
