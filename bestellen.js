@@ -32,7 +32,7 @@ productsContainer.querySelectorAll('.plus-btn').forEach(btn => {
     if (stockStatus[key]) return; // uitverkocht, niet aanklikbaar
     counts[key]++;
     updateCountDisplay(key);
-    updateIceSelectorVisibility();
+    syncAndRenderIce();
   });
 });
 
@@ -42,7 +42,7 @@ productsContainer.querySelectorAll('.min-btn').forEach(btn => {
     if (stockStatus[key]) return;
     if (counts[key] > 0) counts[key]--;
     updateCountDisplay(key);
-    updateIceSelectorVisibility();
+    syncAndRenderIce();
   });
 });
 
@@ -83,31 +83,68 @@ db.ref('stock').on('value', snapshot => {
     applyStockUI(product.key);
   });
   ijsklontjesOut = !!data['ijsklontjes'];
-  updateIceSelectorVisibility();
+  syncAndRenderIce();
 });
 
-// ---- IJsklontjes-keuze ----
+// ---- IJsklontjes-keuze (per glas apart) ----
 const iceSelector = document.getElementById('ice-selector');
-const iceButtons = iceSelector.querySelectorAll('.ice-btn');
-let iceChoice = null; // 'met' | 'zonder' | null
+const iceRows = document.getElementById('ice-rows');
+const iceChoices = {}; // key -> array van 'met' | 'zonder' | null, lengte = counts[key]
 
-iceButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    iceChoice = btn.getAttribute('data-choice');
-    iceButtons.forEach(b => b.classList.toggle('active', b === btn));
+function productLabel(key) {
+  const product = PRODUCTS.find(p => p.key === key);
+  return product ? product.label : key;
+}
+
+function syncAndRenderIce() {
+  iceRows.innerHTML = '';
+  let anyRow = false;
+
+  ICE_OPTION_KEYS.forEach(key => {
+    if (ijsklontjesOut) { iceChoices[key] = []; return; }
+
+    const n = counts[key] || 0;
+    if (!iceChoices[key]) iceChoices[key] = [];
+    while (iceChoices[key].length < n) iceChoices[key].push(null);
+    while (iceChoices[key].length > n) iceChoices[key].pop();
+
+    if (n === 0) return;
+    anyRow = true;
+
+    const label = productLabel(key);
+    iceChoices[key].forEach((choice, i) => {
+      const rowLabel = n > 1 ? `${label} #${i + 1}` : label;
+      const row = document.createElement('div');
+      row.className = 'ice-row';
+      row.innerHTML = `
+        <span class="ice-row-label">${rowLabel}</span>
+        <div class="ice-buttons">
+          <button type="button" class="ice-btn${choice === 'met' ? ' active' : ''}" data-key="${key}" data-index="${i}" data-choice="met">🧊 Met</button>
+          <button type="button" class="ice-btn${choice === 'zonder' ? ' active' : ''}" data-key="${key}" data-index="${i}" data-choice="zonder">🚫 Zonder</button>
+        </div>
+      `;
+      iceRows.appendChild(row);
+    });
   });
-});
 
-function updateIceSelectorVisibility() {
-  const heeftIjsDrankje = ICE_OPTION_KEYS.some(key => counts[key] > 0);
-  const moetTonen = heeftIjsDrankje && !ijsklontjesOut;
+  iceSelector.classList.toggle('hidden', !anyRow);
 
-  iceSelector.classList.toggle('hidden', !moetTonen);
+  iceRows.querySelectorAll('.ice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-key');
+      const index = parseInt(btn.getAttribute('data-index'), 10);
+      iceChoices[key][index] = btn.getAttribute('data-choice');
+      syncAndRenderIce();
+    });
+  });
+}
 
-  if (!moetTonen) {
-    iceChoice = null;
-    iceButtons.forEach(b => b.classList.remove('active'));
-  }
+function iceSelectionsComplete() {
+  return ICE_OPTION_KEYS.every(key => {
+    if (ijsklontjesOut) return true;
+    const arr = iceChoices[key] || [];
+    return arr.every(c => c !== null);
+  });
 }
 
 // ---- Bestelling plaatsen ----
@@ -127,8 +164,8 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
     return;
   }
 
-  if (!iceSelector.classList.contains('hidden') && !iceChoice) {
-    statusMsg.textContent = 'Kies nog even met of zonder ijsklontjes.';
+  if (!iceSelectionsComplete()) {
+    statusMsg.textContent = 'Kies nog even met of zonder ijs bij elk drankje.';
     statusMsg.style.color = '#c1552f';
     return;
   }
@@ -141,7 +178,14 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
     status: 'nieuw',
     tijd: Date.now()
   };
-  if (iceChoice) orderData.ijs = iceChoice;
+
+  const ijsKeuzes = {};
+  ICE_OPTION_KEYS.forEach(key => {
+    if (items[key] && iceChoices[key] && iceChoices[key].length > 0) {
+      ijsKeuzes[key] = iceChoices[key].slice();
+    }
+  });
+  if (Object.keys(ijsKeuzes).length > 0) orderData.ijsKeuzes = ijsKeuzes;
 
   const newOrderRef = db.ref('orders').push();
   newOrderRef.set(orderData).then(() => {
@@ -151,9 +195,8 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
       updateCountDisplay(product.key);
     });
     document.getElementById('opmerking').value = '';
-    iceChoice = null;
-    iceButtons.forEach(b => b.classList.remove('active'));
-    updateIceSelectorVisibility();
+    ICE_OPTION_KEYS.forEach(key => { iceChoices[key] = []; });
+    syncAndRenderIce();
 
     statusMsg.style.color = '#4a7856';
     statusMsg.textContent = 'Bestelling geplaatst! Deze is nu naar de keuken gestuurd.';
@@ -174,11 +217,6 @@ toggleBtn.addEventListener('click', () => {
 });
 
 // ---- Live lijst met klaar-gemelde bestellingen ----
-function productLabel(key) {
-  const product = PRODUCTS.find(p => p.key === key);
-  return product ? product.label : key;
-}
-
 function itemsToText(items) {
   return Object.entries(items)
     .map(([key, aantal]) => `${aantal}x ${productLabel(key)}`)
@@ -186,9 +224,18 @@ function itemsToText(items) {
 }
 
 function iceLineHtml(order) {
-  if (!order.ijs) return '';
-  const tekst = order.ijs === 'met' ? '🧊 Met ijsklontjes' : '🚫 Zonder ijsklontjes';
-  return `<div class="note-line">${tekst}</div>`;
+  if (!order.ijsKeuzes) return '';
+  const regels = [];
+  Object.entries(order.ijsKeuzes).forEach(([key, keuzes]) => {
+    const label = productLabel(key);
+    keuzes.forEach((keuze, i) => {
+      const nummer = keuzes.length > 1 ? ` #${i + 1}` : '';
+      const tekst = keuze === 'met' ? '🧊 Met ijs' : '🚫 Zonder ijs';
+      regels.push(`${label}${nummer}: ${tekst}`);
+    });
+  });
+  if (regels.length === 0) return '';
+  return `<div class="note-line">${regels.join('<br>')}</div>`;
 }
 
 const readyOrders = {};
