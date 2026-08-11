@@ -44,6 +44,7 @@ function renderIceToggles(key) {
   if (!container) return;
   container.innerHTML = '';
 
+  if (!ICE_OPTION_KEYS.includes(key)) return; // alleen bij de aangewezen drankjes
   if (ijsklontjesOut) { iceChoices[key] = []; return; }
 
   const n = counts[key] || 0;
