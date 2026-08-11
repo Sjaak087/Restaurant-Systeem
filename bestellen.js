@@ -1,23 +1,33 @@
-// ---- Product-kaartjes automatisch opbouwen op basis van products.js ----
+// ---- Product-rijen automatisch opbouwen op basis van products.js ----
 const counts = {};
 const stockStatus = {}; // true = uitverkocht
+const iceChoices = {};  // key -> array van 'met' | 'zonder', lengte = counts[key]
 const productsContainer = document.getElementById('products');
+
+function productLabel(key) {
+  const product = PRODUCTS.find(p => p.key === key);
+  return product ? product.label : key;
+}
 
 PRODUCTS.forEach(product => {
   counts[product.key] = 0;
   stockStatus[product.key] = false;
+  iceChoices[product.key] = [];
 
   const card = document.createElement('div');
   card.className = 'product-card';
   card.id = `card-${product.key}`;
   card.innerHTML = `
     <div class="name">${product.emoji} ${product.label}</div>
-    <div class="stepper">
-      <button type="button" class="min-btn" data-key="${product.key}">−</button>
-      <span class="count" id="${product.key}-count">0</span>
-      <button type="button" class="plus-btn" data-key="${product.key}">+</button>
+    <div class="product-row-main">
+      <div class="stepper">
+        <button type="button" class="min-btn" data-key="${product.key}">−</button>
+        <span class="count" id="${product.key}-count">0</span>
+        <button type="button" class="plus-btn" data-key="${product.key}">+</button>
+      </div>
+      <button type="button" class="stock-btn" data-key="${product.key}">Uitverkocht</button>
     </div>
-    <button type="button" class="stock-btn" data-key="${product.key}">Uitverkocht</button>
+    <div class="ice-toggles" id="ice-toggles-${product.key}"></div>
   `;
   productsContainer.appendChild(card);
 });
@@ -26,13 +36,43 @@ function updateCountDisplay(key) {
   document.getElementById(`${key}-count`).textContent = counts[key];
 }
 
+// ---- IJs-chips per besteld stuk (standaard "zonder ijs") ----
+let ijsklontjesOut = false;
+
+function renderIceToggles(key) {
+  const container = document.getElementById(`ice-toggles-${key}`);
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (ijsklontjesOut) { iceChoices[key] = []; return; }
+
+  const n = counts[key] || 0;
+  if (!iceChoices[key]) iceChoices[key] = [];
+  while (iceChoices[key].length < n) iceChoices[key].push('zonder');
+  while (iceChoices[key].length > n) iceChoices[key].pop();
+
+  iceChoices[key].forEach((choice, i) => {
+    const nummer = n > 1 ? `#${i + 1} ` : '';
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'ice-chip' + (choice === 'met' ? ' met' : '');
+    chip.textContent = `${nummer}${choice === 'met' ? '🧊 Met ijs' : '🚫 Zonder ijs'}`;
+    chip.addEventListener('click', () => {
+      iceChoices[key][i] = iceChoices[key][i] === 'met' ? 'zonder' : 'met';
+      renderIceToggles(key);
+    });
+    container.appendChild(chip);
+  });
+}
+
+// ---- Tellers ----
 productsContainer.querySelectorAll('.plus-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const key = btn.getAttribute('data-key');
     if (stockStatus[key]) return; // uitverkocht, niet aanklikbaar
     counts[key]++;
     updateCountDisplay(key);
-    syncAndRenderIce();
+    renderIceToggles(key);
   });
 });
 
@@ -42,7 +82,7 @@ productsContainer.querySelectorAll('.min-btn').forEach(btn => {
     if (stockStatus[key]) return;
     if (counts[key] > 0) counts[key]--;
     updateCountDisplay(key);
-    syncAndRenderIce();
+    renderIceToggles(key);
   });
 });
 
@@ -70,12 +110,11 @@ function applyStockUI(key) {
   if (isOut && counts[key] > 0) {
     counts[key] = 0;
     updateCountDisplay(key);
+    renderIceToggles(key);
   }
 }
 
 // Live luisteren naar voorraadwijzigingen (vanuit keuken of bestelpagina)
-let ijsklontjesOut = false;
-
 db.ref('stock').on('value', snapshot => {
   const data = snapshot.val() || {};
   PRODUCTS.forEach(product => {
@@ -83,69 +122,8 @@ db.ref('stock').on('value', snapshot => {
     applyStockUI(product.key);
   });
   ijsklontjesOut = !!data['ijsklontjes'];
-  syncAndRenderIce();
+  PRODUCTS.forEach(product => renderIceToggles(product.key));
 });
-
-// ---- IJsklontjes-keuze (per glas apart) ----
-const iceSelector = document.getElementById('ice-selector');
-const iceRows = document.getElementById('ice-rows');
-const iceChoices = {}; // key -> array van 'met' | 'zonder' | null, lengte = counts[key]
-
-function productLabel(key) {
-  const product = PRODUCTS.find(p => p.key === key);
-  return product ? product.label : key;
-}
-
-function syncAndRenderIce() {
-  iceRows.innerHTML = '';
-  let anyRow = false;
-
-  ICE_OPTION_KEYS.forEach(key => {
-    if (ijsklontjesOut) { iceChoices[key] = []; return; }
-
-    const n = counts[key] || 0;
-    if (!iceChoices[key]) iceChoices[key] = [];
-    while (iceChoices[key].length < n) iceChoices[key].push(null);
-    while (iceChoices[key].length > n) iceChoices[key].pop();
-
-    if (n === 0) return;
-    anyRow = true;
-
-    const label = productLabel(key);
-    iceChoices[key].forEach((choice, i) => {
-      const rowLabel = n > 1 ? `${label} #${i + 1}` : label;
-      const row = document.createElement('div');
-      row.className = 'ice-row';
-      row.innerHTML = `
-        <span class="ice-row-label">${rowLabel}</span>
-        <div class="ice-buttons">
-          <button type="button" class="ice-btn${choice === 'met' ? ' active' : ''}" data-key="${key}" data-index="${i}" data-choice="met">🧊 Met</button>
-          <button type="button" class="ice-btn${choice === 'zonder' ? ' active' : ''}" data-key="${key}" data-index="${i}" data-choice="zonder">🚫 Zonder</button>
-        </div>
-      `;
-      iceRows.appendChild(row);
-    });
-  });
-
-  iceSelector.classList.toggle('hidden', !anyRow);
-
-  iceRows.querySelectorAll('.ice-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const key = btn.getAttribute('data-key');
-      const index = parseInt(btn.getAttribute('data-index'), 10);
-      iceChoices[key][index] = btn.getAttribute('data-choice');
-      syncAndRenderIce();
-    });
-  });
-}
-
-function iceSelectionsComplete() {
-  return ICE_OPTION_KEYS.every(key => {
-    if (ijsklontjesOut) return true;
-    const arr = iceChoices[key] || [];
-    return arr.every(c => c !== null);
-  });
-}
 
 // ---- Bestelling plaatsen ----
 const statusMsg = document.getElementById('status-msg');
@@ -164,12 +142,6 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
     return;
   }
 
-  if (!iceSelectionsComplete()) {
-    statusMsg.textContent = 'Kies nog even met of zonder ijs bij elk drankje.';
-    statusMsg.style.color = '#c1552f';
-    return;
-  }
-
   const opmerking = document.getElementById('opmerking').value.trim();
 
   const orderData = {
@@ -180,8 +152,8 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
   };
 
   const ijsKeuzes = {};
-  ICE_OPTION_KEYS.forEach(key => {
-    if (items[key] && iceChoices[key] && iceChoices[key].length > 0) {
+  Object.keys(items).forEach(key => {
+    if (iceChoices[key] && iceChoices[key].length > 0) {
       ijsKeuzes[key] = iceChoices[key].slice();
     }
   });
@@ -193,10 +165,9 @@ document.getElementById('plaats-bestelling').addEventListener('click', () => {
     PRODUCTS.forEach(product => {
       counts[product.key] = 0;
       updateCountDisplay(product.key);
+      renderIceToggles(product.key);
     });
     document.getElementById('opmerking').value = '';
-    ICE_OPTION_KEYS.forEach(key => { iceChoices[key] = []; });
-    syncAndRenderIce();
 
     statusMsg.style.color = '#4a7856';
     statusMsg.textContent = 'Bestelling geplaatst! Deze is nu naar de keuken gestuurd.';
