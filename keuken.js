@@ -15,6 +15,21 @@ function itemsToText(items) {
     .join(', ');
 }
 
+function iceLineHtml(order) {
+  if (!order.ijsKeuzes) return '';
+  const regels = [];
+  Object.entries(order.ijsKeuzes).forEach(([key, keuzes]) => {
+    const label = productLabel(key);
+    keuzes.forEach((keuze, i) => {
+      const nummer = keuzes.length > 1 ? ` #${i + 1}` : '';
+      const tekst = keuze === 'met' ? '🧊 Met ijs' : '🚫 Zonder ijs';
+      regels.push(`${label}${nummer}: ${tekst}`);
+    });
+  });
+  if (regels.length === 0) return '';
+  return `<div class="note-line">${regels.join('<br>')}</div>`;
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
@@ -48,9 +63,7 @@ function render() {
     const noteHtml = order.opmerking
       ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>`
       : '';
-    const iceHtml = order.ijs
-      ? `<div class="note-line">${order.ijs === 'met' ? '🧊 Met ijsklontjes' : '🚫 Zonder ijsklontjes'}</div>`
-      : '';
+    const iceHtml = iceLineHtml(order);
 
     card.innerHTML = `
       <div class="items-line">${itemsToText(order.items)}</div>
