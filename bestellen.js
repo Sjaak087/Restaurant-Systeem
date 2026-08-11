@@ -189,25 +189,20 @@ toggleBtn.addEventListener('click', () => {
 });
 
 // ---- Live lijst met klaar-gemelde bestellingen ----
-function itemsToText(items) {
-  return Object.entries(items)
-    .map(([key, aantal]) => `${aantal}x ${productLabel(key)}`)
-    .join(', ');
-}
-
-function iceLineHtml(order) {
-  if (!order.ijsKeuzes) return '';
-  const regels = [];
-  Object.entries(order.ijsKeuzes).forEach(([key, keuzes]) => {
+function itemsToLinesHtml(order) {
+  return Object.entries(order.items).map(([key, aantal]) => {
     const label = productLabel(key);
-    keuzes.forEach((keuze, i) => {
-      const nummer = keuzes.length > 1 ? ` #${i + 1}` : '';
-      const tekst = keuze === 'met' ? '🧊 Met ijs' : '🚫 Zonder ijs';
-      regels.push(`${label}${nummer}: ${tekst}`);
-    });
-  });
-  if (regels.length === 0) return '';
-  return `<div class="note-line">${regels.join('<br>')}</div>`;
+    const keuzes = order.ijsKeuzes && order.ijsKeuzes[key];
+
+    if (keuzes && keuzes.length > 0) {
+      return keuzes.map(keuze => {
+        const suffix = keuze === 'met' ? ' — 🧊 met ijs' : '';
+        return `<div class="item-line">1x ${label}${suffix}</div>`;
+      }).join('');
+    }
+
+    return `<div class="item-line">${aantal}x ${label}</div>`;
+  }).join('');
 }
 
 const readyOrders = {};
@@ -233,8 +228,7 @@ function renderReadyList() {
       : '';
 
     card.innerHTML = `
-      <div class="items-line">${itemsToText(order.items)}</div>
-      ${iceLineHtml(order)}
+      <div class="items-block">${itemsToLinesHtml(order)}</div>
       ${noteHtml}
       <div class="actions">
         <button class="chip-btn delivered" data-id="${id}">Bezorgd</button>
@@ -314,7 +308,7 @@ function renderHistoryList() {
   ids.forEach(id => {
     const order = historyOrders[id];
     const card = document.createElement('div');
-    card.className = 'order-card';
+    card.className = 'order-card history-card';
 
     const noteHtml = order.opmerking
       ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>`
@@ -324,8 +318,7 @@ function renderHistoryList() {
       : '';
 
     card.innerHTML = `
-      <div class="items-line">${itemsToText(order.items)}</div>
-      ${iceLineHtml(order)}
+      <div class="items-block">${itemsToLinesHtml(order)}</div>
       ${noteHtml}
       ${timeHtml}
     `;
