@@ -9,10 +9,10 @@ function productLabel(key) {
   return product ? product.label : key;
 }
 
-function itemsToText(items) {
+function itemsToLinesHtml(items) {
   return Object.entries(items)
-    .map(([key, aantal]) => `${aantal}x ${productLabel(key)}`)
-    .join(', ');
+    .map(([key, aantal]) => `<div class="item-line">${aantal}x ${productLabel(key)}</div>`)
+    .join('');
 }
 
 function iceLineHtml(order) {
@@ -66,7 +66,7 @@ function render() {
     const iceHtml = iceLineHtml(order);
 
     card.innerHTML = `
-      <div class="items-line">${itemsToText(order.items)}</div>
+      <div class="items-block">${itemsToLinesHtml(order.items)}</div>
       ${iceHtml}
       ${noteHtml}
       <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
