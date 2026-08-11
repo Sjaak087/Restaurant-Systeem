@@ -310,6 +310,25 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   color: white;
 }
 
+.ice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ice-row:last-child { margin-bottom: 0; }
+.ice-row-label {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.88rem;
+}
+.ice-row .ice-buttons { flex: 0 0 auto; gap: 6px; }
+.ice-row .ice-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
 .primary-btn {
   width: 100%;
   padding: 15px;
