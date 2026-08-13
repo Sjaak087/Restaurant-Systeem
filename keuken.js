@@ -78,6 +78,25 @@ function render() {
   });
 }
 
+// ---- Meldingsgeluid bij nieuwe bestelling ----
+// Zorg dat het geluidsbestand in dezelfde map staat als deze pagina's,
+// met precies de naam "melding-geluid.mp3". Heb je een ander formaat
+// (bijv. .wav of .ogg), pas dan de bestandsnaam hieronder aan.
+const meldingGeluid = new Audio('melding-geluid.mp3');
+const paginaGeladenOp = Date.now();
+
+function speelMeldingGeluid() {
+  try {
+    meldingGeluid.currentTime = 0;
+    meldingGeluid.play().catch(() => {
+      // Sommige browsers blokkeren geluid totdat er 1x op de pagina is geklikt.
+      // Zodra dat gebeurt is werkt het geluid daarna gewoon.
+    });
+  } catch (e) {
+    console.error('Kon meldingsgeluid niet afspelen:', e);
+  }
+}
+
 const ordersRef = db.ref('orders');
 
 ordersRef.on('child_added', snap => {
@@ -85,6 +104,12 @@ ordersRef.on('child_added', snap => {
   if (order.status === 'nieuw') {
     nieuweOrders[snap.key] = order;
     render();
+
+    // Alleen geluid bij bestellingen die ná het laden van deze pagina
+    // zijn binnengekomen, niet bij bestaande bestellingen bij het openen.
+    if (order.tijd && order.tijd > paginaGeladenOp) {
+      speelMeldingGeluid();
+    }
   }
 });
 
