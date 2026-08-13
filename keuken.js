@@ -79,10 +79,9 @@ function render() {
 }
 
 // ---- Meldingsgeluid bij nieuwe bestelling ----
-// Zorg dat het geluidsbestand in dezelfde map staat als deze pagina's,
-// met precies de naam "melding-geluid.mp3". Heb je een ander formaat
-// (bijv. .wav of .ogg), pas dan de bestandsnaam hieronder aan.
-const meldingGeluid = new Audio('melding-geluid.mp3');
+// Bestand moet in dezelfde map staan als deze pagina's, met exact de naam
+// "melding geluid.mp3" (spaties worden hieronder automatisch gecodeerd als %20).
+const meldingGeluid = new Audio('melding%20geluid.mp3');
 const paginaGeladenOp = Date.now();
 
 function speelMeldingGeluid() {
