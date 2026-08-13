@@ -1,21 +1,34 @@
 :root {
-  --cream: #faf6ef;
-  --ink: #2b2420;
-  --clay: #c1552f;
-  --clay-dark: #9c4224;
-  --green: #4a7856;
-  --line: #e4dccb;
-  --card: #ffffff;
-  --muted: #8a8072;
-  --radius: 14px;
+  --bg: #171310;
+  --bg-elevated: #211a14;
+  --card: #29211a;
+  --line: #473b2c;
+  --gold: #c9a24b;
+  --gold-soft: #e6cf94;
+  --wine: #8c3a3a;
+  --wine-dark: #6e2c2c;
+  --ink: #f3ead9;
+  --muted: #a99a83;
+  --paper: #f2e8d5;
+  --paper-ink: #2a2115;
+  --paper-line: #b8a67e;
+  --green: #6f8f5c;
+  --green-dark: #566f47;
+  --radius: 10px;
+  --radius-pill: 999px;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Work Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: "Georgia", "Iowan Old Style", serif;
-  background: var(--cream);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(ellipse at top, rgba(201, 162, 75, 0.08), transparent 55%),
+    var(--bg);
   color: var(--ink);
   min-height: 100vh;
   font-size: 17px;
@@ -24,34 +37,47 @@ body {
 .wrap {
   max-width: 680px;
   margin: 0 auto;
-  padding: 32px 20px 80px;
+  padding: 32px 20px 90px;
 }
 
 header.top {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 28px;
-  border-bottom: 3px solid var(--ink);
-  padding-bottom: 14px;
+  margin-bottom: 30px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
 }
-
+header.top::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 64px;
+  height: 2px;
+  background: var(--gold);
+}
 header.top h1 {
-  font-size: 1.9rem;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
   margin: 0;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
-
 header.top a {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   text-decoration: none;
   color: var(--muted);
   border: 1px solid var(--line);
-  padding: 6px 12px;
-  border-radius: 999px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
 }
-header.top a:hover { color: var(--ink); border-color: var(--ink); }
+header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
 
 .header-actions {
   display: flex;
@@ -60,25 +86,27 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 }
 
 .history-btn {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold-soft);
   cursor: pointer;
 }
-.history-btn:hover { border-color: var(--ink); }
+.history-btn:hover { background: var(--gold); color: var(--bg); }
 
 .history-panel {
   display: none;
-  background: var(--card);
+  background: var(--bg-elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 16px 18px;
-  margin-bottom: 20px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
 }
 .history-panel.open { display: block; }
 
@@ -86,23 +114,26 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 14px;
 }
 
 .reset-btn {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--clay);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--wine);
   background: transparent;
-  color: var(--clay);
+  color: #d99a9a;
   cursor: pointer;
 }
-.reset-btn:hover { background: var(--clay); color: white; }
+.reset-btn:hover { background: var(--wine); color: white; }
 
 #history-list {
   display: flex;
@@ -129,6 +160,36 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   margin-bottom: 0;
 }
 
+.history-summary {
+  margin-top: 16px;
+}
+.history-summary:empty { margin-top: 0; }
+.history-summary-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gold-soft);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-bottom: 8px;
+}
+.history-summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--line);
+  color: var(--muted);
+}
+.history-summary-row span:last-child {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+}
+
 /* Kies-pagina */
 .choice-screen {
   min-height: 100vh;
@@ -136,19 +197,31 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 10px;
   padding: 20px;
   text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(201, 162, 75, 0.14), transparent 60%),
+    var(--bg);
+}
+.choice-emblem {
+  font-size: 2.4rem;
+  margin-bottom: 4px;
+  filter: grayscale(0.2);
 }
 .choice-screen h1 {
-  font-size: 2rem;
-  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 900;
+  margin: 0 0 4px;
+  color: var(--ink);
 }
 .choice-screen p.sub {
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
   color: var(--muted);
   margin-top: 0;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
+  letter-spacing: 0.02em;
 }
 .choice-buttons {
   display: flex;
@@ -157,23 +230,39 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   justify-content: center;
 }
 .big-choice {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding: 26px 40px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 24px 44px;
   border-radius: var(--radius);
-  border: none;
+  border: 1px solid var(--gold);
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
-  min-width: 160px;
+  min-width: 170px;
+  letter-spacing: 0.02em;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.big-choice.order { background: var(--clay); color: white; }
-.big-choice.order:hover { background: var(--clay-dark); }
-.big-choice.kitchen { background: var(--ink); color: var(--cream); }
-.big-choice.kitchen:hover { background: #454037; }
+.big-choice.order { background: var(--wine); color: var(--ink); border-color: var(--wine); }
+.big-choice.order:hover { background: var(--wine-dark); }
+.big-choice.kitchen { background: transparent; color: var(--gold-soft); }
+.big-choice.kitchen:hover { background: var(--gold); color: var(--bg); }
 
-/* Producten - verticale lijst */
+/* Menu-categorieën */
+.category-heading {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+  margin: 26px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.category-heading:first-child { margin-top: 0; }
+
+/* Producten */
 .products {
   display: flex;
   flex-direction: column;
@@ -183,14 +272,17 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 .product-card {
   background: var(--card);
   border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
   border-radius: var(--radius);
-  padding: 20px 22px;
+  padding: 18px 20px;
   text-align: left;
 }
 .product-card .name {
-  font-size: 1.35rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   font-weight: 700;
   margin-bottom: 14px;
+  color: var(--ink);
 }
 .product-row-main {
   display: flex;
@@ -204,32 +296,37 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   align-items: center;
   justify-content: flex-start;
   gap: 16px;
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
 }
 .stepper button {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1px solid var(--ink);
-  background: white;
-  font-size: 1.5rem;
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold-soft);
+  font-size: 1.4rem;
   cursor: pointer;
   line-height: 1;
 }
+.stepper button:hover { background: var(--gold); color: var(--bg); }
 .stepper button:active { transform: scale(0.94); }
 .stepper button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+  background: transparent;
+  color: var(--gold-soft);
 }
 .stepper .count {
   min-width: 28px;
   text-align: center;
-  font-size: 1.3rem;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
   font-weight: 700;
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
 }
 
-/* IJs-chips per besteld stuk, direct onder het product */
+/* IJs-chips per besteld stuk */
 .ice-toggles {
   display: flex;
   flex-wrap: wrap;
@@ -239,26 +336,27 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
 .ice-toggles:empty { margin-top: 0; }
 .ice-chip {
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: transparent;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   color: var(--muted);
 }
-.ice-chip:hover { border-color: var(--ink); color: var(--ink); }
+.ice-chip:hover { border-color: var(--gold); color: var(--gold-soft); }
 .ice-chip.met {
   background: var(--green);
   border-color: var(--green);
   color: white;
 }
-.ice-chip.met:hover { background: #3a6144; }
+.ice-chip.met:hover { background: var(--green-dark); }
 
 /* Uitverkocht */
 .product-card.out-of-stock {
-  background: #f2efe7;
+  background: #221b15;
+  border-left-color: var(--wine);
 }
 .product-card.out-of-stock .name {
   text-decoration: line-through;
@@ -268,23 +366,185 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   margin-top: 14px;
   width: auto;
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.8rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
 }
-.stock-btn:hover { border-color: var(--clay); color: var(--clay); }
+.stock-btn:hover { border-color: var(--wine); color: #d99a9a; }
 .stock-btn.active {
-  background: var(--clay);
-  border-color: var(--clay);
+  background: var(--wine);
+  border-color: var(--wine);
   color: white;
 }
-.stock-btn.active:hover { background: var(--clay-dark); }
+.stock-btn.active:hover { background: var(--wine-dark); }
 
-/* Voorraadbeheer (keukenscherm) */
+.note-field {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: 13px 15px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 60px;
+  margin-bottom: 18px;
+}
+.note-field::placeholder { color: var(--muted); }
+
+.primary-btn {
+  width: 100%;
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  color: var(--bg);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.primary-btn:hover { background: var(--gold-soft); border-color: var(--gold-soft); }
+.primary-btn:disabled { background: #4a4436; border-color: #4a4436; color: var(--muted); cursor: not-allowed; }
+
+.status-msg {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  text-align: center;
+  min-height: 20px;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 30px 0 20px;
+}
+
+.toggle-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--gold-soft);
+}
+.toggle-btn:hover { background: var(--gold); color: var(--bg); }
+
+.ready-list {
+  margin-top: 16px;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+.ready-list.open { display: flex; }
+
+.empty-msg {
+  font-family: var(--font-body);
+  color: var(--muted);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.order-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--green);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  font-family: var(--font-body);
+}
+.order-card.nieuw { border-left-color: var(--wine); }
+.items-block { margin-bottom: 8px; }
+.item-line {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.order-card .note-line {
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.order-card .time-line {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.order-card .actions {
+  display: flex;
+  gap: 8px;
+}
+.chip-btn {
+  padding: 11px 22px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.chip-btn.ready { background: var(--green); color: white; }
+.chip-btn.ready:hover { background: var(--green-dark); }
+.chip-btn.delivered { background: var(--gold); color: var(--bg); }
+.chip-btn.delivered:hover { background: var(--gold-soft); }
+
+/* Keuken */
+.kitchen-count {
+  font-family: var(--font-body);
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 18px;
+  letter-spacing: 0.02em;
+}
+
+.kitchen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Bestelbonnetjes in de keuken ogen als echte keukenbonnen: papierkleurig, monospace */
+.kitchen-list .order-card {
+  background: var(--paper);
+  color: var(--paper-ink);
+  border: 1px dashed var(--paper-line);
+  border-left: 4px dashed var(--paper-line);
+  font-family: var(--font-mono);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+}
+.kitchen-list .order-card.nieuw { border-left-color: var(--wine); }
+.kitchen-list .item-line { color: var(--paper-ink); }
+.kitchen-list .order-card .note-line { color: #5a4d38; }
+.kitchen-list .order-card .time-line { color: #7a6c50; }
+.kitchen-list .chip-btn.ready {
+  background: var(--wine);
+  color: var(--paper);
+  font-family: var(--font-body);
+}
+.kitchen-list .chip-btn.ready:hover { background: var(--wine-dark); }
+
+/* Voorraadbeheer */
 .stock-list {
   margin-top: 16px;
   display: none;
@@ -300,9 +560,9 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px 16px;
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
 }
-.stock-row .stock-name { font-size: 1.05rem; font-weight: 600; }
+.stock-row .stock-name { font-size: 1.05rem; font-weight: 600; color: var(--ink); }
 .stock-row.out .stock-name {
   text-decoration: line-through;
   color: var(--muted);
@@ -312,140 +572,4 @@ header.top a:hover { color: var(--ink); border-color: var(--ink); }
   width: auto;
   padding: 9px 16px;
   font-size: 0.85rem;
-}
-
-.note-field {
-  width: 100%;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: var(--card);
-  padding: 12px 14px;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.95rem;
-  resize: vertical;
-  min-height: 60px;
-  margin-bottom: 18px;
-}
-
-.primary-btn {
-  width: 100%;
-  padding: 17px;
-  border-radius: var(--radius);
-  border: none;
-  background: var(--clay);
-  color: white;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
-.primary-btn:hover { background: var(--clay-dark); }
-.primary-btn:disabled { background: #cbbfae; cursor: not-allowed; }
-
-.status-msg {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.95rem;
-  text-align: center;
-  min-height: 20px;
-  color: var(--green);
-  margin-bottom: 8px;
-}
-
-/* Gemaakte bestellingen sectie */
-.divider {
-  border: none;
-  border-top: 1px solid var(--line);
-  margin: 30px 0 20px;
-}
-
-.toggle-btn {
-  width: 100%;
-  padding: 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--ink);
-  background: transparent;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  color: var(--ink);
-}
-.toggle-btn:hover { background: var(--ink); color: var(--cream); }
-
-.ready-list {
-  margin-top: 16px;
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-}
-.ready-list.open { display: flex; }
-
-.empty-msg {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  color: var(--muted);
-  text-align: center;
-  padding: 20px;
-  font-style: italic;
-}
-
-.order-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-left: 5px solid var(--green);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-}
-.order-card.nieuw { border-left-color: var(--clay); }
-.items-block { margin-bottom: 8px; }
-.item-line {
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-.order-card .items-line {
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.order-card .note-line {
-  font-size: 1rem;
-  color: var(--muted);
-  font-style: italic;
-  margin-bottom: 10px;
-}
-.order-card .time-line {
-  font-size: 0.82rem;
-  color: var(--muted);
-  margin-bottom: 10px;
-}
-.order-card .actions {
-  display: flex;
-  gap: 8px;
-}
-.chip-btn {
-  padding: 11px 20px;
-  border-radius: 999px;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 700;
-}
-.chip-btn.ready { background: var(--green); color: white; }
-.chip-btn.ready:hover { background: #3a6144; }
-.chip-btn.delivered { background: var(--ink); color: var(--cream); }
-.chip-btn.delivered:hover { background: #454037; }
-
-/* Keuken */
-.kitchen-count {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  color: var(--muted);
-  font-size: 1rem;
-  margin-bottom: 18px;
-}
-.kitchen-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
