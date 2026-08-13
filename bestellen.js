@@ -9,27 +9,37 @@ function productLabel(key) {
   return product ? product.label : key;
 }
 
-PRODUCTS.forEach(product => {
-  counts[product.key] = 0;
-  stockStatus[product.key] = false;
-  iceChoices[product.key] = [];
+CATEGORIES.forEach(cat => {
+  const productenInCat = PRODUCTS.filter(p => p.category === cat.key);
+  if (productenInCat.length === 0) return;
 
-  const card = document.createElement('div');
-  card.className = 'product-card';
-  card.id = `card-${product.key}`;
-  card.innerHTML = `
-    <div class="name">${product.emoji} ${product.label}</div>
-    <div class="product-row-main">
-      <div class="stepper">
-        <button type="button" class="min-btn" data-key="${product.key}">−</button>
-        <span class="count" id="${product.key}-count">0</span>
-        <button type="button" class="plus-btn" data-key="${product.key}">+</button>
+  const heading = document.createElement('div');
+  heading.className = 'category-heading';
+  heading.innerHTML = `<span>${cat.label}</span>`;
+  productsContainer.appendChild(heading);
+
+  productenInCat.forEach(product => {
+    counts[product.key] = 0;
+    stockStatus[product.key] = false;
+    iceChoices[product.key] = [];
+
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.id = `card-${product.key}`;
+    card.innerHTML = `
+      <div class="name">${product.emoji} ${product.label}</div>
+      <div class="product-row-main">
+        <div class="stepper">
+          <button type="button" class="min-btn" data-key="${product.key}">−</button>
+          <span class="count" id="${product.key}-count">0</span>
+          <button type="button" class="plus-btn" data-key="${product.key}">+</button>
+        </div>
+        <button type="button" class="stock-btn" data-key="${product.key}">Uitverkocht</button>
       </div>
-      <button type="button" class="stock-btn" data-key="${product.key}">Uitverkocht</button>
-    </div>
-    <div class="ice-toggles" id="ice-toggles-${product.key}"></div>
-  `;
-  productsContainer.appendChild(card);
+      <div class="ice-toggles" id="ice-toggles-${product.key}"></div>
+    `;
+    productsContainer.appendChild(card);
+  });
 });
 
 function updateCountDisplay(key) {
@@ -294,9 +304,47 @@ function formatTime(ts) {
   return d.toLocaleString('nl-NL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+function productCategory(key) {
+  const product = PRODUCTS.find(p => p.key === key);
+  return product ? product.category : null;
+}
+
+function renderHistorySummary() {
+  const summaryEl = document.getElementById('history-summary');
+  const totalenPerCategorie = {};
+
+  Object.values(historyOrders).forEach(order => {
+    Object.entries(order.items || {}).forEach(([key, aantal]) => {
+      const cat = productCategory(key);
+      if (!cat) return;
+      totalenPerCategorie[cat] = (totalenPerCategorie[cat] || 0) + aantal;
+    });
+  });
+
+  const rijen = CATEGORIES
+    .filter(cat => totalenPerCategorie[cat.key] > 0)
+    .map(cat => `
+      <div class="history-summary-row">
+        <span>${cat.label}</span>
+        <span>${totalenPerCategorie[cat.key]}</span>
+      </div>
+    `).join('');
+
+  if (!rijen) {
+    summaryEl.innerHTML = '';
+    return;
+  }
+
+  summaryEl.innerHTML = `
+    <div class="history-summary-title">Totaal geconsumeerd</div>
+    ${rijen}
+  `;
+}
+
 function renderHistoryList() {
   const ids = Object.keys(historyOrders);
   historyList.innerHTML = '';
+  renderHistorySummary();
 
   if (ids.length === 0) {
     historyList.innerHTML = '<div class="empty-msg">Nog geen bezorgde bestellingen</div>';
