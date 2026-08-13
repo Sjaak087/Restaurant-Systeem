@@ -45,7 +45,8 @@ const PRODUCTS = [
   { key: 'radler',    label: 'Radler 0.0%',     emoji: '🍺', category: 'bierwijn' },
   { key: 'weizner',   label: 'Weizner',         emoji: '🍺', category: 'bierwijn' },
   { key: 'hertogjan', label: 'Hertog Jan Bier', emoji: '🍻', category: 'bierwijn' },
-
+  { key: 'desparados', label: 'Desparados Bier', emoji: '🍺', category: 'bierwijn' }, 
+  
   { key: 'groenten',        label: 'Groenten',         emoji: '🥕', category: 'snacks' },
   { key: 'crackertjes',     label: 'Crackertjes',      emoji: '🍘', category: 'snacks' },
   { key: 'worstjeskaasjes', label: 'Worstjes/Kaasjes', emoji: '🧀', category: 'snacks' },
