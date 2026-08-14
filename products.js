@@ -33,7 +33,8 @@ const PRODUCTS = [
 
   { key: 'cola',       label: 'Cola Zero',     emoji: '🥤', category: 'fris' },
   { key: 'fantalemon', label: 'Fanta Lemon',   emoji: '🍋', category: 'fris' },
-  { key: 'icetea',     label: 'Ice Tea Green', emoji: '🧊', category: 'fris' },
+  { key: 'iceteag',     label: 'Ice Tea Green', emoji: '🧊', category: 'fris' },
+  { key: 'iceteas',    label: 'Ice Tea Sparkling', emoji: '🧊', category: 'fris'},  
   { key: 'sparood',    label: 'Spa Rood',      emoji: '💧', category: 'fris' },
   { key: 'water',      label: 'Water',         emoji: '🚰', category: 'fris' },
   { key: 'ranja',      label: 'Ranja',         emoji: '🧃', category: 'fris' },
@@ -65,4 +66,4 @@ const EXTRA_STOCK_ITEMS = [
 
 // Bij deze drankjes verschijnt de keuze "met/zonder ijsklontjes" zodra
 // je er minstens 1 van bestelt. Fruit staat hier bewust niet bij.
-const ICE_OPTION_KEYS = ['cola', 'fantalemon', 'water', 'sparood', 'icetea', 'martinitonic', 'ranja'];
+const ICE_OPTION_KEYS = ['cola', 'fantalemon', 'water', 'sparood', 'iceteag', 'iceteas', 'martinitonic', 'ranja'];
