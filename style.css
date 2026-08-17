@@ -474,6 +474,25 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
 }
 .stock-btn.active:hover { background: var(--wine-dark); }
 
+.order-products {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.bill-total {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--gold-soft);
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+.bill-confirm { margin-top: 6px; }
+
 .note-field {
   width: 100%;
   border-radius: var(--radius);
@@ -577,6 +596,7 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   font-family: var(--font-body);
 }
 .order-card.nieuw { border-left-color: var(--wine); }
+.order-card.bereiden { border-left-color: var(--gold); }
 .items-block { margin-bottom: 8px; }
 .item-line {
   font-size: 1.2rem;
@@ -627,6 +647,13 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+.kitchen-subheading {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold-soft);
+  margin: 26px 0 12px;
 }
 
 /* Bestelbonnetjes in de keuken ogen als echte keukenbonnen: papierkleurig, monospace */
