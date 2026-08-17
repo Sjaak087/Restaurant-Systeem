@@ -21,6 +21,7 @@
     <button type="button" class="tab-btn active" data-tab="bestellen">🍽 Bestellen</button>
     <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken</button>
     <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed</button>
+    <button type="button" class="tab-btn" data-tab="historie">🧾 Historie</button>
     <button type="button" class="tab-btn" data-tab="instellingen">⚙️ Instellingen</button>
   </nav>
 
@@ -38,8 +39,12 @@
   <!-- ===== KEUKEN ===== -->
   <section class="tab-panel" id="panel-keuken">
     <div class="kitchen-count" id="kitchen-count">Nieuwe bestellingen worden hier automatisch getoond.</div>
-    <div class="kitchen-list" id="kitchen-list">
-      <div class="empty-msg" id="kitchen-empty">Nog geen nieuwe bestellingen</div>
+    <div class="kitchen-list" id="kitchen-list-nieuw">
+      <div class="empty-msg">Nog geen nieuwe bestellingen</div>
+    </div>
+    <h3 class="kitchen-subheading">🔥 In bereiding</h3>
+    <div class="kitchen-list" id="kitchen-list-bereiden">
+      <div class="empty-msg">Nog niets in bereiding</div>
     </div>
   </section>
 
@@ -47,8 +52,20 @@
   <section class="tab-panel" id="panel-gereed">
     <div class="kitchen-count" id="ready-count">Klaargemaakte bestellingen wachtend op bezorging.</div>
     <div class="kitchen-list" id="ready-list">
-      <div class="empty-msg" id="ready-empty">Geen klaargemaakte bestellingen</div>
+      <div class="empty-msg">Geen klaargemaakte bestellingen</div>
     </div>
+  </section>
+
+  <!-- ===== HISTORIE ===== -->
+  <section class="tab-panel" id="panel-historie">
+    <div class="history-panel-head">
+      <span id="history-count">Alle afgerekende bestellingen.</span>
+      <button type="button" class="reset-btn" id="btn-reset-history">Historie resetten</button>
+    </div>
+    <div class="kitchen-list" id="history-list">
+      <div class="empty-msg">Nog geen historie</div>
+    </div>
+    <div class="history-summary" id="history-summary"></div>
   </section>
 
   <!-- ===== INSTELLINGEN ===== -->
@@ -72,6 +89,7 @@
     </div>
 
     <div class="subtab-panel" id="subpanel-producten">
+      <p class="modal-text" id="producten-readonly-note" style="display:none;">Alleen de eigenaar kan producten toevoegen, bewerken of verwijderen.</p>
       <button type="button" class="primary-btn" id="btn-add-product">+ Nieuw product</button>
       <div class="settings-product-list" id="settings-product-list"></div>
     </div>
@@ -100,6 +118,41 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="order-confirm">Bestelling sturen naar keuken</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: keuze bij tafel met openstaande bestelling(en) -->
+<div class="modal-overlay" id="modal-table-choice">
+  <div class="modal-box">
+    <div class="modal-title" id="table-choice-title">Tafel</div>
+    <div class="modal-actions" style="flex-direction:column; align-items:stretch; margin-top:0;">
+      <button type="button" class="primary-btn" id="choice-new-order">🍽 Bestelling opnemen</button>
+      <button type="button" class="toggle-btn" id="choice-view-bill">🧾 Bestelde dingen</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: bestelde dingen / rekening & betalen -->
+<div class="modal-overlay" id="modal-bill">
+  <div class="modal-box wide">
+    <div class="modal-title" id="bill-modal-title">Rekening</div>
+    <div class="order-products" id="bill-items"></div>
+    <div class="bill-total" id="bill-total"></div>
+    <div class="modal-error" id="bill-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+      <button type="button" class="btn-primary" id="bill-pay-btn">Betalen</button>
+    </div>
+    <div class="bill-confirm" id="bill-confirm" style="display:none;">
+      <p class="modal-text">Bevestig de betaling van <strong id="bill-confirm-amount"></strong> voor tafel <strong id="bill-confirm-table"></strong>.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="bill-pay-cancel">Terug</button>
+        <button type="button" class="btn-primary" id="bill-pay-confirm">✅ Betaald</button>
+      </div>
     </div>
   </div>
 </div>
