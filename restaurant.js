@@ -626,14 +626,13 @@ function speelMeldingGeluid() {
 
 function renderKitchen() {
   const kitchenList = document.getElementById('kitchen-list');
-  const kitchenEmpty = document.getElementById('kitchen-empty');
   const kitchenCount = document.getElementById('kitchen-count');
 
   const nieuw = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'nieuw');
   kitchenList.innerHTML = '';
 
   if (nieuw.length === 0) {
-    kitchenList.appendChild(kitchenEmpty);
+    kitchenList.innerHTML = '<div class="empty-msg" id="kitchen-empty">Nog geen nieuwe bestellingen</div>';
     kitchenCount.textContent = 'Nieuwe bestellingen worden hier automatisch getoond.';
     return;
   }
@@ -665,14 +664,13 @@ function renderKitchen() {
 
 function renderReady() {
   const readyList = document.getElementById('ready-list');
-  const readyEmpty = document.getElementById('ready-empty');
   const readyCount = document.getElementById('ready-count');
 
   const klaar = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'klaar');
   readyList.innerHTML = '';
 
   if (klaar.length === 0) {
-    readyList.appendChild(readyEmpty);
+    readyList.innerHTML = '<div class="empty-msg" id="ready-empty">Geen klaargemaakte bestellingen</div>';
     readyCount.textContent = 'Klaargemaakte bestellingen wachtend op bezorging.';
     return;
   }
