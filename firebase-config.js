@@ -1,6 +1,5 @@
 // Vul hier je eigen Firebase-gegevens in.
-// Zie README.md stap 1-3 voor hoe je deze gegevens krijgt (gratis, ~5 min).
-// Nadat je dit hebt ingevuld, werkt bestellen.html en keuken.html op elk apparaat.
+// Nadat je dit hebt ingevuld werkt de hele app (index.html, restaurant.html) op elk apparaat.
 
 const firebaseConfig = {
   apiKey: "AIzaSyBVwx6eUdSkebGIK2J_NDwOD3rxTcIg1v4",
