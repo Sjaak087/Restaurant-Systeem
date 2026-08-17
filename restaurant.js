@@ -13,6 +13,8 @@ if (!restaurantId || !mijnEntry) {
   window.location.href = 'index.html';
 }
 
+const isOwner = !!mijnEntry && mijnEntry.rol === 'eigenaar';
+
 const restRef = db.ref('restaurants/' + restaurantId);
 
 function escapeHtml(str) {
@@ -46,14 +48,26 @@ restRef.child('code').on('value', snap => {
 });
 
 // ==================== Tabs ====================
+let activeTab = 'bestellen';
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    activeTab = btn.dataset.tab;
+    document.getElementById('panel-' + activeTab).classList.add('active');
   });
 });
+
+// ==================== Rechten (alleen eigenaar mag plattegrond/producten aanpassen) ====================
+if (!isOwner) {
+  document.getElementById('tool-add-area').style.display = 'none';
+  document.getElementById('tool-add-table').style.display = 'none';
+  document.getElementById('tool-delete').style.display = 'none';
+  document.getElementById('fp-hint').textContent = 'Alleen de eigenaar kan de plattegrond aanpassen.';
+  document.getElementById('btn-add-product').style.display = 'none';
+  document.getElementById('producten-readonly-note').style.display = 'block';
+}
 document.querySelectorAll('.subtab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
@@ -188,17 +202,19 @@ function renderSettingsProducts() {
         <span class="settings-product-price">${formatPrice(p.price)}</span>
         ${p.ice ? '<span class="ice-badge">🧊 ijs-optie</span>' : ''}
       </div>
-      <div class="settings-product-actions">
+      ${isOwner ? `<div class="settings-product-actions">
         <button type="button" class="mini-btn edit" data-key="${p.key}">Bewerken</button>
         <button type="button" class="mini-btn danger" data-key="${p.key}">Verwijderen</button>
-      </div>
+      </div>` : ''}
     `;
-    const [editBtn, delBtn] = row.querySelectorAll('.mini-btn');
-    editBtn.addEventListener('click', () => openEditProduct(p.key));
-    delBtn.addEventListener('click', () => {
-      if (!confirm(`"${p.label}" verwijderen?`)) return;
-      restRef.child('products/' + p.key).remove();
-    });
+    if (isOwner) {
+      const [editBtn, delBtn] = row.querySelectorAll('.mini-btn');
+      editBtn.addEventListener('click', () => openEditProduct(p.key));
+      delBtn.addEventListener('click', () => {
+        if (!confirm(`"${p.label}" verwijderen?`)) return;
+        restRef.child('products/' + p.key).remove();
+      });
+    }
     list.appendChild(row);
   });
 }
@@ -222,12 +238,11 @@ restRef.child('floorplan/tables').on('value', snap => {
 let ACTIEVE_TAFELS = new Set(); // table numbers met status nieuw of klaar
 
 function herbereken_actieve_tafels() {
+  // Een tafel is bezet zolang er nog niet-afgerekende bestellingen voor die tafel bestaan
+  // (in welke keukenstatus dan ook). Zodra is afgerekend, verdwijnt de bestelling uit
+  // ALLE_ORDERS (verplaatst naar de historie), dus dan is de tafel automatisch weer vrij.
   ACTIEVE_TAFELS = new Set();
-  Object.values(ALLE_ORDERS).forEach(o => {
-    if (o.status === 'nieuw' || o.status === 'klaar') {
-      ACTIEVE_TAFELS.add(o.tableNumber);
-    }
-  });
+  Object.values(ALLE_ORDERS).forEach(o => ACTIEVE_TAFELS.add(o.tableNumber));
   renderOrderCanvas();
 }
 
@@ -273,10 +288,34 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
 
 function renderOrderCanvas() {
   const canvas = document.getElementById('order-canvas');
-  renderCanvas(canvas, { editable: false, onTableClick: (table) => openOrderModalForTable(table) });
+  renderCanvas(canvas, { editable: false, onTableClick: (table) => handleTableClick(table) });
   document.getElementById('order-no-tables').style.display =
     Object.keys(TABLES_STATE).length === 0 ? 'block' : 'none';
 }
+
+// ---- Klik op tafel: kies tussen bestelling opnemen of bestelde dingen bekijken ----
+function tableOrders(number) {
+  return Object.entries(ALLE_ORDERS).filter(([, o]) => o.tableNumber === number);
+}
+
+function handleTableClick(table) {
+  if (tableOrders(table.number).length === 0) {
+    openOrderModalForTable(table);
+    return;
+  }
+  window.pendingChoiceTable = table;
+  document.getElementById('table-choice-title').textContent = `Tafel ${table.number}`;
+  openModal('modal-table-choice');
+}
+
+document.getElementById('choice-new-order').addEventListener('click', () => {
+  closeModal('modal-table-choice');
+  openOrderModalForTable(window.pendingChoiceTable);
+});
+document.getElementById('choice-view-bill').addEventListener('click', () => {
+  closeModal('modal-table-choice');
+  openBillModal(window.pendingChoiceTable);
+});
 
 function renderEditCanvas() {
   const canvas = document.getElementById('edit-canvas');
@@ -380,6 +419,7 @@ document.getElementById('table-number-confirm').addEventListener('click', () => 
 
 // ---- Slepen (verplaatsen) en resizen ----
 function attachEditHandlers() {
+  if (!isOwner) return;
   editCanvas.querySelectorAll('.fp-table, .fp-area').forEach(el => {
     el.addEventListener('pointerdown', onDragStart);
   });
@@ -592,6 +632,84 @@ document.getElementById('order-confirm').addEventListener('click', () => {
   });
 });
 
+// ==================== Rekening & betalen ====================
+function openBillModal(table) {
+  window.currentBillTable = table;
+  document.getElementById('bill-modal-title').textContent = `Rekening — Tafel ${table.number}`;
+  document.getElementById('bill-error').textContent = '';
+  document.getElementById('bill-confirm').style.display = 'none';
+  document.getElementById('bill-pay-btn').style.display = '';
+
+  const orders = tableOrders(table.number);
+  const merged = {}; // key -> aantal
+  orders.forEach(([, order]) => {
+    Object.entries(order.items || {}).forEach(([key, aantal]) => {
+      merged[key] = (merged[key] || 0) + aantal;
+    });
+  });
+
+  const container = document.getElementById('bill-items');
+  container.innerHTML = '';
+  let total = 0;
+  const keys = Object.keys(merged);
+  if (keys.length === 0) {
+    container.innerHTML = '<div class="empty-msg">Geen openstaande bestellingen.</div>';
+  } else {
+    keys.forEach(key => {
+      const p = PRODUCTS_STATE[key];
+      const aantal = merged[key];
+      const label = p ? p.label : '(verwijderd product)';
+      const prijs = p ? p.price : 0;
+      total += prijs * aantal;
+      const row = document.createElement('div');
+      row.className = 'settings-product-row';
+      row.innerHTML = `
+        <div class="settings-product-main">
+          <span class="settings-product-emoji">${p ? p.emoji : '❓'}</span>
+          <span class="settings-product-name">${aantal}x ${escapeHtml(label)}</span>
+        </div>
+        <span class="settings-product-price">${formatPrice(prijs * aantal)}</span>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  window.currentBillTotal = total;
+  document.getElementById('bill-total').textContent = `Totaal: ${formatPrice(total)}`;
+  openModal('modal-bill');
+}
+
+document.getElementById('bill-pay-btn').addEventListener('click', () => {
+  document.getElementById('bill-confirm-amount').textContent = formatPrice(window.currentBillTotal || 0);
+  document.getElementById('bill-confirm-table').textContent = window.currentBillTable.number;
+  document.getElementById('bill-confirm').style.display = 'block';
+  document.getElementById('bill-pay-btn').style.display = 'none';
+});
+document.getElementById('bill-pay-cancel').addEventListener('click', () => {
+  document.getElementById('bill-confirm').style.display = 'none';
+  document.getElementById('bill-pay-btn').style.display = '';
+});
+document.getElementById('bill-pay-confirm').addEventListener('click', () => {
+  const table = window.currentBillTable;
+  const orders = tableOrders(table.number);
+  const nu = Date.now();
+  const updates = {};
+  orders.forEach(([id, order]) => {
+    updates['history/' + id] = { ...order, betaaldOp: nu };
+    updates['orders/' + id] = null;
+  });
+  const btn = document.getElementById('bill-pay-confirm');
+  btn.disabled = true;
+  restRef.update(updates).then(() => {
+    btn.disabled = false;
+    closeModal('modal-bill');
+  }).catch(err => {
+    console.error(err);
+    btn.disabled = false;
+    document.getElementById('bill-error').textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
 // ==================== Keuken & Gereed (live orders) ====================
 let ALLE_ORDERS = {}; // id -> order
 
@@ -624,81 +742,155 @@ function speelMeldingGeluid() {
   } catch (e) { /* geluid niet beschikbaar */ }
 }
 
+function renderOrderCardHtml(id, order, actionHtml) {
+  const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
+  return `
+    <div class="table-badge">🪑 Tafel ${order.tableNumber}</div>
+    <div class="items-block">${itemsToLinesHtml(order)}</div>
+    ${noteHtml}
+    <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
+    ${actionHtml}
+  `;
+}
+
 function renderKitchen() {
-  const kitchenList = document.getElementById('kitchen-list');
+  const nieuwList = document.getElementById('kitchen-list-nieuw');
+  const bereidenList = document.getElementById('kitchen-list-bereiden');
   const kitchenCount = document.getElementById('kitchen-count');
 
-  const nieuw = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'nieuw');
-  kitchenList.innerHTML = '';
+  const nieuw = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'nieuw').sort((a, b) => a[1].tijd - b[1].tijd);
+  const bereiden = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'bereiden').sort((a, b) => a[1].tijd - b[1].tijd);
+
+  kitchenCount.textContent = (nieuw.length === 0 && bereiden.length === 0)
+    ? 'Nieuwe bestellingen worden hier automatisch getoond.'
+    : `${nieuw.length} nieuw · ${bereiden.length} in bereiding`;
 
   if (nieuw.length === 0) {
-    kitchenList.innerHTML = '<div class="empty-msg" id="kitchen-empty">Nog geen nieuwe bestellingen</div>';
-    kitchenCount.textContent = 'Nieuwe bestellingen worden hier automatisch getoond.';
-    return;
-  }
-  kitchenCount.textContent = `${nieuw.length} nieuwe bestelling${nieuw.length === 1 ? '' : 'en'}`;
-  nieuw.sort((a, b) => a[1].tijd - b[1].tijd);
-
-  nieuw.forEach(([id, order]) => {
-    const card = document.createElement('div');
-    card.className = 'order-card nieuw';
-    const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
-    card.innerHTML = `
-      <div class="table-badge">🪑 Tafel ${order.tableNumber}</div>
-      <div class="items-block">${itemsToLinesHtml(order)}</div>
-      ${noteHtml}
-      <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
-      <div class="actions">
-        <button class="chip-btn ready" data-id="${id}">Klaar</button>
-      </div>
-    `;
-    kitchenList.appendChild(card);
-  });
-
-  kitchenList.querySelectorAll('.chip-btn.ready').forEach(btn => {
-    btn.addEventListener('click', () => {
-      restRef.child('orders/' + btn.dataset.id + '/status').set('klaar');
+    nieuwList.innerHTML = '<div class="empty-msg">Nog geen nieuwe bestellingen</div>';
+  } else {
+    nieuwList.innerHTML = '';
+    nieuw.forEach(([id, order]) => {
+      const card = document.createElement('div');
+      card.className = 'order-card nieuw';
+      card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn prepare" data-id="${id}">Start bereiden</button></div>`);
+      nieuwList.appendChild(card);
     });
-  });
+    nieuwList.querySelectorAll('.chip-btn.prepare').forEach(btn => {
+      btn.addEventListener('click', () => {
+        restRef.child('orders/' + btn.dataset.id + '/status').set('bereiden');
+      });
+    });
+  }
+
+  if (bereiden.length === 0) {
+    bereidenList.innerHTML = '<div class="empty-msg">Nog niets in bereiding</div>';
+  } else {
+    bereidenList.innerHTML = '';
+    bereiden.forEach(([id, order]) => {
+      const card = document.createElement('div');
+      card.className = 'order-card bereiden';
+      card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn ready" data-id="${id}">Klaar</button></div>`);
+      bereidenList.appendChild(card);
+    });
+    bereidenList.querySelectorAll('.chip-btn.ready').forEach(btn => {
+      btn.addEventListener('click', () => {
+        restRef.child('orders/' + btn.dataset.id + '/status').set('klaar');
+      });
+    });
+  }
 }
 
 function renderReady() {
   const readyList = document.getElementById('ready-list');
   const readyCount = document.getElementById('ready-count');
 
-  const klaar = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'klaar');
-  readyList.innerHTML = '';
+  const klaar = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'klaar').sort((a, b) => a[1].tijd - b[1].tijd);
 
   if (klaar.length === 0) {
-    readyList.innerHTML = '<div class="empty-msg" id="ready-empty">Geen klaargemaakte bestellingen</div>';
+    readyList.innerHTML = '<div class="empty-msg">Geen klaargemaakte bestellingen</div>';
     readyCount.textContent = 'Klaargemaakte bestellingen wachtend op bezorging.';
     return;
   }
   readyCount.textContent = `${klaar.length} klaar voor bezorging`;
-  klaar.sort((a, b) => a[1].tijd - b[1].tijd);
+  readyList.innerHTML = '';
 
   klaar.forEach(([id, order]) => {
     const card = document.createElement('div');
     card.className = 'order-card';
-    const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
-    card.innerHTML = `
-      <div class="table-badge">🪑 Tafel ${order.tableNumber}</div>
-      <div class="items-block">${itemsToLinesHtml(order)}</div>
-      ${noteHtml}
-      <div class="actions">
-        <button class="chip-btn delivered" data-id="${id}">Bezorgd</button>
-      </div>
-    `;
+    card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn delivered" data-id="${id}">Bezorgd</button></div>`);
     readyList.appendChild(card);
   });
 
   readyList.querySelectorAll('.chip-btn.delivered').forEach(btn => {
     btn.addEventListener('click', () => {
-      // Historie wordt (voorlopig) niet bijgehouden: bestelling wordt gewoon verwijderd.
-      restRef.child('orders/' + btn.dataset.id).remove();
+      // Bezorgd, maar nog niet afgerekend: blijft meetellen op de rekening van de tafel
+      // totdat er via "Bestelde dingen" -> "Betalen" wordt afgerekend.
+      restRef.child('orders/' + btn.dataset.id + '/status').set('bezorgd');
     });
   });
 }
+
+// ==================== Historie (afgerekende bestellingen, alle tafels) ====================
+let HISTORY_STATE = {};
+
+restRef.child('history').on('value', snap => {
+  HISTORY_STATE = snap.val() || {};
+  renderHistory();
+});
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const countEl = document.getElementById('history-count');
+  const summaryEl = document.getElementById('history-summary');
+
+  const entries = Object.entries(HISTORY_STATE).sort((a, b) => (b[1].betaaldOp || b[1].tijd || 0) - (a[1].betaaldOp || a[1].tijd || 0));
+
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Nog geen historie</div>';
+    countEl.textContent = 'Alle afgerekende bestellingen verschijnen hier.';
+    summaryEl.innerHTML = '';
+    return;
+  }
+
+  countEl.textContent = `${entries.length} afgerekende bestelling${entries.length === 1 ? '' : 'en'}`;
+  list.innerHTML = '';
+  let totaalOmzet = 0;
+  const perProduct = {};
+
+  entries.forEach(([id, order]) => {
+    const card = document.createElement('div');
+    card.className = 'order-card';
+    const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
+    const betaaldHtml = order.betaaldOp ? ` · betaald om ${formatTime(order.betaaldOp)}` : '';
+    card.innerHTML = `
+      <div class="table-badge">🪑 Tafel ${order.tableNumber}</div>
+      <div class="items-block">${itemsToLinesHtml(order)}</div>
+      ${noteHtml}
+      <div class="time-line">Besteld om ${formatTime(order.tijd)}${betaaldHtml}</div>
+    `;
+    list.appendChild(card);
+
+    Object.entries(order.items || {}).forEach(([key, aantal]) => {
+      const p = PRODUCTS_STATE[key];
+      const prijs = p ? p.price : 0;
+      totaalOmzet += prijs * aantal;
+      if (!perProduct[key]) perProduct[key] = { label: p ? p.label : '(verwijderd product)', aantal: 0 };
+      perProduct[key].aantal += aantal;
+    });
+  });
+
+  let summaryHtml = `<div class="history-summary-title">Totaaloverzicht</div>`;
+  Object.values(perProduct).sort((a, b) => b.aantal - a.aantal).forEach(p => {
+    summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(p.label)}</span><span>${p.aantal}x</span></div>`;
+  });
+  summaryHtml += `<div class="history-summary-row"><span>Totale omzet</span><span>${formatPrice(totaalOmzet)}</span></div>`;
+  summaryEl.innerHTML = summaryHtml;
+}
+
+document.getElementById('btn-reset-history').addEventListener('click', () => {
+  if (!confirm('Weet je zeker dat je de hele historie wilt wissen? Dit kan niet ongedaan worden gemaakt.')) return;
+  restRef.child('history').remove();
+});
 
 const ordersRef = restRef.child('orders');
 
@@ -709,13 +901,17 @@ ordersRef.on('child_added', snap => {
   renderKitchen();
   renderReady();
   herbereken_actieve_tafels();
-  if (isNew) speelMeldingGeluid();
+  if (isNew && activeTab === 'keuken') speelMeldingGeluid();
 });
 ordersRef.on('child_changed', snap => {
-  ALLE_ORDERS[snap.key] = snap.val();
+  const vorige = ALLE_ORDERS[snap.key];
+  const nieuwe = snap.val();
+  const werdKlaar = vorige && vorige.status !== 'klaar' && nieuwe.status === 'klaar';
+  ALLE_ORDERS[snap.key] = nieuwe;
   renderKitchen();
   renderReady();
   herbereken_actieve_tafels();
+  if (werdKlaar && activeTab === 'gereed') speelMeldingGeluid();
 });
 ordersRef.on('child_removed', snap => {
   delete ALLE_ORDERS[snap.key];
