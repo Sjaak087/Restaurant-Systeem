@@ -67,7 +67,30 @@ if (!isOwner) {
   document.getElementById('fp-hint').textContent = 'Alleen de eigenaar kan de plattegrond aanpassen.';
   document.getElementById('btn-add-product').style.display = 'none';
   document.getElementById('producten-readonly-note').style.display = 'block';
+} else {
+  document.getElementById('btn-rename-restaurant').style.display = '';
 }
+
+document.getElementById('btn-rename-restaurant').addEventListener('click', () => {
+  document.getElementById('rename-restaurant-input').value = document.getElementById('info-naam').textContent.trim();
+  document.getElementById('rename-restaurant-error').textContent = '';
+  openModal('modal-rename-restaurant');
+});
+document.getElementById('rename-restaurant-confirm').addEventListener('click', () => {
+  const naam = document.getElementById('rename-restaurant-input').value.trim();
+  const errorEl = document.getElementById('rename-restaurant-error');
+  if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+  const btn = document.getElementById('rename-restaurant-confirm');
+  btn.disabled = true;
+  restRef.child('naam').set(naam).then(() => {
+    btn.disabled = false;
+    closeModal('modal-rename-restaurant');
+  }).catch(err => {
+    console.error(err);
+    btn.disabled = false;
+    errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
 document.querySelectorAll('.subtab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
@@ -363,14 +386,16 @@ function getPercentPos(clientX, clientY) {
 }
 
 editCanvas.addEventListener('click', (e) => {
-  // Alleen reageren op klikken op de lege ondergrond zelf (niet op tafels/gebieden), tenzij we in de eerste hoek-stap zitten.
-  if (pendingMode === 'area-corner1' && e.target === editCanvas) {
+  // Zodra we in een plaatsingsmodus zitten, telt elke klik binnen de plattegrond (ook
+  // bovenop een bestaand gebied/tafel) als plaatsing — sleep-handlers slaan zichzelf
+  // in die modus over (zie onDragStart), dus hier is geen speciale e.target-check nodig.
+  if (pendingMode === 'area-corner1') {
     areaCorner1 = getPercentPos(e.clientX, e.clientY);
     pendingMode = 'area-corner2';
     fpHint.textContent = 'Klik nu op de andere hoek om het gebied af te maken.';
     return;
   }
-  if (pendingMode === 'area-corner2' && e.target === editCanvas) {
+  if (pendingMode === 'area-corner2') {
     const corner2 = getPercentPos(e.clientX, e.clientY);
     const x = Math.min(areaCorner1.x, corner2.x);
     const y = Math.min(areaCorner1.y, corner2.y);
@@ -383,7 +408,7 @@ editCanvas.addEventListener('click', (e) => {
     window.pendingAreaRect = { x, y, w, h };
     return;
   }
-  if (pendingMode === 'table' && e.target === editCanvas) {
+  if (pendingMode === 'table') {
     const pos = getPercentPos(e.clientX, e.clientY);
     pendingMode = null;
     fpHint.textContent = defaultHint;
@@ -429,6 +454,7 @@ function attachEditHandlers() {
 }
 
 function onDragStart(e) {
+  if (pendingMode) return; // laat de klik doorgaan naar het plaatsen van een nieuw gebied/tafel
   if (e.target.classList.contains('fp-resize-handle')) return;
   const el = e.currentTarget;
   const type = el.dataset.type;
@@ -447,23 +473,34 @@ function onDragStart(e) {
   e.stopPropagation();
   el.setPointerCapture(e.pointerId);
 
+  // Onthoud waar precies gepakt werd t.o.v. de linkerbovenhoek, zodat het element
+  // niet ineens onder de cursor "springt" bij het eerste contact.
+  const startData = type === 'table' ? TABLES_STATE[id] : AREAS_STATE[id];
+  const grabPos = getPercentPos(e.clientX, e.clientY);
+  const offsetX = grabPos.x - startData.x;
+  const offsetY = grabPos.y - startData.y;
+
   const move = (ev) => {
     const pos = getPercentPos(ev.clientX, ev.clientY);
-    el.style.left = pos.x + '%';
-    el.style.top = pos.y + '%';
+    el.style.left = Math.max(0, Math.min(100, pos.x - offsetX)) + '%';
+    el.style.top = Math.max(0, Math.min(100, pos.y - offsetY)) + '%';
   };
   const up = (ev) => {
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerup', up);
     const pos = getPercentPos(ev.clientX, ev.clientY);
     const path = type === 'table' ? 'tables' : 'areas';
-    restRef.child('floorplan/' + path + '/' + id).update({ x: pos.x, y: pos.y });
+    restRef.child('floorplan/' + path + '/' + id).update({
+      x: Math.max(0, Math.min(100, pos.x - offsetX)),
+      y: Math.max(0, Math.min(100, pos.y - offsetY))
+    });
   };
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up);
 }
 
 function onResizeStart(e) {
+  if (pendingMode) return;
   e.preventDefault();
   e.stopPropagation();
   const handle = e.currentTarget;
