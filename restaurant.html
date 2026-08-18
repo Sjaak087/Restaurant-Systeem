@@ -39,12 +39,19 @@
   <!-- ===== KEUKEN ===== -->
   <section class="tab-panel" id="panel-keuken">
     <div class="kitchen-count" id="kitchen-count">Nieuwe bestellingen worden hier automatisch getoond.</div>
-    <div class="kitchen-list" id="kitchen-list-nieuw">
-      <div class="empty-msg">Nog geen nieuwe bestellingen</div>
-    </div>
-    <h3 class="kitchen-subheading">🔥 In bereiding</h3>
-    <div class="kitchen-list" id="kitchen-list-bereiden">
-      <div class="empty-msg">Nog niets in bereiding</div>
+    <div class="kitchen-columns">
+      <div class="kitchen-column">
+        <h3 class="kitchen-subheading">📥 Binnengekomen</h3>
+        <div class="kitchen-list" id="kitchen-list-nieuw">
+          <div class="empty-msg">Nog geen nieuwe bestellingen</div>
+        </div>
+      </div>
+      <div class="kitchen-column">
+        <h3 class="kitchen-subheading">🔥 In bereiding</h3>
+        <div class="kitchen-list" id="kitchen-list-bereiden">
+          <div class="empty-msg">Nog niets in bereiding</div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -97,7 +104,10 @@
     <div class="subtab-panel" id="subpanel-algemeen">
       <div class="settings-info-row">
         <span>Restaurantnaam</span>
-        <span id="info-naam">—</span>
+        <span class="settings-info-value-group">
+          <span id="info-naam">—</span>
+          <button type="button" class="mini-btn edit" id="btn-rename-restaurant" style="display:none;">Bewerken</button>
+        </span>
       </div>
       <div class="settings-info-row">
         <span>Join-code</span>
@@ -153,6 +163,19 @@
         <button type="button" class="btn-secondary" id="bill-pay-cancel">Terug</button>
         <button type="button" class="btn-primary" id="bill-pay-confirm">✅ Betaald</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: restaurantnaam wijzigen -->
+<div class="modal-overlay" id="modal-rename-restaurant">
+  <div class="modal-box">
+    <div class="modal-title">Restaurantnaam wijzigen</div>
+    <input type="text" id="rename-restaurant-input" class="modal-input" maxlength="40">
+    <div class="modal-error" id="rename-restaurant-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="rename-restaurant-confirm">Opslaan</button>
     </div>
   </div>
 </div>
