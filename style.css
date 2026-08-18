@@ -648,12 +648,18 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   flex-direction: column;
   gap: 18px;
 }
+.kitchen-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px 24px;
+  align-items: start;
+}
 .kitchen-subheading {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
   color: var(--gold-soft);
-  margin: 26px 0 12px;
+  margin: 0 0 12px;
 }
 
 /* Bestelbonnetjes in de keuken ogen als echte keukenbonnen: papierkleurig, monospace */
@@ -942,6 +948,7 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   border-bottom: 1px dotted var(--line);
 }
 .settings-info-row span:first-child { color: var(--muted); font-size: 0.9rem; }
+.settings-info-value-group { display: flex; align-items: center; gap: 10px; }
 
 /* ==================== Plattegrond ==================== */
 .floorplan-viewport {
