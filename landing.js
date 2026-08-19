@@ -29,6 +29,10 @@ function genCode() {
   return code;
 }
 
+function genMemberId() {
+  return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
 async function genUniqueCode() {
   for (let i = 0; i < 20; i++) {
     const code = genCode();
@@ -126,7 +130,14 @@ document.getElementById('create-confirm').addEventListener('click', async () => 
     });
     await db.ref('restaurantCodes/' + code).set(id);
 
-    addMyRestaurant({ id, naam, code, rol: 'eigenaar' });
+    const memberId = genMemberId();
+    await newRef.child('leden/' + memberId).set({
+      rol: 'eigenaar',
+      tabs: { bestellen: true, keuken: true, gereed: true, historie: true, instellingen: true },
+      toegevoegdOp: Date.now()
+    });
+
+    addMyRestaurant({ id, naam, code, rol: 'eigenaar', memberId });
     closeModal('modal-create');
 
     document.getElementById('code-display').textContent = code;
@@ -178,7 +189,14 @@ document.getElementById('join-confirm').addEventListener('click', async () => {
       return;
     }
 
-    addMyRestaurant({ id, naam, code, rol: 'gejoined' });
+    const memberId = genMemberId();
+    await db.ref('restaurants/' + id + '/leden/' + memberId).set({
+      rol: 'gejoined',
+      tabs: { bestellen: true, keuken: false, gereed: false, historie: false, instellingen: false },
+      toegevoegdOp: Date.now()
+    });
+
+    addMyRestaurant({ id, naam, code, rol: 'gejoined', memberId });
     window.location.href = `restaurant.html?id=${encodeURIComponent(id)}`;
   } catch (e) {
     console.error(e);

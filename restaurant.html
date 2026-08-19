@@ -7,14 +7,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=1787128676">
 </head>
 <body>
 
 <div class="wrap app-wrap">
   <header class="top">
     <h1 id="restaurant-title">Restaurant</h1>
-    <a href="index.html">← Restaurants</a>
+    <div class="header-actions">
+      <button type="button" class="updates-btn" id="btn-updates">🆕 Update log</button>
+      <a href="index.html">← Restaurants</a>
+    </div>
   </header>
 
   <nav class="tab-nav">
@@ -80,6 +83,7 @@
     <div class="settings-subnav">
       <button type="button" class="subtab-btn active" data-subtab="plattegrond">Plattegrond</button>
       <button type="button" class="subtab-btn" data-subtab="producten">Producten</button>
+      <button type="button" class="subtab-btn" id="subtab-btn-leden" data-subtab="leden">Leden</button>
       <button type="button" class="subtab-btn" data-subtab="algemeen">Algemeen</button>
     </div>
 
@@ -89,7 +93,7 @@
         <button type="button" class="fp-tool-btn" id="tool-add-table">➕ Tafel</button>
         <button type="button" class="fp-tool-btn danger" id="tool-delete">🗑 Verwijderen</button>
       </div>
-      <div class="fp-hint" id="fp-hint">Sleep tafels en gebieden om ze te verplaatsen. Sleep de hoek van een gebied om het te vergroten.</div>
+      <div class="fp-hint" id="fp-hint">Sleep tafels en gebieden om ze te verplaatsen. Sleep een hoek van een gebied (linksboven of rechtsonder) om het aan die kant te vergroten of verkleinen.</div>
       <div class="floorplan-viewport">
         <div class="floorplan-canvas" id="edit-canvas"></div>
       </div>
@@ -99,6 +103,11 @@
       <p class="modal-text" id="producten-readonly-note" style="display:none;">Alleen de eigenaar kan producten toevoegen, bewerken of verwijderen.</p>
       <button type="button" class="primary-btn" id="btn-add-product">+ Nieuw product</button>
       <div class="settings-product-list" id="settings-product-list"></div>
+    </div>
+
+    <div class="subtab-panel" id="subpanel-leden">
+      <p class="modal-text">Bepaal per lid welke tabbladen zichtbaar zijn. Wijzigingen gaan direct in. Verwijder je iemand, dan wordt de join-code automatisch vernieuwd zodat diegene niet zomaar opnieuw kan joinen.</p>
+      <div class="leden-list" id="leden-list"></div>
     </div>
 
     <div class="subtab-panel" id="subpanel-algemeen">
@@ -205,6 +214,17 @@
   </div>
 </div>
 
+<!-- Modal: update log -->
+<div class="modal-overlay" id="modal-updates">
+  <div class="modal-box wide">
+    <div class="modal-title">📋 Update log</div>
+    <div class="updates-list" id="updates-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: product toevoegen/bewerken -->
 <div class="modal-overlay" id="modal-product">
   <div class="modal-box wide">
@@ -229,8 +249,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script src="emojis.js"></script>
-<script src="restaurant.js"></script>
+<script src="emojis.js?v=1787128676"></script>
+<script src="restaurant.js?v=1787128676"></script>
+<script src="updates.js?v=1787128676"></script>
 
 </body>
 </html>

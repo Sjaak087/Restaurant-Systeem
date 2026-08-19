@@ -17,6 +17,160 @@ const isOwner = !!mijnEntry && mijnEntry.rol === 'eigenaar';
 
 const restRef = db.ref('restaurants/' + restaurantId);
 
+function saveMyRestaurantsLocal(list) {
+  localStorage.setItem('mijnRestaurants', JSON.stringify(list));
+}
+
+// ==================== Leden & rechten per tabblad ====================
+const ALL_TABS = ['bestellen', 'keuken', 'gereed', 'historie', 'instellingen'];
+const TAB_LABELS = { bestellen: 'Bestellen', keuken: 'Keuken', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
+
+function genLidId() {
+  return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+async function genUniqueCode() {
+  for (let i = 0; i < 20; i++) {
+    const code = genCode();
+    const snap = await db.ref('restaurantCodes/' + code).get();
+    if (!snap.exists()) return code;
+  }
+  throw new Error('Kon geen unieke code genereren');
+}
+
+// Zorg dat dit apparaat een lid-id heeft. Bestaande memberships (van vóór deze functie,
+// of als de join-schrijfactie ooit mislukte) krijgen bij het eerste bezoek gewoon alle
+// tabbladen, zodat niemand onverwacht wordt buitengesloten.
+let myMemberId = mijnEntry.memberId;
+if (!myMemberId) {
+  myMemberId = genLidId();
+  const list = getMyRestaurants();
+  const idx = list.findIndex(r => r.id === restaurantId);
+  if (idx > -1) { list[idx].memberId = myMemberId; saveMyRestaurantsLocal(list); }
+}
+function applyTabPermissions(tabs) {
+  tabs = tabs || {};
+  let firstVisible = null;
+  ALL_TABS.forEach(t => {
+    const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
+    if (!btn) return;
+    // Veiligheidsklep: de eigenaar behoudt altijd toegang tot Instellingen, anders zou
+    // die zichzelf per ongeluk kunnen buitensluiten van het ledenbeheer.
+    const allowed = (isOwner && t === 'instellingen') || tabs[t] === true;
+    btn.style.display = allowed ? '' : 'none';
+    if (allowed && !firstVisible) firstVisible = t;
+  });
+  const activeBtn = document.querySelector('.tab-btn.active');
+  if (firstVisible && (!activeBtn || activeBtn.style.display === 'none')) {
+    document.querySelector(`.tab-btn[data-tab="${firstVisible}"]`).click();
+  }
+}
+
+restRef.child('leden/' + myMemberId).once('value').then(snap => {
+  if (!snap.exists()) {
+    const tabs = {};
+    ALL_TABS.forEach(t => { tabs[t] = true; });
+    const data = { rol: isOwner ? 'eigenaar' : 'gejoined', tabs: tabs, toegevoegdOp: Date.now() };
+    return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
+  }
+  return snap.val().tabs;
+}).then(tabs => {
+  applyTabPermissions(tabs);
+  if (isOwner) {
+    // Zorg dat de eigenaar zichzelf meteen in de ledenlijst ziet, ook nog vóórdat
+    // het live-abonnement op /leden zijn eerste update heeft binnengekregen.
+    LEDEN_STATE[myMemberId] = LEDEN_STATE[myMemberId] || { rol: 'eigenaar', tabs: tabs, toegevoegdOp: Date.now() };
+    renderLedenList();
+  }
+  // Pas ná het aanmaken/ophalen van dit lid-record live gaan luisteren, anders kan het
+  // even (foutief) lijken alsof je bent gekickt terwijl het record nog geschreven wordt.
+  restRef.child('leden/' + myMemberId).on('value', snap => {
+    if (!snap.exists()) {
+      alert('Je bent verwijderd uit dit restaurant.');
+      const list = getMyRestaurants().filter(r => r.id !== restaurantId);
+      saveMyRestaurantsLocal(list);
+      window.location.href = 'index.html';
+      return;
+    }
+    applyTabPermissions(snap.val().tabs);
+  });
+});
+
+// ---- Ledenlijst (alleen zichtbaar/bewerkbaar voor de eigenaar) ----
+let LEDEN_STATE = {};
+if (!isOwner) {
+  document.getElementById('subtab-btn-leden').style.display = 'none';
+} else {
+  restRef.child('leden').on('value', snap => {
+    LEDEN_STATE = snap.val() || {};
+    renderLedenList();
+  });
+}
+
+function renderLedenList() {
+  const list = document.getElementById('leden-list');
+  const entries = Object.entries(LEDEN_STATE).sort((a, b) => (a[1].toegevoegdOp || 0) - (b[1].toegevoegdOp || 0));
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Nog geen leden gevonden.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  let volgnummer = 0;
+  entries.forEach(([mid, lid]) => {
+    const isEigenaarRow = lid.rol === 'eigenaar';
+    const isMe = mid === myMemberId;
+    const naam = isEigenaarRow ? '👑 Eigenaar' : `👤 Lid ${++volgnummer}`;
+    const tabs = lid.tabs || {};
+    const row = document.createElement('div');
+    row.className = 'lid-row';
+    const tabsHtml = ALL_TABS.map(t => {
+      const checked = tabs[t] ? 'checked' : '';
+      return `<label class="lid-tab-toggle"><input type="checkbox" data-mid="${mid}" data-tab="${t}" ${checked}> ${TAB_LABELS[t]}</label>`;
+    }).join('');
+    row.innerHTML = `
+      <div class="lid-row-head">
+        <span class="lid-row-name">${naam}${isMe ? ' <span class="lid-me-tag">(jij)</span>' : ''}</span>
+        ${isEigenaarRow ? '' : `<button type="button" class="mini-btn danger" data-kick="${mid}">Verwijderen</button>`}
+      </div>
+      <div class="lid-tabs">${tabsHtml}</div>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      restRef.child(`leden/${cb.dataset.mid}/tabs/${cb.dataset.tab}`).set(cb.checked);
+    });
+  });
+  list.querySelectorAll('[data-kick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Weet je zeker dat je dit lid wilt verwijderen? De join-code wordt daarna automatisch vernieuwd.')) return;
+      kickLid(btn.dataset.kick, btn);
+    });
+  });
+}
+
+async function kickLid(mid, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Bezig...'; }
+  try {
+    const huidigeCodeSnap = await restRef.child('code').once('value');
+    const huidigeCode = huidigeCodeSnap.val();
+    const nieuweCode = await genUniqueCode();
+    await restRef.update({ ['leden/' + mid]: null, code: nieuweCode });
+    if (huidigeCode) await db.ref('restaurantCodes/' + huidigeCode).remove();
+    await db.ref('restaurantCodes/' + nieuweCode).set(restaurantId);
+  } catch (err) {
+    console.error(err);
+    alert('Er ging iets mis bij het verwijderen van dit lid.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Verwijderen'; }
+  }
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str == null ? '' : String(str);
@@ -222,6 +376,7 @@ function renderSettingsProducts() {
       <div class="settings-product-main">
         <span class="settings-product-emoji">${p.emoji}</span>
         <span class="settings-product-name">${escapeHtml(p.label)}</span>
+        <span class="menu-dots"></span>
         <span class="settings-product-price">${formatPrice(p.price)}</span>
         ${p.ice ? '<span class="ice-badge">🧊 ijs-optie</span>' : ''}
       </div>
@@ -284,9 +439,16 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
     if (editable) {
       el.dataset.type = 'area';
       el.dataset.id = id;
-      const handle = document.createElement('div');
-      handle.className = 'fp-resize-handle';
-      el.appendChild(handle);
+      // Twee sleepgrepen: linksboven én rechtsonder, zodat een gebied aan beide
+      // kanten vergroot/verkleind kan worden (niet alleen naar rechtsonder toe).
+      const handleTl = document.createElement('div');
+      handleTl.className = 'fp-resize-handle tl';
+      handleTl.dataset.corner = 'tl';
+      el.appendChild(handleTl);
+      const handleBr = document.createElement('div');
+      handleBr.className = 'fp-resize-handle br';
+      handleBr.dataset.corner = 'br';
+      el.appendChild(handleBr);
     }
     canvasEl.appendChild(el);
   });
@@ -504,26 +666,42 @@ function onResizeStart(e) {
   e.preventDefault();
   e.stopPropagation();
   const handle = e.currentTarget;
+  const corner = handle.dataset.corner; // 'tl' of 'br'
   const areaEl = handle.parentElement;
   const id = areaEl.dataset.id;
   handle.setPointerCapture(e.pointerId);
 
+  // De hoek tegenover de sleepgreep blijft vast op zijn plek tijdens het slepen.
+  const start = AREAS_STATE[id];
+  const fixedRight = start.x + start.w;
+  const fixedBottom = start.y + start.h;
+
+  function computeRect(pos) {
+    if (corner === 'tl') {
+      const x = Math.max(0, Math.min(pos.x, fixedRight - 6));
+      const y = Math.max(0, Math.min(pos.y, fixedBottom - 6));
+      return { x, y, w: fixedRight - x, h: fixedBottom - y };
+    }
+    // 'br': linkerbovenhoek blijft vast, zoals voorheen
+    const w = Math.max(6, pos.x - start.x);
+    const h = Math.max(6, pos.y - start.y);
+    return { x: start.x, y: start.y, w, h };
+  }
+
   const move = (ev) => {
     const pos = getPercentPos(ev.clientX, ev.clientY);
-    const area = AREAS_STATE[id];
-    const w = Math.max(6, pos.x - area.x);
-    const h = Math.max(6, pos.y - area.y);
-    areaEl.style.width = w + '%';
-    areaEl.style.height = h + '%';
+    const r = computeRect(pos);
+    areaEl.style.left = r.x + '%';
+    areaEl.style.top = r.y + '%';
+    areaEl.style.width = r.w + '%';
+    areaEl.style.height = r.h + '%';
   };
   const up = (ev) => {
     handle.removeEventListener('pointermove', move);
     handle.removeEventListener('pointerup', up);
     const pos = getPercentPos(ev.clientX, ev.clientY);
-    const area = AREAS_STATE[id];
-    const w = Math.max(6, pos.x - area.x);
-    const h = Math.max(6, pos.y - area.y);
-    restRef.child('floorplan/areas/' + id).update({ w, h });
+    const r = computeRect(pos);
+    restRef.child('floorplan/areas/' + id).update(r);
   };
   handle.addEventListener('pointermove', move);
   handle.addEventListener('pointerup', up);
@@ -573,7 +751,7 @@ function renderOrderProducts() {
     card.className = 'product-card' + (isOut ? ' out-of-stock' : '');
     card.id = `order-card-${p.key}`;
     card.innerHTML = `
-      <div class="name">${p.emoji} ${escapeHtml(p.label)} <span class="price-tag">${formatPrice(p.price)}</span></div>
+      <div class="name"><span class="menu-name-text">${p.emoji} ${escapeHtml(p.label)}</span><span class="menu-dots"></span><span class="price-tag">${formatPrice(p.price)}</span></div>
       <div class="product-row-main">
         <div class="stepper">
           <button type="button" class="min-btn" data-key="${p.key}" ${isOut ? 'disabled' : ''}>−</button>
