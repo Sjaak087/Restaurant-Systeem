@@ -218,11 +218,13 @@ if (!isOwner) {
   document.getElementById('tool-add-area').style.display = 'none';
   document.getElementById('tool-add-table').style.display = 'none';
   document.getElementById('tool-delete').style.display = 'none';
+  document.getElementById('fp-gridsize-row').style.display = 'none';
   document.getElementById('fp-hint').textContent = 'Alleen de eigenaar kan de plattegrond aanpassen.';
   document.getElementById('btn-add-product').style.display = 'none';
   document.getElementById('producten-readonly-note').style.display = 'block';
 } else {
   document.getElementById('btn-rename-restaurant').style.display = '';
+  document.getElementById('btn-header-color').style.display = '';
 }
 
 document.getElementById('btn-rename-restaurant').addEventListener('click', () => {
@@ -245,6 +247,85 @@ document.getElementById('rename-restaurant-confirm').addEventListener('click', (
     errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
   });
 });
+// ==================== Kleur bovenbalk ====================
+const HEADER_COLORS = [
+  '#171310', '#211a14', '#3a2f24', '#5c4a34', '#8c3a3a',
+  '#6e2c2c', '#a8482f', '#c9793a', '#c9a24b', '#e0b84a',
+  '#6f8f5c', '#3f6b4f', '#2f6e6e', '#356b8c', '#2c4a75',
+  '#3a3a75', '#5c3a75', '#7a3a63', '#8c4a63', '#b05f7a',
+  '#4a4438', '#5a5a5a', '#787066', '#2a2115', '#f2e8d5'
+];
+
+function hexToRgb(hex) {
+  const clean = (hex || '').replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+  const num = parseInt(full, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+function mix(hex, target, amt) {
+  const c = hexToRgb(hex);
+  const t = hexToRgb(target);
+  const r = Math.round(c.r + (t.r - c.r) * amt);
+  const g = Math.round(c.g + (t.g - c.g) * amt);
+  const b = Math.round(c.b + (t.b - c.b) * amt);
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+function relativeLuminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const norm = [r, g, b].map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * norm[0] + 0.7152 * norm[1] + 0.0722 * norm[2];
+}
+
+function applyHeaderColor(color) {
+  const root = document.documentElement.style;
+  const bg = color || '#171310';
+  const isLight = relativeLuminance(bg) > 0.5;
+  root.setProperty('--bg', bg);
+  root.setProperty('--bg-elevated', mix(bg, isLight ? '#000000' : '#ffffff', 0.08));
+  root.setProperty('--card', mix(bg, isLight ? '#000000' : '#ffffff', 0.16));
+  root.setProperty('--line', mix(bg, isLight ? '#000000' : '#ffffff', 0.32));
+  root.setProperty('--ink', isLight ? '#241c12' : '#f3ead9');
+  root.setProperty('--muted', isLight ? '#5a4c38' : '#a99a83');
+  const preview = document.getElementById('info-header-color');
+  if (preview) preview.style.background = bg;
+}
+
+const colorPaletteEl = document.getElementById('color-palette');
+if (colorPaletteEl) {
+  colorPaletteEl.innerHTML = HEADER_COLORS.map(c =>
+    `<button type="button" class="color-swatch" data-color="${c}" style="background:${c};"></button>`
+  ).join('');
+  colorPaletteEl.querySelectorAll('.color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const color = sw.dataset.color;
+      restRef.child('headerColor').set(color).then(() => {
+        closeModal('modal-header-color');
+      }).catch(err => {
+        console.error(err);
+        alert('Er ging iets mis bij het opslaan van de kleur.');
+      });
+    });
+  });
+}
+
+restRef.child('headerColor').on('value', snap => {
+  const color = snap.val();
+  applyHeaderColor(color);
+  if (colorPaletteEl) {
+    colorPaletteEl.querySelectorAll('.color-swatch').forEach(sw => {
+      sw.classList.toggle('selected', !!color && sw.dataset.color.toLowerCase() === String(color).toLowerCase());
+    });
+  }
+});
+
+const btnHeaderColor = document.getElementById('btn-header-color');
+if (btnHeaderColor) {
+  btnHeaderColor.addEventListener('click', () => openModal('modal-header-color'));
+}
+
 document.querySelectorAll('.subtab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
@@ -400,6 +481,88 @@ function renderSettingsProducts() {
 // ==================== Plattegrond (live data) ====================
 let AREAS_STATE = {};  // id -> {name, x, y, w, h}
 let TABLES_STATE = {}; // id -> {number, x, y}
+
+// ---- Grootte van de plattegrond (aantal vierkantjes) ----
+const GRID_MIN = 10;
+const GRID_MAX = 50;
+const GRID_STEP = 1;
+const GRID_DEFAULT = 20; // komt overeen met de oorspronkelijke vaste 24px-vierkantjes
+let currentGridSize = GRID_DEFAULT;
+
+function applyGridSize(size) {
+  const n = Math.max(GRID_MIN, Math.min(GRID_MAX, size || GRID_DEFAULT));
+  currentGridSize = n;
+  const cellPct = 100 / n;
+  const scale = Math.max(0.45, Math.min(1.8, GRID_DEFAULT / n));
+  [document.getElementById('order-canvas'), document.getElementById('edit-canvas')].forEach(canvasEl => {
+    if (!canvasEl) return;
+    canvasEl.style.backgroundSize = `${cellPct}% ${cellPct}%`;
+    canvasEl.style.setProperty('--fp-scale', scale);
+  });
+  const valueEl = document.getElementById('grid-size-value');
+  if (valueEl) valueEl.textContent = `${n} × ${n}`;
+  const minusBtn = document.getElementById('grid-size-minus');
+  const plusBtn = document.getElementById('grid-size-plus');
+  if (minusBtn) minusBtn.disabled = n <= GRID_MIN;
+  if (plusBtn) plusBtn.disabled = n >= GRID_MAX;
+}
+applyGridSize(GRID_DEFAULT);
+
+restRef.child('floorplan/gridSize').on('value', snap => {
+  applyGridSize(snap.val() || GRID_DEFAULT);
+});
+
+const gridSizeMinusBtn = document.getElementById('grid-size-minus');
+if (gridSizeMinusBtn) {
+  gridSizeMinusBtn.addEventListener('click', () => {
+    changeGridSize(Math.max(GRID_MIN, currentGridSize - GRID_STEP));
+  });
+}
+const gridSizePlusBtn = document.getElementById('grid-size-plus');
+if (gridSizePlusBtn) {
+  gridSizePlusBtn.addEventListener('click', () => {
+    changeGridSize(Math.min(GRID_MAX, currentGridSize + GRID_STEP));
+  });
+}
+
+// Past de opgeslagen grootte van alle gebieden proportioneel aan zodat er, relatief
+// gezien, precies zoveel tafels in een gebied blijven passen als voorheen: als de
+// vierkantjes kleiner worden (meer vierkantjes), krimpen de gebieden mee in dezelfde
+// verhouding als de tafels. De linkerbovenhoek van een gebied blijft vast. Tafels die
+// binnen een gebied liggen, verschuiven mee op exact dezelfde relatieve plek in dat
+// gebied, zodat ze nooit over de rand heen schuiven.
+function changeGridSize(nextN) {
+  if (nextN === currentGridSize) return;
+  const ratio = currentGridSize / nextN;
+  const updates = { 'floorplan/gridSize': nextN };
+  const oldAreas = AREAS_STATE;
+  const appliedRatios = {}; // id -> { rw, rh } (de werkelijk toegepaste verhouding, na begrenzing aan de rand van de plattegrond)
+
+  Object.entries(oldAreas).forEach(([id, area]) => {
+    const maxW = Math.max(3, 100 - area.x);
+    const maxH = Math.max(3, 100 - area.y);
+    const newW = Math.max(3, Math.min(area.w * ratio, maxW));
+    const newH = Math.max(3, Math.min(area.h * ratio, maxH));
+    updates['floorplan/areas/' + id + '/w'] = newW;
+    updates['floorplan/areas/' + id + '/h'] = newH;
+    appliedRatios[id] = { rw: newW / area.w, rh: newH / area.h };
+  });
+
+  Object.entries(TABLES_STATE).forEach(([tid, table]) => {
+    const entry = Object.entries(oldAreas).find(([, a]) =>
+      table.x >= a.x && table.x <= a.x + a.w && table.y >= a.y && table.y <= a.y + a.h
+    );
+    if (!entry) return;
+    const [areaId, area] = entry;
+    const r = appliedRatios[areaId];
+    const newX = area.x + (table.x - area.x) * r.rw;
+    const newY = area.y + (table.y - area.y) * r.rh;
+    updates['floorplan/tables/' + tid + '/x'] = Math.max(0, Math.min(100, newX));
+    updates['floorplan/tables/' + tid + '/y'] = Math.max(0, Math.min(100, newY));
+  });
+
+  restRef.update(updates);
+}
 
 restRef.child('floorplan/areas').on('value', snap => {
   AREAS_STATE = snap.val() || {};

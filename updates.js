@@ -10,6 +10,11 @@
 // },
 
 const UPDATES = [
+ {
+    title: 'Kleine update met een paar veranderingen', 
+    date: '20-08-2026', 
+    info: 'Ik heb 2 nieuwe dingen toegevoegd: Ten eerste heb ik toegevoegd dat je nu kunt kiezen welke achtergrondkleur je wilt je kunt kiezen uit 25 kleuren! Ten tweede heb ik toegevoegd dat je de plattegrond groter dan 20x20 vierkantjes kunt maken er zijn ook nog een paar kleine bugfixes de volgende update komt binnenkort uit dit zal een hele grote zijn!'
+  }, 
   {
     title: 'Grote Update met veel nieuwe features',
     date: '19-08-2026',

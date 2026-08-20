@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1787128676">
+<link rel="stylesheet" id="app-style-link">
+<script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + Date.now());</script>
 </head>
 <body>
 
@@ -93,6 +94,14 @@
         <button type="button" class="fp-tool-btn" id="tool-add-table">➕ Tafel</button>
         <button type="button" class="fp-tool-btn danger" id="tool-delete">🗑 Verwijderen</button>
       </div>
+      <div class="fp-gridsize-row" id="fp-gridsize-row">
+        <span class="fp-gridsize-label">Grootte plattegrond (vierkantjes)</span>
+        <div class="fp-gridsize-controls">
+          <button type="button" class="fp-tool-btn" id="grid-size-minus">−</button>
+          <span class="fp-gridsize-value" id="grid-size-value">20 × 20</span>
+          <button type="button" class="fp-tool-btn" id="grid-size-plus">+</button>
+        </div>
+      </div>
       <div class="fp-hint" id="fp-hint">Sleep tafels en gebieden om ze te verplaatsen. Sleep een hoek van een gebied (linksboven of rechtsonder) om het aan die kant te vergroten of verkleinen.</div>
       <div class="floorplan-viewport">
         <div class="floorplan-canvas" id="edit-canvas"></div>
@@ -116,6 +125,13 @@
         <span class="settings-info-value-group">
           <span id="info-naam">—</span>
           <button type="button" class="mini-btn edit" id="btn-rename-restaurant" style="display:none;">Bewerken</button>
+        </span>
+      </div>
+      <div class="settings-info-row">
+        <span>Achtergrondkleur</span>
+        <span class="settings-info-value-group">
+          <span class="color-swatch-preview" id="info-header-color"></span>
+          <button type="button" class="mini-btn edit" id="btn-header-color" style="display:none;">Wijzigen</button>
         </span>
       </div>
       <div class="settings-info-row">
@@ -214,6 +230,18 @@
   </div>
 </div>
 
+<!-- Modal: kleur bovenbalk kiezen -->
+<div class="modal-overlay" id="modal-header-color">
+  <div class="modal-box">
+    <div class="modal-title">Achtergrondkleur</div>
+    <p class="modal-text">Kies een kleur voor de achtergrond van de hele app.</p>
+    <div class="color-palette" id="color-palette"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: update log -->
 <div class="modal-overlay" id="modal-updates">
   <div class="modal-box wide">
@@ -249,9 +277,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script src="emojis.js?v=1787128676"></script>
-<script src="restaurant.js?v=1787128676"></script>
-<script src="updates.js?v=1787128676"></script>
+<script>
+  // Laadt onze eigen bestanden altijd vers, zodat je nooit meer handmatig een
+  // versienummer hoeft te verhogen om cache-problemen te voorkomen.
+  (function () {
+    var v = Date.now();
+    ['emojis.js', 'restaurant.js', 'updates.js'].forEach(function (file) {
+      document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
+    });
+  })();
+</script>
 
 </body>
 </html>

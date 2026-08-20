@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1787128676">
+<link rel="stylesheet" id="app-style-link">
+<script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + Date.now());</script>
 </head>
 <body>
 
@@ -85,8 +86,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script src="landing.js?v=1787128676"></script>
-<script src="updates.js?v=1787128676"></script>
+<script>
+  // Laadt onze eigen bestanden altijd vers, zodat je nooit meer handmatig een
+  // versienummer hoeft te verhogen om cache-problemen te voorkomen.
+  (function () {
+    var v = Date.now();
+    ['landing.js', 'updates.js'].forEach(function (file) {
+      document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
+    });
+  })();
+</script>
 
 </body>
 </html>
