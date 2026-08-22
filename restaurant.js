@@ -217,6 +217,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 if (!isOwner) {
   document.getElementById('tool-add-area').style.display = 'none';
   document.getElementById('tool-add-table').style.display = 'none';
+  document.getElementById('tool-add-bank').style.display = 'none';
+  document.getElementById('tool-add-bar').style.display = 'none';
+  document.getElementById('tool-add-keuken').style.display = 'none';
   document.getElementById('tool-delete').style.display = 'none';
   document.getElementById('fp-gridsize-row').style.display = 'none';
   document.getElementById('fp-hint').textContent = 'Alleen de eigenaar kan de plattegrond aanpassen.';
@@ -253,7 +256,8 @@ const HEADER_COLORS = [
   '#6e2c2c', '#a8482f', '#c9793a', '#c9a24b', '#e0b84a',
   '#6f8f5c', '#3f6b4f', '#2f6e6e', '#356b8c', '#2c4a75',
   '#3a3a75', '#5c3a75', '#7a3a63', '#8c4a63', '#b05f7a',
-  '#4a4438', '#5a5a5a', '#787066', '#2a2115', '#f2e8d5'
+  '#4a4438', '#5a5a5a', '#787066', '#2a2115', '#f2e8d5',
+  '#1a2f4d', '#4b2e83', '#7c1f3d', '#1f4d3a', '#b8895c'
 ];
 
 function hexToRgb(hex) {
@@ -345,7 +349,7 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 });
 
 // ==================== Producten (live) ====================
-let PRODUCTS_STATE = {}; // key -> {label, emoji, price, ice}
+let PRODUCTS_STATE = {}; // key -> {label, emoji, price, opties?: string[], ice?: legacy}
 
 restRef.child('products').on('value', snap => {
   PRODUCTS_STATE = snap.val() || {};
@@ -355,6 +359,31 @@ restRef.child('products').on('value', snap => {
 
 function productList() {
   return Object.entries(PRODUCTS_STATE).map(([key, p]) => ({ key, ...p }));
+}
+
+// Geeft de lijst met aanvink-opmerkingen voor een product terug, als objecten
+// {label, emoji}. Ondersteunt ook nog producten die met de oude opzet zijn
+// aangemaakt (opties als losse strings in plaats van objecten).
+function productOptions(p) {
+  if (!p) return [];
+  if (Array.isArray(p.opties) && p.opties.length > 0) {
+    return p.opties.map(o => typeof o === 'string' ? { label: o, emoji: null } : { label: o.label, emoji: o.emoji || null });
+  }
+  return [];
+}
+
+// Verzamelt alle al eerder gebruikte opmerkingen (over alle producten heen),
+// zodat je die bij een ander product kunt hergebruiken zonder opnieuw te typen.
+function allKnownOptions() {
+  const map = new Map();
+  productList().forEach(p => {
+    productOptions(p).forEach(o => {
+      if (o.label && !map.has(o.label.toLowerCase())) {
+        map.set(o.label.toLowerCase(), o);
+      }
+    });
+  });
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'nl'));
 }
 
 // ---- Emoji-picker opbouwen ----
@@ -395,13 +424,194 @@ function markEmojiSelected(em) {
 
 // ---- Product toevoegen/bewerken modal ----
 let editingProductKey = null;
+let editingProductOptions = []; // array van {label, emoji}
+
+// Klein vast setje emoji's om een opmerking mee te markeren.
+const OPTION_EMOJIS = ['🧊', '🧴', '🥛', '🌶️', '🍋', '➕', '🚫', '✨'];
+let selectedOptionEmoji = null;
+
+function buildOptionEmojiPicker() {
+  const picker = document.getElementById('option-emoji-picker');
+  if (!picker) return;
+  picker.innerHTML = '';
+  OPTION_EMOJIS.forEach(em => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'emoji-opt';
+    btn.textContent = em;
+    btn.addEventListener('click', () => {
+      selectedOptionEmoji = (selectedOptionEmoji === em) ? null : em;
+      picker.querySelectorAll('.emoji-opt').forEach(b => b.classList.toggle('selected', b === btn && selectedOptionEmoji === em));
+    });
+    picker.appendChild(btn);
+  });
+}
+buildOptionEmojiPicker();
+
+function renderProductOptionsEditor() {
+  const list = document.getElementById('product-options-list');
+  list.innerHTML = '';
+  editingProductOptions.forEach((opt, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'product-option-chip' + (i === editingOptionIndex ? ' editing' : '');
+    chip.innerHTML = `<span></span><button type="button" class="edit-opt" title="Bewerken">✎</button><button type="button" class="del-opt" title="Verwijderen">✕</button>`;
+    chip.querySelector('span').textContent = `${opt.emoji ? opt.emoji + ' ' : ''}${opt.label}`;
+    chip.querySelector('.edit-opt').addEventListener('click', () => startEditOption(i));
+    chip.querySelector('.del-opt').addEventListener('click', () => {
+      editingProductOptions.splice(i, 1);
+      if (editingOptionIndex === i) cancelEditOption();
+      else if (editingOptionIndex !== null && i < editingOptionIndex) editingOptionIndex--;
+      renderProductOptionsEditor();
+      renderExistingOptionsPicker();
+    });
+    list.appendChild(chip);
+  });
+}
+
+// Toont de al eerder gebruikte opmerkingen (van andere producten) als klikbare
+// chips, zodat je ze in één klik kunt hergebruiken zonder opnieuw te typen.
+function renderExistingOptionsPicker() {
+  const wrap = document.getElementById('product-option-existing');
+  if (!wrap) return;
+  const known = allKnownOptions().filter(o => !editingProductOptions.some(e => e.label.toLowerCase() === o.label.toLowerCase()));
+  if (known.length === 0) {
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = '<div class="modal-label" style="margin-top:0;">Al bestaande opmerkingen (klik om toe te voegen)</div>';
+  const row = document.createElement('div');
+  row.className = 'product-options-list';
+  known.forEach(o => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'product-option-chip existing';
+    chip.textContent = `${o.emoji ? o.emoji + ' ' : ''}${o.label}`;
+    chip.addEventListener('click', () => {
+      editingProductOptions.push({ label: o.label, emoji: o.emoji || null });
+      renderProductOptionsEditor();
+      renderExistingOptionsPicker();
+    });
+    row.appendChild(chip);
+  });
+  wrap.appendChild(row);
+}
+
+function resetOptionEmojiPicker() {
+  selectedOptionEmoji = null;
+  const picker = document.getElementById('option-emoji-picker');
+  if (picker) picker.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
+}
+
+function selectOptionEmoji(em) {
+  selectedOptionEmoji = em;
+  const picker = document.getElementById('option-emoji-picker');
+  if (picker) picker.querySelectorAll('.emoji-opt').forEach(b => b.classList.toggle('selected', b.textContent === em));
+}
+
+// Zet de opmerking-editor in "bewerken"-stand voor opmerking i: vult het
+// invoerveld en de emoji vooraf in, en verandert de knop naar "Opslaan wijziging".
+let editingOptionIndex = null;
+let editingOptionOriginal = null; // { label, emoji } zoals de opmerking was vóór het bewerken
+
+function startEditOption(i) {
+  const opt = editingProductOptions[i];
+  if (!opt) return;
+  editingOptionIndex = i;
+  editingOptionOriginal = { label: opt.label, emoji: opt.emoji || null };
+  document.getElementById('product-option-input').value = opt.label;
+  selectOptionEmoji(opt.emoji || null);
+  document.getElementById('product-option-picker').style.display = 'block';
+  document.getElementById('product-option-add-btn').textContent = '✓ Opslaan wijziging';
+  document.getElementById('product-option-cancel-edit-btn').style.display = 'inline-block';
+  renderProductOptionsEditor();
+  document.getElementById('product-option-input').focus();
+}
+
+function cancelEditOption() {
+  editingOptionIndex = null;
+  editingOptionOriginal = null;
+  document.getElementById('product-option-input').value = '';
+  resetOptionEmojiPicker();
+  document.getElementById('product-option-add-btn').textContent = '+ Toevoegen';
+  document.getElementById('product-option-cancel-edit-btn').style.display = 'none';
+  renderProductOptionsEditor();
+}
+
+document.getElementById('product-option-cancel-edit-btn').addEventListener('click', cancelEditOption);
+
+// Past een bewerkte opmerking direct toe op alle andere producten die dezelfde
+// opmerking (op naam, hoofdletterongevoelig) hebben, en schrijft dat meteen naar
+// Firebase — zodat de wijziging overal synchroon is, ook zonder die producten
+// zelf te openen en op te slaan.
+function syncOptionRenameAcrossProducts(oldLabel, newOpt, excludeKey) {
+  const oldLower = oldLabel.toLowerCase();
+  Object.entries(PRODUCTS_STATE).forEach(([key, p]) => {
+    if (key === excludeKey) return;
+    const opts = productOptions(p);
+    const idx = opts.findIndex(o => o.label.toLowerCase() === oldLower);
+    if (idx === -1) return;
+    const updated = opts.slice();
+    updated[idx] = { label: newOpt.label, emoji: newOpt.emoji || null };
+    restRef.child('products/' + key + '/opties').set(updated.map(o => ({ label: o.label, emoji: o.emoji || null })));
+  });
+}
+
+function addProductOption() {
+  const input = document.getElementById('product-option-input');
+  const val = input.value.trim();
+  if (!val) return;
+
+  if (editingOptionIndex !== null) {
+    const dup = editingProductOptions.some((o, idx) => idx !== editingOptionIndex && o.label.toLowerCase() === val.toLowerCase());
+    if (dup) { input.value = ''; return; }
+    const newOpt = { label: val, emoji: selectedOptionEmoji };
+    const original = editingOptionOriginal;
+    editingProductOptions[editingOptionIndex] = newOpt;
+    if (original && (original.label.toLowerCase() !== newOpt.label.toLowerCase() || (original.emoji || null) !== (newOpt.emoji || null))) {
+      syncOptionRenameAcrossProducts(original.label, newOpt, editingProductKey);
+    }
+    cancelEditOption();
+    renderExistingOptionsPicker();
+    return;
+  }
+
+  if (editingProductOptions.some(o => o.label.toLowerCase() === val.toLowerCase())) {
+    input.value = '';
+    return;
+  }
+  editingProductOptions.push({ label: val, emoji: selectedOptionEmoji });
+  input.value = '';
+  resetOptionEmojiPicker();
+  renderProductOptionsEditor();
+  renderExistingOptionsPicker();
+  input.focus();
+}
+
+document.getElementById('product-option-add-btn').addEventListener('click', addProductOption);
+document.getElementById('product-option-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addProductOption(); }
+});
+
+document.getElementById('product-option-open-btn').addEventListener('click', () => {
+  const panel = document.getElementById('product-option-picker');
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'block' : 'none';
+  if (opening) renderExistingOptionsPicker();
+});
 
 document.getElementById('btn-add-product').addEventListener('click', () => {
   editingProductKey = null;
   document.getElementById('product-modal-title').textContent = 'Nieuw product';
   document.getElementById('product-name-input').value = '';
   document.getElementById('product-price-input').value = '';
-  document.getElementById('product-ice-input').checked = false;
+  document.getElementById('product-option-input').value = '';
+  editingProductOptions = [];
+  editingOptionIndex = null;
+  document.getElementById('product-option-add-btn').textContent = '+ Toevoegen';
+  document.getElementById('product-option-cancel-edit-btn').style.display = 'none';
+  resetOptionEmojiPicker();
+  document.getElementById('product-option-picker').style.display = 'none';
+  renderProductOptionsEditor();
   document.getElementById('product-error').textContent = '';
   markEmojiSelected(null);
   openModal('modal-product');
@@ -414,7 +624,14 @@ function openEditProduct(key) {
   document.getElementById('product-modal-title').textContent = 'Product bewerken';
   document.getElementById('product-name-input').value = p.label || '';
   document.getElementById('product-price-input').value = p.price != null ? p.price : '';
-  document.getElementById('product-ice-input').checked = !!p.ice;
+  document.getElementById('product-option-input').value = '';
+  editingProductOptions = productOptions(p).map(o => ({ label: o.label, emoji: o.emoji || null }));
+  editingOptionIndex = null;
+  document.getElementById('product-option-add-btn').textContent = '+ Toevoegen';
+  document.getElementById('product-option-cancel-edit-btn').style.display = 'none';
+  resetOptionEmojiPicker();
+  document.getElementById('product-option-picker').style.display = 'none';
+  renderProductOptionsEditor();
   document.getElementById('product-error').textContent = '';
   markEmojiSelected(p.emoji || null);
   openModal('modal-product');
@@ -423,7 +640,6 @@ function openEditProduct(key) {
 document.getElementById('product-confirm').addEventListener('click', () => {
   const naam = document.getElementById('product-name-input').value.trim();
   const prijsRaw = document.getElementById('product-price-input').value;
-  const ice = document.getElementById('product-ice-input').checked;
   const errorEl = document.getElementById('product-error');
 
   if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
@@ -431,7 +647,7 @@ document.getElementById('product-confirm').addEventListener('click', () => {
   const prijs = prijsRaw === '' ? 0 : Number(prijsRaw);
   if (isNaN(prijs) || prijs < 0) { errorEl.textContent = 'Vul een geldige prijs in.'; return; }
 
-  const data = { label: naam, emoji: selectedEmoji, price: prijs, ice: ice };
+  const data = { label: naam, emoji: selectedEmoji, price: prijs, opties: editingProductOptions.slice() };
 
   const key = editingProductKey || restRef.child('products').push().key;
   restRef.child('products/' + key).set(data).then(() => {
@@ -453,13 +669,14 @@ function renderSettingsProducts() {
   items.forEach(p => {
     const row = document.createElement('div');
     row.className = 'settings-product-row';
+    const opties = productOptions(p);
     row.innerHTML = `
       <div class="settings-product-main">
         <span class="settings-product-emoji">${p.emoji}</span>
         <span class="settings-product-name">${escapeHtml(p.label)}</span>
         <span class="menu-dots"></span>
         <span class="settings-product-price">${formatPrice(p.price)}</span>
-        ${p.ice ? '<span class="ice-badge">🧊 ijs-optie</span>' : ''}
+        ${opties.map(o => `<span class="ice-badge">${o.emoji || '📝'} ${escapeHtml(o.label)}</span>`).join('')}
       </div>
       ${isOwner ? `<div class="settings-product-actions">
         <button type="button" class="mini-btn edit" data-key="${p.key}">Bewerken</button>
@@ -484,7 +701,7 @@ let TABLES_STATE = {}; // id -> {number, x, y}
 
 // ---- Grootte van de plattegrond (aantal vierkantjes) ----
 const GRID_MIN = 10;
-const GRID_MAX = 50;
+const GRID_MAX = 40;
 const GRID_STEP = 1;
 const GRID_DEFAULT = 20; // komt overeen met de oorspronkelijke vaste 24px-vierkantjes
 let currentGridSize = GRID_DEFAULT;
@@ -617,21 +834,66 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
   });
 
   Object.entries(TABLES_STATE).forEach(([id, table]) => {
+    const kind = table.kind || 'tafel';
+    const shape = table.shape || 'rond';
+    const isOrderable = kind === 'tafel' || kind === 'bank';
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'fp-table';
-    if (!editable && ACTIEVE_TAFELS.has(table.number)) el.classList.add('bezet');
+    el.className = 'fp-table fp-kind-' + kind + (kind === 'tafel' ? ' fp-shape-' + shape : '');
+    if (!editable && isOrderable && ACTIEVE_TAFELS.has(table.number)) el.classList.add('bezet');
     el.style.left = table.x + '%';
     el.style.top = table.y + '%';
-    el.textContent = table.number;
+
+    if (isOrderable) {
+      el.textContent = table.number;
+      if (kind === 'tafel') {
+        const typeLabel = document.createElement('span');
+        typeLabel.className = 'fp-table-type-label';
+        typeLabel.textContent = '🍽️';
+        el.appendChild(typeLabel);
+      } else if (kind === 'bank') {
+        const bankLabel = document.createElement('span');
+        bankLabel.className = 'fp-building-label';
+        bankLabel.textContent = 'Bank';
+        el.appendChild(bankLabel);
+      }
+    } else {
+      const icon = document.createElement('span');
+      icon.className = 'fp-building-icon';
+      icon.textContent = kind === 'bar' ? '🍸' : '🧑‍🍳';
+      el.appendChild(icon);
+      const label = document.createElement('span');
+      label.className = 'fp-building-label';
+      label.textContent = table.name || (kind === 'bar' ? 'Bar' : 'Keuken');
+      el.appendChild(label);
+    }
+
     if (editable) {
       el.dataset.type = 'table';
       el.dataset.id = id;
-    } else if (onTableClick) {
+      el.dataset.kind = kind;
+    } else if (onTableClick && isOrderable) {
       el.addEventListener('click', () => onTableClick(table));
     }
     canvasEl.appendChild(el);
   });
+}
+
+// ---- Woord/label helpers voor tafel vs. bank ----
+function kindWoord(table) {
+  return (table && table.kind === 'bank') ? 'Bank' : 'Tafel';
+}
+function tableKindByNumber(number) {
+  const found = Object.values(TABLES_STATE).find(t =>
+    (t.kind === 'tafel' || t.kind === 'bank' || !t.kind) && t.number === number
+  );
+  return found ? (found.kind || 'tafel') : 'tafel';
+}
+function kindWoordByNumber(number) {
+  return tableKindByNumber(number) === 'bank' ? 'Bank' : 'Tafel';
+}
+function kindIconByNumber(number) {
+  return tableKindByNumber(number) === 'bank' ? '🛋️' : '🪑';
 }
 
 function renderOrderCanvas() {
@@ -652,7 +914,7 @@ function handleTableClick(table) {
     return;
   }
   window.pendingChoiceTable = table;
-  document.getElementById('table-choice-title').textContent = `Tafel ${table.number}`;
+  document.getElementById('table-choice-title').textContent = `${kindWoord(table)} ${table.number}`;
   openModal('modal-table-choice');
 }
 
@@ -694,6 +956,39 @@ document.getElementById('tool-add-table').addEventListener('click', () => {
   fpHint.textContent = 'Klik op de plattegrond om een tafel te plaatsen.';
 });
 
+document.getElementById('tool-add-bank').addEventListener('click', () => {
+  deleteMode = false;
+  document.getElementById('tool-delete').classList.remove('active');
+  pendingMode = 'bank';
+  fpHint.textContent = 'Klik op de plattegrond om een bank te plaatsen.';
+});
+
+document.getElementById('tool-add-bar').addEventListener('click', () => {
+  deleteMode = false;
+  document.getElementById('tool-delete').classList.remove('active');
+  pendingMode = 'bar';
+  fpHint.textContent = 'Klik op de plattegrond om de bar te plaatsen.';
+});
+
+document.getElementById('tool-add-keuken').addEventListener('click', () => {
+  deleteMode = false;
+  document.getElementById('tool-delete').classList.remove('active');
+  pendingMode = 'keuken';
+  fpHint.textContent = 'Klik op de plattegrond om de keuken te plaatsen.';
+});
+
+// ---- Vormkeuze voor tafels (rond / vierkant / rechthoekig) ----
+let selectedTableShape = 'rond';
+function setTableShapeSelection(shape) {
+  selectedTableShape = shape;
+  document.querySelectorAll('#table-shape-options .fp-shape-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.shape === shape);
+  });
+}
+document.querySelectorAll('#table-shape-options .fp-shape-btn').forEach(btn => {
+  btn.addEventListener('click', () => setTableShapeSelection(btn.dataset.shape));
+});
+
 document.getElementById('tool-delete').addEventListener('click', (e) => {
   deleteMode = !deleteMode;
   pendingMode = null;
@@ -733,14 +1028,32 @@ editCanvas.addEventListener('click', (e) => {
     window.pendingAreaRect = { x, y, w, h };
     return;
   }
-  if (pendingMode === 'table') {
+  if (pendingMode === 'table' || pendingMode === 'bank') {
     const pos = getPercentPos(e.clientX, e.clientY);
+    const kind = pendingMode === 'table' ? 'tafel' : 'bank';
     pendingMode = null;
     fpHint.textContent = defaultHint;
+    window.pendingTableKind = kind;
+    window.pendingTablePos = pos;
     document.getElementById('table-number-input').value = '';
     document.getElementById('table-number-error').textContent = '';
-    window.pendingTablePos = pos;
+    document.getElementById('table-number-modal-title').textContent = kind === 'bank' ? 'Banknummer' : 'Tafelnummer';
+    document.getElementById('table-shape-row').style.display = kind === 'tafel' ? '' : 'none';
+    setTableShapeSelection('rond');
     openModal('modal-table-number');
+    return;
+  }
+  if (pendingMode === 'bar' || pendingMode === 'keuken') {
+    const pos = getPercentPos(e.clientX, e.clientY);
+    const kind = pendingMode;
+    pendingMode = null;
+    fpHint.textContent = defaultHint;
+    window.pendingBuildingKind = kind;
+    window.pendingBuildingPos = pos;
+    document.getElementById('building-name-input').value = '';
+    document.getElementById('building-name-error').textContent = '';
+    document.getElementById('building-name-modal-title').textContent = kind === 'bar' ? 'Naam van de bar' : 'Naam van de keuken';
+    openModal('modal-building-name');
     return;
   }
 });
@@ -756,15 +1069,29 @@ document.getElementById('area-name-confirm').addEventListener('click', () => {
 document.getElementById('table-number-confirm').addEventListener('click', () => {
   const raw = document.getElementById('table-number-input').value.trim();
   const errorEl = document.getElementById('table-number-error');
-  if (!raw) { errorEl.textContent = 'Vul een tafelnummer in.'; return; }
+  if (!raw) { errorEl.textContent = 'Vul een nummer in.'; return; }
   const nummer = Number(raw);
   if (isNaN(nummer) || nummer <= 0) { errorEl.textContent = 'Ongeldig nummer.'; return; }
   const bestaatAl = Object.values(TABLES_STATE).some(t => t.number === nummer);
-  if (bestaatAl) { errorEl.textContent = 'Dit tafelnummer bestaat al.'; return; }
+  if (bestaatAl) { errorEl.textContent = 'Dit nummer bestaat al.'; return; }
 
   const pos = window.pendingTablePos;
-  restRef.child('floorplan/tables').push({ number: nummer, x: pos.x, y: pos.y });
+  const kind = window.pendingTableKind || 'tafel';
+  const data = { kind, number: nummer, x: pos.x, y: pos.y };
+  if (kind === 'tafel') data.shape = selectedTableShape;
+  restRef.child('floorplan/tables').push(data);
   closeModal('modal-table-number');
+});
+
+document.getElementById('building-name-confirm').addEventListener('click', () => {
+  const naam = document.getElementById('building-name-input').value.trim();
+  const errorEl = document.getElementById('building-name-error');
+  if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+
+  const pos = window.pendingBuildingPos;
+  const kind = window.pendingBuildingKind;
+  restRef.child('floorplan/tables').push({ kind, name: naam, x: pos.x, y: pos.y });
+  closeModal('modal-building-name');
 });
 
 // ---- Slepen (verplaatsen) en resizen ----
@@ -778,6 +1105,14 @@ function attachEditHandlers() {
   });
 }
 
+function itemDeleteLabel(item) {
+  const kind = (item && item.kind) || 'tafel';
+  if (kind === 'bank') return `bank ${item.number}`;
+  if (kind === 'bar') return `bar "${item.name}"`;
+  if (kind === 'keuken') return `keuken "${item.name}"`;
+  return `tafel ${item.number}`;
+}
+
 function onDragStart(e) {
   if (pendingMode) return; // laat de klik doorgaan naar het plaatsen van een nieuw gebied/tafel
   if (e.target.classList.contains('fp-resize-handle')) return;
@@ -787,7 +1122,7 @@ function onDragStart(e) {
 
   if (deleteMode) {
     e.stopPropagation();
-    const label = type === 'table' ? `tafel ${TABLES_STATE[id].number}` : `gebied "${AREAS_STATE[id].name}"`;
+    const label = type === 'table' ? itemDeleteLabel(TABLES_STATE[id]) : `gebied "${AREAS_STATE[id].name}"`;
     if (confirm(`Weet je zeker dat je ${label} wilt verwijderen?`)) {
       restRef.child('floorplan/' + (type === 'table' ? 'tables' : 'areas') + '/' + id).remove();
     }
@@ -873,7 +1208,7 @@ function onResizeStart(e) {
 // ==================== Bestellen: tafel -> producten kiezen ====================
 let currentOrderTable = null;
 let orderCounts = {};      // key -> aantal
-let orderIceChoices = {};  // key -> array van 'met'/'zonder'
+let orderItemOptions = {}; // key -> array (per besteld stuk) van gekozen opmerkingen
 let stockStatus = {};      // key -> uitverkocht?
 
 restRef.child('stock').on('value', snap => {
@@ -884,9 +1219,9 @@ restRef.child('stock').on('value', snap => {
 function openOrderModalForTable(table) {
   currentOrderTable = table;
   orderCounts = {};
-  orderIceChoices = {};
-  productList().forEach(p => { orderCounts[p.key] = 0; orderIceChoices[p.key] = []; });
-  document.getElementById('order-modal-title').textContent = `Tafel ${table.number}`;
+  orderItemOptions = {};
+  productList().forEach(p => { orderCounts[p.key] = 0; orderItemOptions[p.key] = []; });
+  document.getElementById('order-modal-title').textContent = `${kindWoord(table)} ${table.number}`;
   document.getElementById('order-note').value = '';
   document.getElementById('order-error').textContent = '';
   renderOrderProducts();
@@ -908,7 +1243,7 @@ function renderOrderProducts() {
   }
   container.innerHTML = '';
   items.forEach(p => {
-    if (orderCounts[p.key] === undefined) { orderCounts[p.key] = 0; orderIceChoices[p.key] = []; }
+    if (orderCounts[p.key] === undefined) { orderCounts[p.key] = 0; orderItemOptions[p.key] = []; }
     const isOut = !!stockStatus[p.key];
     const card = document.createElement('div');
     card.className = 'product-card' + (isOut ? ' out-of-stock' : '');
@@ -923,7 +1258,7 @@ function renderOrderProducts() {
         </div>
         ${isOut ? '<span class="uitverkocht-tag">Uitverkocht</span>' : ''}
       </div>
-      <div class="ice-toggles" id="order-ice-${p.key}"></div>
+      <div class="ice-toggles" id="order-opts-${p.key}"></div>
     `;
     container.appendChild(card);
   });
@@ -933,7 +1268,7 @@ function renderOrderProducts() {
       const key = btn.dataset.key;
       orderCounts[key]++;
       document.getElementById(`order-${key}-count`).textContent = orderCounts[key];
-      renderOrderIceToggles(key);
+      renderOrderOptionToggles(key);
     });
   });
   container.querySelectorAll('.min-btn').forEach(btn => {
@@ -941,36 +1276,50 @@ function renderOrderProducts() {
       const key = btn.dataset.key;
       if (orderCounts[key] > 0) orderCounts[key]--;
       document.getElementById(`order-${key}-count`).textContent = orderCounts[key];
-      renderOrderIceToggles(key);
+      renderOrderOptionToggles(key);
     });
   });
 
-  items.forEach(p => renderOrderIceToggles(p.key));
+  items.forEach(p => renderOrderOptionToggles(p.key));
 }
 
-function renderOrderIceToggles(key) {
+function renderOrderOptionToggles(key) {
   const p = PRODUCTS_STATE[key];
-  const container = document.getElementById(`order-ice-${key}`);
+  const container = document.getElementById(`order-opts-${key}`);
   if (!container) return;
   container.innerHTML = '';
-  if (!p || !p.ice) return;
+  const opties = productOptions(p);
+  if (!p || opties.length === 0) return;
 
   const n = orderCounts[key] || 0;
-  if (!orderIceChoices[key]) orderIceChoices[key] = [];
-  while (orderIceChoices[key].length < n) orderIceChoices[key].push('zonder');
-  while (orderIceChoices[key].length > n) orderIceChoices[key].pop();
+  if (!orderItemOptions[key]) orderItemOptions[key] = [];
+  while (orderItemOptions[key].length < n) orderItemOptions[key].push([]);
+  while (orderItemOptions[key].length > n) orderItemOptions[key].pop();
 
-  orderIceChoices[key].forEach((choice, i) => {
-    const nummer = n > 1 ? `#${i + 1} ` : '';
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'ice-chip' + (choice === 'met' ? ' met' : '');
-    chip.textContent = `${nummer}${choice === 'met' ? '🧊 Met ijs' : '🚫 Zonder ijs'}`;
-    chip.addEventListener('click', () => {
-      orderIceChoices[key][i] = orderIceChoices[key][i] === 'met' ? 'zonder' : 'met';
-      renderOrderIceToggles(key);
+  orderItemOptions[key].forEach((selected, i) => {
+    const row = document.createElement('div');
+    row.className = 'option-unit-row';
+    if (n > 1) {
+      const tag = document.createElement('span');
+      tag.className = 'option-unit-tag';
+      tag.textContent = `#${i + 1}`;
+      row.appendChild(tag);
+    }
+    opties.forEach(opt => {
+      const active = selected.includes(opt.label);
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'ice-chip' + (active ? ' met' : '');
+      chip.textContent = `${active ? '✅ ' : (opt.emoji ? opt.emoji + ' ' : '')}${opt.label}`;
+      chip.addEventListener('click', () => {
+        const idx = orderItemOptions[key][i].indexOf(opt.label);
+        if (idx === -1) orderItemOptions[key][i].push(opt.label);
+        else orderItemOptions[key][i].splice(idx, 1);
+        renderOrderOptionToggles(key);
+      });
+      row.appendChild(chip);
     });
-    container.appendChild(chip);
+    container.appendChild(row);
   });
 }
 
@@ -985,10 +1334,11 @@ document.getElementById('order-confirm').addEventListener('click', () => {
     return;
   }
 
-  const ijsKeuzes = {};
+  const itemOpties = {};
   Object.keys(items).forEach(key => {
-    if (orderIceChoices[key] && orderIceChoices[key].length > 0) {
-      ijsKeuzes[key] = orderIceChoices[key].slice();
+    const unitsMetKeuzes = (orderItemOptions[key] || []).filter(sel => sel.length > 0);
+    if (unitsMetKeuzes.length > 0) {
+      itemOpties[key] = orderItemOptions[key].map(sel => sel.slice());
     }
   });
 
@@ -1000,7 +1350,7 @@ document.getElementById('order-confirm').addEventListener('click', () => {
   };
   const opmerking = document.getElementById('order-note').value.trim();
   if (opmerking) orderData.opmerking = opmerking;
-  if (Object.keys(ijsKeuzes).length > 0) orderData.ijsKeuzes = ijsKeuzes;
+  if (Object.keys(itemOpties).length > 0) orderData.itemOpties = itemOpties;
 
   restRef.child('orders').push().set(orderData).then(() => {
     closeModal('modal-order');
@@ -1013,7 +1363,7 @@ document.getElementById('order-confirm').addEventListener('click', () => {
 // ==================== Rekening & betalen ====================
 function openBillModal(table) {
   window.currentBillTable = table;
-  document.getElementById('bill-modal-title').textContent = `Rekening — Tafel ${table.number}`;
+  document.getElementById('bill-modal-title').textContent = `Rekening — ${kindWoord(table)} ${table.number}`;
   document.getElementById('bill-error').textContent = '';
   document.getElementById('bill-confirm').style.display = 'none';
   document.getElementById('bill-pay-btn').style.display = '';
@@ -1060,6 +1410,7 @@ function openBillModal(table) {
 document.getElementById('bill-pay-btn').addEventListener('click', () => {
   document.getElementById('bill-confirm-amount').textContent = formatPrice(window.currentBillTotal || 0);
   document.getElementById('bill-confirm-table').textContent = window.currentBillTable.number;
+  document.getElementById('bill-confirm-kind').textContent = kindWoord(window.currentBillTable).toLowerCase();
   document.getElementById('bill-confirm').style.display = 'block';
   document.getElementById('bill-pay-btn').style.display = 'none';
 });
@@ -1096,13 +1447,24 @@ function productLabel(key) {
   return p ? p.label : key;
 }
 
+// Zoekt de huidige emoji van een opmerking bij een product op (op naam,
+// hoofdletterongevoelig), zodat de keuken altijd de actuele emoji ziet i.p.v.
+// een vast opmerking-icoontje.
+function optionEmoji(productKey, label) {
+  const p = PRODUCTS_STATE[productKey];
+  const opt = productOptions(p).find(o => o.label.toLowerCase() === label.toLowerCase());
+  return (opt && opt.emoji) ? opt.emoji : '📝';
+}
+
 function itemsToLinesHtml(order) {
   return Object.entries(order.items).map(([key, aantal]) => {
     const label = productLabel(key);
-    const keuzes = order.ijsKeuzes && order.ijsKeuzes[key];
+    const keuzes = order.itemOpties && order.itemOpties[key];
     if (keuzes && keuzes.length > 0) {
-      return keuzes.map(keuze => {
-        const suffix = keuze === 'met' ? ' — 🧊 met ijs' : '';
+      return keuzes.map(selected => {
+        const suffix = selected && selected.length > 0
+          ? ` — ${selected.map(o => `${optionEmoji(key, o)} ${escapeHtml(o)}`).join(', ')}`
+          : '';
         return `<div class="item-line">1x ${escapeHtml(label)}${suffix}</div>`;
       }).join('');
     }
@@ -1123,7 +1485,7 @@ function speelMeldingGeluid() {
 function renderOrderCardHtml(id, order, actionHtml) {
   const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
   return `
-    <div class="table-badge">🪑 Tafel ${order.tableNumber}</div>
+    <div class="table-badge">${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}</div>
     <div class="items-block">${itemsToLinesHtml(order)}</div>
     ${noteHtml}
     <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
@@ -1241,7 +1603,7 @@ function renderHistory() {
     const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
     const betaaldHtml = order.betaaldOp ? ` · betaald om ${formatTime(order.betaaldOp)}` : '';
     card.innerHTML = `
-      <div class="table-badge">🪑 Tafel ${order.tableNumber}</div>
+      <div class="table-badge">${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}</div>
       <div class="items-block">${itemsToLinesHtml(order)}</div>
       ${noteHtml}
       <div class="time-line">Besteld om ${formatTime(order.tijd)}${betaaldHtml}</div>

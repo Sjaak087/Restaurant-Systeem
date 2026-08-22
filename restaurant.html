@@ -90,8 +90,11 @@
 
     <div class="subtab-panel active" id="subpanel-plattegrond">
       <div class="fp-toolbar">
-        <button type="button" class="fp-tool-btn" id="tool-add-area">➕ Gebied</button>
-        <button type="button" class="fp-tool-btn" id="tool-add-table">➕ Tafel</button>
+        <button type="button" class="fp-tool-btn" id="tool-add-area">📍 Gebied</button>
+        <button type="button" class="fp-tool-btn" id="tool-add-table">🪑 Tafel</button>
+        <button type="button" class="fp-tool-btn" id="tool-add-bank">🛋️ Bank</button>
+        <button type="button" class="fp-tool-btn" id="tool-add-bar">🍸 Bar</button>
+        <button type="button" class="fp-tool-btn" id="tool-add-keuken">🧑‍🍳 Keuken</button>
         <button type="button" class="fp-tool-btn danger" id="tool-delete">🗑 Verwijderen</button>
       </div>
       <div class="fp-gridsize-row" id="fp-gridsize-row">
@@ -183,7 +186,7 @@
       <button type="button" class="btn-primary" id="bill-pay-btn">Betalen</button>
     </div>
     <div class="bill-confirm" id="bill-confirm" style="display:none;">
-      <p class="modal-text">Bevestig de betaling van <strong id="bill-confirm-amount"></strong> voor tafel <strong id="bill-confirm-table"></strong>.</p>
+      <p class="modal-text">Bevestig de betaling van <strong id="bill-confirm-amount"></strong> voor <span id="bill-confirm-kind">tafel</span> <strong id="bill-confirm-table"></strong>.</p>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="bill-pay-cancel">Terug</button>
         <button type="button" class="btn-primary" id="bill-pay-confirm">✅ Betaald</button>
@@ -217,15 +220,36 @@
   </div>
 </div>
 
-<!-- Modal: tafelnummer -->
+<!-- Modal: tafelnummer / banknummer -->
 <div class="modal-overlay" id="modal-table-number">
   <div class="modal-box">
-    <div class="modal-title">Tafelnummer</div>
+    <div class="modal-title" id="table-number-modal-title">Tafelnummer</div>
     <input type="number" id="table-number-input" class="modal-input" placeholder="Bijv. 4" min="1">
+    <div class="fp-shape-row" id="table-shape-row">
+      <span class="modal-label" style="margin:0 0 8px;">Vorm van de tafel</span>
+      <div class="fp-shape-options" id="table-shape-options">
+        <button type="button" class="fp-shape-btn" data-shape="rond">⚪ Rond</button>
+        <button type="button" class="fp-shape-btn" data-shape="vierkant">◻️ Vierkant</button>
+        <button type="button" class="fp-shape-btn" data-shape="rechthoek">▭ Rechthoekig</button>
+      </div>
+    </div>
     <div class="modal-error" id="table-number-error"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="table-number-confirm">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: naam van bar/keuken -->
+<div class="modal-overlay" id="modal-building-name">
+  <div class="modal-box">
+    <div class="modal-title" id="building-name-modal-title">Naam</div>
+    <input type="text" id="building-name-input" class="modal-input" placeholder="Bijv. Bar" maxlength="30">
+    <div class="modal-error" id="building-name-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="building-name-confirm">Opslaan</button>
     </div>
   </div>
 </div>
@@ -261,9 +285,22 @@
     <input type="text" id="product-name-input" class="modal-input" placeholder="Bijv. Fanta" maxlength="40">
     <label class="modal-label">Prijs (€)</label>
     <input type="number" id="product-price-input" class="modal-input" placeholder="Bijv. 2.50" step="0.05" min="0">
-    <label class="modal-checkbox-label">
-      <input type="checkbox" id="product-ice-input"> Klant kan kiezen voor "met/zonder ijsklontjes"
-    </label>
+    <label class="modal-label">Opmerkingen om aan te vinken bij bestellen (optioneel)</label>
+    <p class="modal-text" style="margin-top:-6px;">Bijv. "Zonder ijsklontjes", "Extra pittig". De klant kan deze per besteld stuk aanvinken, en er kunnen er meerdere tegelijk gekozen worden.</p>
+    <div class="product-options-list" id="product-options-list"></div>
+    <button type="button" class="btn-secondary product-option-open-btn" id="product-option-open-btn">+ Opmerking toevoegen</button>
+
+    <div class="product-option-picker" id="product-option-picker" style="display:none;">
+      <div class="product-option-picker-existing" id="product-option-existing"></div>
+      <label class="modal-label" style="margin-top:0;">Nieuwe opmerking</label>
+      <p class="modal-text" style="margin-top:-6px;">Kies eventueel een emoji en typ de opmerking.</p>
+      <div class="option-emoji-picker" id="option-emoji-picker"></div>
+      <div class="product-options-add">
+        <input type="text" id="product-option-input" class="modal-input" placeholder="Typ een nieuwe opmerking" maxlength="40">
+        <button type="button" class="btn-secondary" id="product-option-add-btn">+ Toevoegen</button>
+        <button type="button" class="btn-secondary" id="product-option-cancel-edit-btn" style="display:none;">Annuleren</button>
+      </div>
+    </div>
     <label class="modal-label">Emoji</label>
     <div class="emoji-picker" id="emoji-picker"></div>
     <div class="modal-error" id="product-error"></div>
@@ -276,13 +313,12 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-<script src="firebase-config.js"></script>
 <script>
   // Laadt onze eigen bestanden altijd vers, zodat je nooit meer handmatig een
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['emojis.js', 'restaurant.js', 'updates.js'].forEach(function (file) {
+    ['firebase-config.js', 'emojis.js', 'restaurant.js', 'updates.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

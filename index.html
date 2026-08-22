@@ -85,13 +85,12 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-<script src="firebase-config.js"></script>
 <script>
   // Laadt onze eigen bestanden altijd vers, zodat je nooit meer handmatig een
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['landing.js', 'updates.js'].forEach(function (file) {
+    ['firebase-config.js', 'landing.js', 'updates.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

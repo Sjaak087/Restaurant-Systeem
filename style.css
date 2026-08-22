@@ -441,13 +441,7 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   color: var(--ink);
 }
 
-/* IJs-chips per besteld stuk */
-.ice-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
+/* Opmerking-chips container per product (verzamelt de rijen per besteld stuk) */
 .ice-toggles:empty { margin-top: 0; }
 .ice-chip {
   padding: 8px 14px;
@@ -467,6 +461,93 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   color: white;
 }
 .ice-chip.met:hover { background: var(--green-dark); }
+
+/* Opmerkingen-editor bij product aanmaken/bewerken */
+.product-options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  min-height: 0;
+}
+.product-options-list:empty { margin-top: 0; }
+.product-option-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold);
+  background: rgba(201, 162, 75, 0.1);
+  color: var(--gold-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.product-option-chip button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.product-option-chip .edit-opt:hover { color: var(--gold-soft); }
+.product-option-chip .del-opt:hover { color: #d99a9a; }
+.product-option-chip.editing {
+  border-color: var(--gold-soft);
+  background: rgba(201, 162, 75, 0.22);
+}
+.product-options-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.product-options-add .modal-input { margin: 0; flex: 1; }
+.product-options-add .btn-secondary { white-space: nowrap; padding: 0 16px; }
+.product-option-open-btn { margin-top: 6px; }
+.product-option-picker {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.product-option-picker-existing:empty { display: none; }
+.product-option-picker-existing { margin-bottom: 10px; }
+.product-option-chip.existing {
+  cursor: pointer;
+  border-style: dashed;
+  background: transparent;
+}
+.product-option-chip.existing:hover { background: rgba(201, 162, 75, 0.1); }
+.option-emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+/* Opmerkingen-chips per besteld stuk (order & keuken) */
+.option-unit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.option-unit-row:first-child { margin-top: 14px; }
+.option-unit-tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+.item-note {
+  color: var(--gold-soft);
+  font-size: 0.82rem;
+  margin: 0 0 4px 14px;
+}
 
 /* Uitverkocht */
 .product-card.out-of-stock {
@@ -1113,6 +1194,113 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   background: radial-gradient(circle at 32% 28%, #a34848, var(--wine) 72%);
   color: white;
 }
+
+/* ---- Vormen (alleen tafels) ---- */
+.fp-table.fp-shape-vierkant { border-radius: 8px; }
+.fp-table.fp-shape-rechthoek {
+  border-radius: 8px;
+  width: calc(64px * var(--fp-scale, 1));
+  height: calc(36px * var(--fp-scale, 1));
+  margin-left: calc(-32px * var(--fp-scale, 1));
+  margin-top: calc(-18px * var(--fp-scale, 1));
+}
+
+/* ---- Bank: rechthoekig, net als een tafel te bestellen ---- */
+.fp-table.fp-kind-bank {
+  border-radius: 8px;
+  width: calc(70px * var(--fp-scale, 1));
+  height: calc(40px * var(--fp-scale, 1));
+  margin-left: calc(-35px * var(--fp-scale, 1));
+  margin-top: calc(-20px * var(--fp-scale, 1));
+  border: 2px solid var(--green);
+  background: linear-gradient(135deg, #2f3b28, var(--bg-elevated) 70%);
+}
+.fp-table.fp-kind-bank.bezet {
+  border-color: var(--wine);
+  background: linear-gradient(135deg, #a34848, var(--wine) 70%);
+  color: white;
+}
+
+/* ---- Bar en Keuken: alleen een naam, niet te bestellen ---- */
+.fp-table.fp-kind-bar,
+.fp-table.fp-kind-keuken {
+  cursor: default;
+  border-radius: 12px;
+  width: calc(54px * var(--fp-scale, 1));
+  height: calc(54px * var(--fp-scale, 1));
+  margin-left: calc(-27px * var(--fp-scale, 1));
+  margin-top: calc(-27px * var(--fp-scale, 1));
+}
+.fp-table.fp-kind-bar:hover,
+.fp-table.fp-kind-keuken:hover { transform: none; }
+.fp-table.fp-kind-bar {
+  border: 2px solid var(--gold-soft);
+  background: repeating-linear-gradient(45deg, #2c2313, #2c2313 6px, #241c10 6px, #241c10 12px);
+}
+.fp-table.fp-kind-keuken {
+  border: 2px solid var(--wine);
+  background: radial-gradient(circle at 32% 28%, #4a1f1f, var(--bg-elevated) 72%);
+}
+.fp-building-icon {
+  font-size: calc(1.15rem * var(--fp-scale, 1));
+  line-height: 1;
+  pointer-events: none;
+}
+.fp-building-label {
+  position: absolute;
+  bottom: calc(-15px * var(--fp-scale, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: calc(0.6rem * var(--fp-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ---- Tafel-icoontje: zelfde pil-stijl als het label van een gebied ---- */
+.fp-table-type-label {
+  position: absolute;
+  top: calc(-14px * var(--fp-scale, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--gold);
+  color: var(--gold-soft);
+  font-size: calc(0.68rem * var(--fp-scale, 1));
+  line-height: 1;
+  padding: calc(2px * var(--fp-scale, 1)) calc(5px * var(--fp-scale, 1));
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ---- Vormkeuze in het tafel-modal ---- */
+.fp-shape-row { margin: 2px 0 12px; }
+.fp-shape-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.fp-shape-btn {
+  flex: 1;
+  min-width: 88px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.fp-shape-btn:hover { border-color: var(--gold); color: var(--gold-soft); }
+.fp-shape-btn.active { border-color: var(--gold); color: var(--gold-soft); background: rgba(201,162,75,0.12); }
 
 /* ==================== Update log ==================== */
 .updates-btn {
