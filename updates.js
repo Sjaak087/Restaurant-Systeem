@@ -11,11 +11,6 @@
 
 const UPDATES = [
  {
-    title: 'Opmerkingen en nieuwe meubels', 
-    date: '22-08-2026', 
-    info: 'Ten eerste heb ik toegevoegd dat je zelf extra opmerkingen kunt toevoegen zoals extra saus je kunt hier ook een emoji voor kiezen en het werkt een beetje zoals het oude ijsklontjes systeem ook heb ik toegevoegd dat je nu extra meubels kunt toevoegen dit zijn de nieuwe meubels: Een bar, een keuken en een bank ook kun je de tafels andere vormen geven dit zijn de vormen: rond, vierkant en rechthoek ook heb ik nog 5 extra achtergrond kleuren toegeovegd de volgende update word heel groot en zal binnenkort uitkomen!'
- }, 
- {
     title: 'Kleine update met een paar veranderingen', 
     date: '20-08-2026', 
     info: 'Ik heb 2 nieuwe dingen toegevoegd: Ten eerste heb ik toegevoegd dat je nu kunt kiezen welke achtergrondkleur je wilt je kunt kiezen uit 25 kleuren! Ten tweede heb ik toegevoegd dat je de plattegrond groter dan 20x20 vierkantjes kunt maken er zijn ook nog een paar kleine bugfixes de volgende update komt binnenkort uit dit zal een hele grote zijn!'
