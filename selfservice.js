@@ -94,12 +94,17 @@ restRef.on('value', snap => {
 
 function renderTables() {
   const el = document.getElementById('tables');
-  const tables = Object.entries(TABLES).filter(([,t]) => (t.kind || 'tafel') === 'tafel');
+  // Zowel tafels als banken zijn plekken waar je kunt bestellen.
+  const tables = Object.entries(TABLES).filter(([,t]) => {
+    const kind = t.kind || 'tafel';
+    return kind === 'tafel' || kind === 'bank';
+  });
   el.innerHTML = tables.length ? '' : '<div class="selfservice-muted">Er zijn nog geen tafels ingesteld.</div>';
   tables.forEach(([id,t]) => {
+    const isBank = t.kind === 'bank';
     const b = document.createElement('button');
     b.className = 'selfservice-table' + (selectedTable === t.number ? ' active' : '');
-    b.textContent = '🪑 Tafel ' + t.number;
+    b.textContent = (isBank ? '🛋️ Bank ' : '🪑 Tafel ') + t.number;
     b.onclick = () => { selectedTable = t.number; renderTables(); };
     el.appendChild(b);
   });
@@ -268,6 +273,11 @@ function itemText(order) {
   }).join(' · ');
 }
 
+function tableKindLabel(number) {
+  const entry = Object.values(TABLES).find(t => t.number === number);
+  return entry && entry.kind === 'bank' ? { icon: '🛋️', woord: 'Bank' } : { icon: '🪑', woord: 'Tafel' };
+}
+
 function renderMine() {
   const el = document.getElementById('mine');
   const entries = Object.entries(myOrders).sort((a,b)=>(b[1].tijd||0)-(a[1].tijd||0));
@@ -279,10 +289,11 @@ function renderMine() {
   entries.forEach(([id,o]) => {
     const st = statusInfo(o);
     const before = positionBefore(id,o);
+    const tk = tableKindLabel(o.tableNumber);
     const card = document.createElement('div');
     card.className = 'selfservice-card selfservice-order-card';
     card.innerHTML = `
-      <div class="selfservice-order-top"><strong>🪑 Tafel ${esc(o.tableNumber)}</strong><span class="selfservice-status">${esc(st.label)}</span></div>
+      <div class="selfservice-order-top"><strong>${tk.icon} ${tk.woord} ${esc(o.tableNumber)}</strong><span class="selfservice-status">${esc(st.label)}</span></div>
       <div class="selfservice-progress"><div style="width:${st.pct}%"></div></div>
       <div class="selfservice-items">${esc(itemText(o))}</div>
       ${o.opmerking ? `<div class="selfservice-small selfservice-muted">Opmerking: "${esc(o.opmerking)}"</div>` : ''}
