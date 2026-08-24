@@ -98,7 +98,7 @@ function renderTables() {
   const tables = Object.entries(TABLES).filter(([,t]) => {
     const kind = t.kind || 'tafel';
     return kind === 'tafel' || kind === 'bank';
-  });
+  }).sort((a,b) => (a[1].number || 0) - (b[1].number || 0));
   el.innerHTML = tables.length ? '' : '<div class="selfservice-muted">Er zijn nog geen tafels ingesteld.</div>';
   tables.forEach(([id,t]) => {
     const isBank = t.kind === 'bank';
