@@ -13,13 +13,7 @@
 //   info: 'Iets langere uitleg over wat er precies is veranderd of toegevoegd.'
 // },
 
-const UPDATES = [
-  { 
-    title: 'Zelfservice en andere nieuwe dingen', 
-    date: '24-08-2026', 
-    time: 'unknown', 
-    info: 'dit is de grootste update die ooit gedaan zal worden het zal verschillende nieuwe grote dingen bevatten zoals een zelfservice systeem dit werkt zo: mensen scannen een qr code die te zien is in instellingen mensen kiezen een tafel en kiezen de producten die ze willen bestellen met de opmerkingen bijv. ijsklontjes ze kunnen ook nog een extra getypte opmerking toevoegen ze sturen de bestelling naar de keuken daar gaat alles zoals normaal maar terwijl de bestelling gemaakt wordt kunnen de klanten bij verzonden bestellingen zien in welk stadium de bestelling is en hoeveel bestellingen er nog voor zijn voordat hij naar het nieuwe stadium gaat uiteundelijk wordt de bestelling naar de historie gestuurd en werkt het afrekenen hetzelfde ik heb ook toegevoegd dat ik bij systeem beheer je restaurant een waarschuwing kan geven als je restaurant niet helemaal op orde is ik heb ook nog de stijl flink geupgrade hij ziet er nu nog veel beter uit de volgende update zal kleiner zijn maar nog steeds net zo cool en hij komt binnenkort al ui!'
-  },     
+const UPDATES = [   
   {
     title: 'kleine update met een paar verbeteringen',
     date: '24-08-2026',
