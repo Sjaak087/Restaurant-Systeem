@@ -1128,6 +1128,39 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   font-weight: 700;
 }
 
+.font-palette {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.font-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.font-swatch:hover { border-color: var(--gold-soft); }
+.font-swatch.selected { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.font-swatch-sample {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.font-swatch-label { font-family: var(--font-body); font-size: 0.7rem; color: var(--muted); }
+
 /* ==================== Plattegrond ==================== */
 .floorplan-viewport {
   --bg: #171310;

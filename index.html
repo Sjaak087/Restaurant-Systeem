@@ -89,12 +89,17 @@
   </div>
 </div>
 
-<!-- Modal: restaurant beheer inloggen -->
+<!-- Modal: restaurant beheer inloggen / eerste keer instellen -->
 <div class="modal-overlay" id="modal-admin-login">
   <div class="modal-box">
-    <div class="modal-title">🔧 Restaurant beheer</div>
+    <div class="modal-title" id="admin-login-title">🔧 Restaurant beheer</div>
+    <p class="modal-text" id="admin-setup-intro" style="display:none;">Er is nog geen sitebeheerder ingesteld. Stel hieronder een e-mailadres en wachtwoord in — dit wordt onthouden, en vanaf nu moet iedereen hiermee inloggen.</p>
+    <label class="modal-label">E-mailadres</label>
+    <input type="email" id="admin-email-input" class="modal-input" placeholder="jij@voorbeeld.nl" autocomplete="off">
     <label class="modal-label">Wachtwoord</label>
     <input type="password" id="admin-password-input" class="modal-input" placeholder="Wachtwoord" autocomplete="off">
+    <label class="modal-label" id="admin-password-confirm-label" style="display:none;">Bevestig wachtwoord</label>
+    <input type="password" id="admin-password-confirm-input" class="modal-input" placeholder="Wachtwoord herhalen" autocomplete="off" style="display:none;">
     <div class="modal-error" id="admin-login-error"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>

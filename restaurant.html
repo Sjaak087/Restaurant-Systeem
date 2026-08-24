@@ -6,7 +6,7 @@
 <title>Bestelsysteem</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Work+Sans:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Caveat:wght@500;700&family=Bebas+Neue&family=Abril+Fatface&family=Roboto+Slab:wght@400;600;700&family=Josefin+Sans:wght@400;600;700&family=Dancing+Script:wght@500;700&family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" id="app-style-link">
 <script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + Date.now());</script>
 </head>
@@ -162,6 +162,13 @@
         <span class="settings-info-value-group">
           <span class="color-swatch-preview" id="info-title-color"></span>
           <button type="button" class="mini-btn edit" id="btn-title-color" style="display:none;">Wijzigen</button>
+        </span>
+      </div>
+      <div class="settings-info-row">
+        <span>Lettertype</span>
+        <span class="settings-info-value-group">
+          <span id="info-font">Standaard</span>
+          <button type="button" class="mini-btn edit" id="btn-font" style="display:none;">Wijzigen</button>
         </span>
       </div>
       <div class="settings-info-row" id="row-join-code" style="display:none;">
@@ -326,6 +333,19 @@
     <p class="modal-text">Kies een kleur voor de letters van je restaurantnaam bovenaan.</p>
     <button type="button" class="color-swatch color-swatch-default" id="title-color-default" title="Standaard (goud)" style="background:linear-gradient(100deg, #f2e2ac 20%, #c9a24b 45%, #f2e2ac 70%);">↺</button>
     <div class="color-palette" id="title-color-palette"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: lettertype kiezen -->
+<div class="modal-overlay" id="modal-font">
+  <div class="modal-box wide">
+    <div class="modal-title">Lettertype</div>
+    <p class="modal-text">Kies een lettertype voor alle tekst in je restaurant.</p>
+    <button type="button" class="color-swatch color-swatch-default" id="font-default" title="Standaard" style="background:var(--bg-elevated); color:var(--gold-soft);">↺</button>
+    <div class="font-palette" id="font-palette"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Sluiten</button>
     </div>
