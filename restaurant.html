@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Work+Sans:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Caveat:wght@500;700&family=Bebas+Neue&family=Abril+Fatface&family=Roboto+Slab:wght@400;600;700&family=Josefin+Sans:wght@400;600;700&family=Dancing+Script:wght@500;700&family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" id="app-style-link">
 <script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + Date.now());</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -99,6 +101,7 @@
       <button type="button" class="subtab-btn" data-subtab="producten">Producten</button>
       <button type="button" class="subtab-btn" id="subtab-btn-leden" data-subtab="leden">Leden</button>
       <button type="button" class="subtab-btn" data-subtab="algemeen">Algemeen</button>
+      <button type="button" class="subtab-btn" data-subtab="zelfservice">Zelfservice QR</button>
     </div>
 
     <div class="subtab-panel active" id="subpanel-plattegrond">
@@ -182,6 +185,21 @@
         <p class="modal-text" id="leave-restaurant-hint"></p>
       </div>
     </div>
+
+    <div class="subtab-panel" id="subpanel-zelfservice">
+      <div class="settings-section-title">Zelfservice QR-code</div>
+      <p class="modal-text">Klanten kunnen deze QR-code scannen om vanaf hun eigen telefoon te bestellen. De QR-code is uniek voor dit restaurant.</p>
+      <div class="settings-info-row">
+        <span>Zelfservice link</span>
+        <span class="settings-info-value-group"><span id="selfservice-url" style="word-break:break-all;">—</span></span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;">
+        <button type="button" class="mini-btn edit" id="btn-selfservice-scan">📱 Openen / scannen</button>
+        <button type="button" class="mini-btn edit" id="btn-selfservice-pdf">📄 QR downloaden als PDF</button>
+      </div>
+      <div id="selfservice-qr" style="background:#fff;padding:16px;width:max-content;border-radius:12px;"></div>
+      <p class="modal-text" style="margin-top:12px;">Tip: download de PDF en print hem op de tafels.</p>
+    </div>
   </section>
 </div>
 
@@ -195,6 +213,19 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="order-confirm">Bestelling sturen naar keuken</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: waarschuwing van systeembeheer, verschijnt groot in beeld voor de
+     eigenaar totdat hij op Oké drukt; heeft bewust geen kruisje/annuleren. -->
+<div class="modal-overlay" id="modal-owner-warning">
+  <div class="modal-box owner-warning-box">
+    <div class="owner-warning-icon">⚠️</div>
+    <div class="modal-title" style="text-align:center;">Waarschuwing van moderator</div>
+    <p class="modal-text" id="owner-warning-text" style="white-space:pre-wrap; text-align:center;"></p>
+    <div class="modal-actions" style="justify-content:center;">
+      <button type="button" class="btn-primary" id="owner-warning-ok">Oké</button>
     </div>
   </div>
 </div>
