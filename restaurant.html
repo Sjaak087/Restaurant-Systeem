@@ -14,15 +14,19 @@
 
 <div class="wrap app-wrap">
   <header class="top">
-    <h1 id="restaurant-title">Restaurant</h1>
+    <div class="top-title-group">
+      <h1 id="restaurant-title">Restaurant</h1>
+      <span class="my-name-badge" id="my-name-badge"></span>
+    </div>
     <div class="header-actions">
       <button type="button" class="updates-btn" id="btn-updates">🆕 Update log</button>
-      <a href="index.html">← Restaurants</a>
+      <a href="index.html" id="back-link">← Restaurants</a>
     </div>
   </header>
 
   <nav class="tab-nav">
     <button type="button" class="tab-btn active" data-tab="bestellen">🍽 Bestellen</button>
+    <button type="button" class="tab-btn" data-tab="voorraad">📦 Voorraad</button>
     <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken</button>
     <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed</button>
     <button type="button" class="tab-btn" data-tab="historie">🧾 Historie</button>
@@ -38,6 +42,15 @@
       <div class="floorplan-canvas" id="order-canvas"></div>
     </div>
     <div class="empty-msg" id="order-no-tables" style="display:none;">Nog geen plattegrond. Ga naar Instellingen → Plattegrond om tafels toe te voegen.</div>
+  </section>
+
+  <!-- ===== VOORRAAD ===== -->
+  <section class="tab-panel" id="panel-voorraad">
+    <div class="settings-section-title">Producten</div>
+    <div class="voorraad-list" id="voorraad-product-list"></div>
+    <div class="settings-section-title" style="margin-top:22px;">Opmerkingen</div>
+    <p class="modal-text" style="margin-top:0;">Opmerkingen (zoals extra saus) die je bij producten kunt kiezen.</p>
+    <div class="voorraad-list" id="voorraad-optie-list"></div>
   </section>
 
   <!-- ===== KEUKEN ===== -->
@@ -123,6 +136,13 @@
     </div>
 
     <div class="subtab-panel" id="subpanel-algemeen">
+      <div class="settings-info-row" id="row-mijn-naam">
+        <span>Jouw naam</span>
+        <span class="settings-info-value-group">
+          <span id="info-mijn-naam">—</span>
+          <button type="button" class="mini-btn edit" id="btn-rename-mijn-naam">Bewerken</button>
+        </span>
+      </div>
       <div class="settings-info-row">
         <span>Restaurantnaam</span>
         <span class="settings-info-value-group">
@@ -138,10 +158,22 @@
         </span>
       </div>
       <div class="settings-info-row">
+        <span>Naamkleur</span>
+        <span class="settings-info-value-group">
+          <span class="color-swatch-preview" id="info-title-color"></span>
+          <button type="button" class="mini-btn edit" id="btn-title-color" style="display:none;">Wijzigen</button>
+        </span>
+      </div>
+      <div class="settings-info-row" id="row-join-code" style="display:none;">
         <span>Join-code</span>
         <span class="code-display small" id="info-code">—</span>
       </div>
-      <p class="modal-text">Geef deze code aan personeel of medewerkers zodat zij dit restaurant kunnen joinen op het startscherm.</p>
+      <p class="modal-text" id="join-code-hint" style="display:none;">Geef deze code aan personeel of medewerkers zodat zij dit restaurant kunnen joinen op het startscherm.</p>
+
+      <div class="settings-danger-zone">
+        <button type="button" class="btn-danger" id="btn-leave-restaurant">🚪 Restaurant verlaten</button>
+        <p class="modal-text" id="leave-restaurant-hint"></p>
+      </div>
     </div>
   </section>
 </div>
@@ -208,6 +240,19 @@
   </div>
 </div>
 
+<!-- Modal: eigen naam wijzigen -->
+<div class="modal-overlay" id="modal-rename-mijn-naam">
+  <div class="modal-box">
+    <div class="modal-title">Jouw naam wijzigen</div>
+    <input type="text" id="rename-mijn-naam-input" class="modal-input" maxlength="30">
+    <div class="modal-error" id="rename-mijn-naam-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="rename-mijn-naam-confirm">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: gebied naam -->
 <div class="modal-overlay" id="modal-area-name">
   <div class="modal-box">
@@ -231,6 +276,13 @@
         <button type="button" class="fp-shape-btn" data-shape="rond">⚪ Rond</button>
         <button type="button" class="fp-shape-btn" data-shape="vierkant">◻️ Vierkant</button>
         <button type="button" class="fp-shape-btn" data-shape="rechthoek">▭ Rechthoekig</button>
+      </div>
+    </div>
+    <div class="fp-shape-row" id="bank-orientation-row">
+      <span class="modal-label" style="margin:0 0 8px;">Richting van de bank</span>
+      <div class="fp-shape-options" id="bank-orientation-options">
+        <button type="button" class="fp-shape-btn" data-orientation="horizontaal">↔️ Horizontaal</button>
+        <button type="button" class="fp-shape-btn" data-orientation="verticaal">↕️ Verticaal</button>
       </div>
     </div>
     <div class="modal-error" id="table-number-error"></div>
@@ -259,7 +311,21 @@
   <div class="modal-box">
     <div class="modal-title">Achtergrondkleur</div>
     <p class="modal-text">Kies een kleur voor de achtergrond van de hele app.</p>
+    <button type="button" class="color-swatch color-swatch-default" id="header-color-default" title="Standaard" style="background:#171310; color:#f3ead9;">↺</button>
     <div class="color-palette" id="color-palette"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: kleur restaurantnaam kiezen -->
+<div class="modal-overlay" id="modal-title-color">
+  <div class="modal-box">
+    <div class="modal-title">Naamkleur</div>
+    <p class="modal-text">Kies een kleur voor de letters van je restaurantnaam bovenaan.</p>
+    <button type="button" class="color-swatch color-swatch-default" id="title-color-default" title="Standaard (goud)" style="background:linear-gradient(100deg, #f2e2ac 20%, #c9a24b 45%, #f2e2ac 70%);">↺</button>
+    <div class="color-palette" id="title-color-palette"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Sluiten</button>
     </div>

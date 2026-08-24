@@ -7,23 +7,39 @@ function getMyRestaurants() {
   catch (e) { return []; }
 }
 
+// Beheerdersmodus: toegankelijk via het admin-paneel, staat los van of dit
+// apparaat zelf lid is van het restaurant. Geeft volledige eigenaar-rechten
+// zonder dat er een eigen ledenrecord wordt aangemaakt.
+const isAdminMode = params.get('admin') === '1' && sessionStorage.getItem('isRestaurantAdmin') === '1';
+
 const mijnEntry = getMyRestaurants().find(r => r.id === restaurantId);
-if (!restaurantId || !mijnEntry) {
+if (!restaurantId || (!mijnEntry && !isAdminMode)) {
   alert('Dit restaurant is niet bekend op dit apparaat. Join het eerst met een code.');
   window.location.href = 'index.html';
 }
 
-const isOwner = !!mijnEntry && mijnEntry.rol === 'eigenaar';
+const isOwner = isAdminMode ? true : (!!mijnEntry && mijnEntry.rol === 'eigenaar');
+const backUrl = isAdminMode ? 'admin.html' : 'index.html';
 
 const restRef = db.ref('restaurants/' + restaurantId);
+
+const backLink = document.getElementById('back-link');
+if (backLink) {
+  backLink.href = backUrl;
+  if (isAdminMode) backLink.textContent = '← Beheer';
+}
+if (isAdminMode) {
+  const badge = document.getElementById('my-name-badge');
+  if (badge) badge.textContent = '🔧 Beheerdersmodus';
+}
 
 function saveMyRestaurantsLocal(list) {
   localStorage.setItem('mijnRestaurants', JSON.stringify(list));
 }
 
 // ==================== Leden & rechten per tabblad ====================
-const ALL_TABS = ['bestellen', 'keuken', 'gereed', 'historie', 'instellingen'];
-const TAB_LABELS = { bestellen: 'Bestellen', keuken: 'Keuken', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
+const ALL_TABS = ['bestellen', 'voorraad', 'keuken', 'gereed', 'historie', 'instellingen'];
+const TAB_LABELS = { bestellen: 'Bestellen', voorraad: 'Voorraad', keuken: 'Keuken', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
 
 function genLidId() {
   return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -46,8 +62,8 @@ async function genUniqueCode() {
 // Zorg dat dit apparaat een lid-id heeft. Bestaande memberships (van vóór deze functie,
 // of als de join-schrijfactie ooit mislukte) krijgen bij het eerste bezoek gewoon alle
 // tabbladen, zodat niemand onverwacht wordt buitengesloten.
-let myMemberId = mijnEntry.memberId;
-if (!myMemberId) {
+let myMemberId = isAdminMode ? null : mijnEntry.memberId;
+if (!isAdminMode && !myMemberId) {
   myMemberId = genLidId();
   const list = getMyRestaurants();
   const idx = list.findIndex(r => r.id === restaurantId);
@@ -71,33 +87,77 @@ function applyTabPermissions(tabs) {
   }
 }
 
-restRef.child('leden/' + myMemberId).once('value').then(snap => {
-  if (!snap.exists()) {
-    const tabs = {};
-    ALL_TABS.forEach(t => { tabs[t] = true; });
-    const data = { rol: isOwner ? 'eigenaar' : 'gejoined', tabs: tabs, toegevoegdOp: Date.now() };
-    return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
-  }
-  return snap.val().tabs;
-}).then(tabs => {
-  applyTabPermissions(tabs);
-  if (isOwner) {
-    // Zorg dat de eigenaar zichzelf meteen in de ledenlijst ziet, ook nog vóórdat
-    // het live-abonnement op /leden zijn eerste update heeft binnengekregen.
-    LEDEN_STATE[myMemberId] = LEDEN_STATE[myMemberId] || { rol: 'eigenaar', tabs: tabs, toegevoegdOp: Date.now() };
-    renderLedenList();
-  }
-  // Pas ná het aanmaken/ophalen van dit lid-record live gaan luisteren, anders kan het
-  // even (foutief) lijken alsof je bent gekickt terwijl het record nog geschreven wordt.
-  restRef.child('leden/' + myMemberId).on('value', snap => {
+if (isAdminMode) {
+  // Beheerder is geen echt lid van dit restaurant: geen ledenrecord aanmaken
+  // of beluisteren. Alle tabbladen blijven gewoon zichtbaar (standaard uit de
+  // HTML) en de rechten hieronder (isOwner === true) geven volledige toegang.
+} else {
+  restRef.child('leden/' + myMemberId).once('value').then(snap => {
     if (!snap.exists()) {
-      alert('Je bent verwijderd uit dit restaurant.');
-      const list = getMyRestaurants().filter(r => r.id !== restaurantId);
-      saveMyRestaurantsLocal(list);
-      window.location.href = 'index.html';
-      return;
+      const tabs = {};
+      ALL_TABS.forEach(t => { tabs[t] = true; });
+      const data = { rol: isOwner ? 'eigenaar' : 'gejoined', naam: mijnEntry.mijnNaam || 'Naamloos', tabs: tabs, toegevoegdOp: Date.now() };
+      return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
     }
-    applyTabPermissions(snap.val().tabs);
+    return snap.val().tabs;
+  }).then(tabs => {
+    applyTabPermissions(tabs);
+    if (isOwner) {
+      // Zorg dat de eigenaar zichzelf meteen in de ledenlijst ziet, ook nog vóórdat
+      // het live-abonnement op /leden zijn eerste update heeft binnengekregen.
+      LEDEN_STATE[myMemberId] = LEDEN_STATE[myMemberId] || { rol: 'eigenaar', tabs: tabs, toegevoegdOp: Date.now() };
+      renderLedenList();
+    }
+    // Pas ná het aanmaken/ophalen van dit lid-record live gaan luisteren, anders kan het
+    // even (foutief) lijken alsof je bent gekickt terwijl het record nog geschreven wordt.
+    restRef.child('leden/' + myMemberId).on('value', snap => {
+      if (!snap.exists()) {
+        alert('Je bent verwijderd uit dit restaurant.');
+        const list = getMyRestaurants().filter(r => r.id !== restaurantId);
+        saveMyRestaurantsLocal(list);
+        window.location.href = 'index.html';
+        return;
+      }
+      const lid = snap.val();
+      applyTabPermissions(lid.tabs);
+      updateMyNameBadge(lid.naam);
+    });
+  });
+}
+
+// ==================== Eigen naam bovenaan ====================
+function updateMyNameBadge(naam) {
+  const badge = document.getElementById('my-name-badge');
+  if (badge) badge.textContent = naam ? `👤 ${naam}` : '';
+  const infoEl = document.getElementById('info-mijn-naam');
+  if (infoEl) infoEl.textContent = naam || '—';
+}
+
+if (isAdminMode) {
+  // Beheerder heeft geen eigen ledenrecord in dit restaurant, dus deze rij is
+  // hier niet van toepassing.
+  const row = document.getElementById('row-mijn-naam');
+  if (row) row.style.display = 'none';
+} else {
+  document.getElementById('btn-rename-mijn-naam').addEventListener('click', () => {
+    document.getElementById('rename-mijn-naam-input').value = document.getElementById('info-mijn-naam').textContent.trim();
+    document.getElementById('rename-mijn-naam-error').textContent = '';
+    openModal('modal-rename-mijn-naam');
+  });
+}
+document.getElementById('rename-mijn-naam-confirm').addEventListener('click', () => {
+  const naam = document.getElementById('rename-mijn-naam-input').value.trim();
+  const errorEl = document.getElementById('rename-mijn-naam-error');
+  if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+  const btn = document.getElementById('rename-mijn-naam-confirm');
+  btn.disabled = true;
+  restRef.child('leden/' + myMemberId + '/naam').set(naam).then(() => {
+    btn.disabled = false;
+    closeModal('modal-rename-mijn-naam');
+  }).catch(err => {
+    console.error(err);
+    btn.disabled = false;
+    errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
   });
 });
 
@@ -120,11 +180,11 @@ function renderLedenList() {
     return;
   }
   list.innerHTML = '';
-  let volgnummer = 0;
   entries.forEach(([mid, lid]) => {
     const isEigenaarRow = lid.rol === 'eigenaar';
     const isMe = mid === myMemberId;
-    const naam = isEigenaarRow ? '👑 Eigenaar' : `👤 Lid ${++volgnummer}`;
+    const icon = isEigenaarRow ? '👑' : '👤';
+    const naam = `${icon} ${lid.naam || 'Naamloos'}`;
     const tabs = lid.tabs || {};
     const row = document.createElement('div');
     row.className = 'lid-row';
@@ -134,7 +194,7 @@ function renderLedenList() {
     }).join('');
     row.innerHTML = `
       <div class="lid-row-head">
-        <span class="lid-row-name">${naam}${isMe ? ' <span class="lid-me-tag">(jij)</span>' : ''}</span>
+        <span class="lid-row-name">${escapeHtml(naam)}${isMe ? ' <span class="lid-me-tag">(jij)</span>' : ''}</span>
         ${isEigenaarRow ? '' : `<button type="button" class="mini-btn danger" data-kick="${mid}">Verwijderen</button>`}
       </div>
       <div class="lid-tabs">${tabsHtml}</div>
@@ -228,7 +288,70 @@ if (!isOwner) {
 } else {
   document.getElementById('btn-rename-restaurant').style.display = '';
   document.getElementById('btn-header-color').style.display = '';
+  document.getElementById('btn-title-color').style.display = '';
+  document.getElementById('row-join-code').style.display = '';
+  document.getElementById('join-code-hint').style.display = 'block';
 }
+
+// ==================== Restaurant verlaten ====================
+if (isAdminMode) {
+  document.getElementById('btn-leave-restaurant').textContent = '🗑 Restaurant verwijderen';
+  document.getElementById('leave-restaurant-hint').textContent = 'Als beheerder verwijder je hiermee dit hele restaurant definitief, inclusief alle leden, tafels, producten en geschiedenis.';
+} else {
+  document.getElementById('leave-restaurant-hint').textContent = isOwner
+    ? 'Let op: als eigenaar wordt bij het verlaten het hele restaurant definitief verwijderd, inclusief alle leden, tafels, producten en geschiedenis.'
+    : 'Je verliest hierna de toegang tot dit restaurant op dit apparaat.';
+}
+
+document.getElementById('btn-leave-restaurant').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-leave-restaurant');
+  if (isAdminMode) {
+    const naamHuidig = document.getElementById('info-naam').textContent.trim();
+    if (!confirm(`Weet je zeker dat je "${naamHuidig}" wilt verwijderen? Dit verwijdert het HELE restaurant definitief, inclusief alle leden, tafels, producten en geschiedenis. Dit kan niet ongedaan gemaakt worden.`)) return;
+    btn.disabled = true;
+    try {
+      const codeSnap = await restRef.child('code').once('value');
+      const code = codeSnap.val();
+      await restRef.remove();
+      if (code) await db.ref('restaurantCodes/' + code).remove();
+      window.location.href = backUrl;
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      alert('Er ging iets mis, probeer het opnieuw.');
+    }
+  } else if (isOwner) {
+    const naamHuidig = document.getElementById('info-naam').textContent.trim();
+    if (!confirm(`Weet je zeker dat je "${naamHuidig}" wilt verlaten? Dit verwijdert het HELE restaurant definitief, inclusief alle leden, tafels, producten en geschiedenis. Dit kan niet ongedaan gemaakt worden.`)) return;
+    btn.disabled = true;
+    try {
+      const codeSnap = await restRef.child('code').once('value');
+      const code = codeSnap.val();
+      await restRef.remove();
+      if (code) await db.ref('restaurantCodes/' + code).remove();
+      const list = getMyRestaurants().filter(r => r.id !== restaurantId);
+      saveMyRestaurantsLocal(list);
+      window.location.href = backUrl;
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      alert('Er ging iets mis, probeer het opnieuw.');
+    }
+  } else {
+    if (!confirm('Weet je zeker dat je dit restaurant wilt verlaten?')) return;
+    btn.disabled = true;
+    try {
+      await restRef.child('leden/' + myMemberId).remove();
+      const list = getMyRestaurants().filter(r => r.id !== restaurantId);
+      saveMyRestaurantsLocal(list);
+      window.location.href = 'index.html';
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      alert('Er ging iets mis, probeer het opnieuw.');
+    }
+  }
+});
 
 document.getElementById('btn-rename-restaurant').addEventListener('click', () => {
   document.getElementById('rename-restaurant-input').value = document.getElementById('info-naam').textContent.trim();
@@ -315,6 +438,18 @@ if (colorPaletteEl) {
   });
 }
 
+const headerColorDefaultBtn = document.getElementById('header-color-default');
+if (headerColorDefaultBtn) {
+  headerColorDefaultBtn.addEventListener('click', () => {
+    restRef.child('headerColor').remove().then(() => {
+      closeModal('modal-header-color');
+    }).catch(err => {
+      console.error(err);
+      alert('Er ging iets mis bij het opslaan van de kleur.');
+    });
+  });
+}
+
 restRef.child('headerColor').on('value', snap => {
   const color = snap.val();
   applyHeaderColor(color);
@@ -323,11 +458,96 @@ restRef.child('headerColor').on('value', snap => {
       sw.classList.toggle('selected', !!color && sw.dataset.color.toLowerCase() === String(color).toLowerCase());
     });
   }
+  if (headerColorDefaultBtn) {
+    headerColorDefaultBtn.classList.toggle('selected', !color);
+  }
 });
 
 const btnHeaderColor = document.getElementById('btn-header-color');
 if (btnHeaderColor) {
   btnHeaderColor.addEventListener('click', () => openModal('modal-header-color'));
+}
+
+// ==================== Kleur restaurantnaam ====================
+const TITLE_COLORS = [
+  '#f3ead9', '#ffffff', '#e0b84a', '#c9a24b', '#f2e2ac',
+  '#e8c88a', '#ff8c69', '#e8734a', '#c9793a', '#a8482f',
+  '#ff6b6b', '#e05c5c', '#8c3a3a', '#d46a9c', '#e08cc0',
+  '#c084d4', '#9d6fd8', '#7a7ae0', '#6f9fe0', '#5cc8e0',
+  '#5ce0c8', '#6fe0a8', '#8fe06f', '#b8e05c', '#e0d85c',
+  '#e0a85c', '#d9d9d9', '#a0a0a0', '#7ec9e8', '#f2b8d4'
+];
+
+function applyTitleColor(color) {
+  const title = document.getElementById('restaurant-title');
+  const preview = document.getElementById('info-title-color');
+  const badge = document.getElementById('my-name-badge');
+  if (title) {
+    if (color) {
+      title.style.background = 'none';
+      title.style.webkitTextFillColor = color;
+      title.style.color = color;
+    } else {
+      title.style.background = '';
+      title.style.webkitTextFillColor = '';
+      title.style.color = '';
+    }
+  }
+  if (preview) {
+    preview.style.background = color || 'linear-gradient(100deg, var(--gold-soft) 20%, var(--gold) 45%, var(--gold-soft) 70%)';
+  }
+  if (badge) {
+    badge.style.color = color || '';
+    badge.style.opacity = color ? '1' : '';
+  }
+}
+
+const titleColorPaletteEl = document.getElementById('title-color-palette');
+if (titleColorPaletteEl) {
+  titleColorPaletteEl.innerHTML = TITLE_COLORS.map(c =>
+    `<button type="button" class="color-swatch" data-color="${c}" style="background:${c};"></button>`
+  ).join('');
+  titleColorPaletteEl.querySelectorAll('.color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const color = sw.dataset.color;
+      restRef.child('titleColor').set(color).then(() => {
+        closeModal('modal-title-color');
+      }).catch(err => {
+        console.error(err);
+        alert('Er ging iets mis bij het opslaan van de kleur.');
+      });
+    });
+  });
+}
+
+const titleColorDefaultBtn = document.getElementById('title-color-default');
+if (titleColorDefaultBtn) {
+  titleColorDefaultBtn.addEventListener('click', () => {
+    restRef.child('titleColor').remove().then(() => {
+      closeModal('modal-title-color');
+    }).catch(err => {
+      console.error(err);
+      alert('Er ging iets mis bij het opslaan van de kleur.');
+    });
+  });
+}
+
+restRef.child('titleColor').on('value', snap => {
+  const color = snap.val();
+  applyTitleColor(color);
+  if (titleColorPaletteEl) {
+    titleColorPaletteEl.querySelectorAll('.color-swatch').forEach(sw => {
+      sw.classList.toggle('selected', !!color && sw.dataset.color.toLowerCase() === String(color).toLowerCase());
+    });
+  }
+  if (titleColorDefaultBtn) {
+    titleColorDefaultBtn.classList.toggle('selected', !color);
+  }
+});
+
+const btnTitleColor = document.getElementById('btn-title-color');
+if (btnTitleColor) {
+  btnTitleColor.addEventListener('click', () => openModal('modal-title-color'));
 }
 
 document.querySelectorAll('.subtab-btn').forEach(btn => {
@@ -355,6 +575,8 @@ restRef.child('products').on('value', snap => {
   PRODUCTS_STATE = snap.val() || {};
   renderSettingsProducts();
   renderOrderModalIfOpen();
+  renderVoorraadProducts();
+  renderVoorraadOpmerkingen();
 });
 
 function productList() {
@@ -836,10 +1058,13 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
   Object.entries(TABLES_STATE).forEach(([id, table]) => {
     const kind = table.kind || 'tafel';
     const shape = table.shape || 'rond';
+    const orientation = table.orientation || 'horizontaal';
     const isOrderable = kind === 'tafel' || kind === 'bank';
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'fp-table fp-kind-' + kind + (kind === 'tafel' ? ' fp-shape-' + shape : '');
+    el.className = 'fp-table fp-kind-' + kind
+      + (kind === 'tafel' ? ' fp-shape-' + shape : '')
+      + (kind === 'bank' ? ' fp-orientation-' + orientation : '');
     if (!editable && isOrderable && ACTIEVE_TAFELS.has(table.number)) el.classList.add('bezet');
     el.style.left = table.x + '%';
     el.style.top = table.y + '%';
@@ -989,6 +1214,18 @@ document.querySelectorAll('#table-shape-options .fp-shape-btn').forEach(btn => {
   btn.addEventListener('click', () => setTableShapeSelection(btn.dataset.shape));
 });
 
+// ---- Richtingkeuze voor banken (horizontaal / verticaal) ----
+let selectedBankOrientation = 'horizontaal';
+function setBankOrientationSelection(orientation) {
+  selectedBankOrientation = orientation;
+  document.querySelectorAll('#bank-orientation-options .fp-shape-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.orientation === orientation);
+  });
+}
+document.querySelectorAll('#bank-orientation-options .fp-shape-btn').forEach(btn => {
+  btn.addEventListener('click', () => setBankOrientationSelection(btn.dataset.orientation));
+});
+
 document.getElementById('tool-delete').addEventListener('click', (e) => {
   deleteMode = !deleteMode;
   pendingMode = null;
@@ -1039,7 +1276,9 @@ editCanvas.addEventListener('click', (e) => {
     document.getElementById('table-number-error').textContent = '';
     document.getElementById('table-number-modal-title').textContent = kind === 'bank' ? 'Banknummer' : 'Tafelnummer';
     document.getElementById('table-shape-row').style.display = kind === 'tafel' ? '' : 'none';
+    document.getElementById('bank-orientation-row').style.display = kind === 'bank' ? '' : 'none';
     setTableShapeSelection('rond');
+    setBankOrientationSelection('horizontaal');
     openModal('modal-table-number');
     return;
   }
@@ -1079,6 +1318,7 @@ document.getElementById('table-number-confirm').addEventListener('click', () => 
   const kind = window.pendingTableKind || 'tafel';
   const data = { kind, number: nummer, x: pos.x, y: pos.y };
   if (kind === 'tafel') data.shape = selectedTableShape;
+  if (kind === 'bank') data.orientation = selectedBankOrientation;
   restRef.child('floorplan/tables').push(data);
   closeModal('modal-table-number');
 });
@@ -1209,12 +1449,85 @@ function onResizeStart(e) {
 let currentOrderTable = null;
 let orderCounts = {};      // key -> aantal
 let orderItemOptions = {}; // key -> array (per besteld stuk) van gekozen opmerkingen
-let stockStatus = {};      // key -> uitverkocht?
+let stockStatus = {};      // productKey -> uitverkocht?
+let optionStockStatus = {}; // optieLabel (lowercase) -> uitverkocht?
 
 restRef.child('stock').on('value', snap => {
   stockStatus = snap.val() || {};
   renderOrderModalIfOpen();
+  renderVoorraadProducts();
 });
+
+restRef.child('stockOpties').on('value', snap => {
+  optionStockStatus = snap.val() || {};
+  renderOrderModalIfOpen();
+  renderVoorraadOpmerkingen();
+});
+
+function isOptionUitverkocht(label) {
+  return !!optionStockStatus[String(label).toLowerCase()];
+}
+
+// ==================== Voorraad ====================
+function renderVoorraadProducts() {
+  const list = document.getElementById('voorraad-product-list');
+  if (!list) return;
+  const items = productList();
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Nog geen producten. Voeg ze toe via Instellingen → Producten.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  items.forEach(p => {
+    const isOut = !!stockStatus[p.key];
+    const row = document.createElement('div');
+    row.className = 'voorraad-row' + (isOut ? ' uitverkocht' : '');
+    row.innerHTML = `
+      <div class="voorraad-row-main">
+        <span>${p.emoji}</span>
+        <span class="voorraad-row-name">${escapeHtml(p.label)}</span>
+        <span class="price-tag">${formatPrice(p.price)}</span>
+        ${isOut ? '<span class="uitverkocht-tag">Uitverkocht</span>' : ''}
+      </div>
+      <button type="button" class="mini-btn ${isOut ? 'edit' : 'danger'}" data-key="${p.key}">${isOut ? 'Op voorraad zetten' : 'Uitverkocht zetten'}</button>
+    `;
+    row.querySelector('button').addEventListener('click', () => {
+      if (isOut) restRef.child('stock/' + p.key).remove();
+      else restRef.child('stock/' + p.key).set(true);
+    });
+    list.appendChild(row);
+  });
+}
+
+function renderVoorraadOpmerkingen() {
+  const list = document.getElementById('voorraad-optie-list');
+  if (!list) return;
+  const opties = allKnownOptions();
+  if (opties.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Nog geen opmerkingen ingesteld bij producten.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  opties.forEach(o => {
+    const lkey = o.label.toLowerCase();
+    const isOut = isOptionUitverkocht(o.label);
+    const row = document.createElement('div');
+    row.className = 'voorraad-row' + (isOut ? ' uitverkocht' : '');
+    row.innerHTML = `
+      <div class="voorraad-row-main">
+        <span>${o.emoji || '📝'}</span>
+        <span class="voorraad-row-name">${escapeHtml(o.label)}</span>
+        ${isOut ? '<span class="uitverkocht-tag">Uitverkocht</span>' : ''}
+      </div>
+      <button type="button" class="mini-btn ${isOut ? 'edit' : 'danger'}" data-lkey="${lkey}">${isOut ? 'Op voorraad zetten' : 'Uitverkocht zetten'}</button>
+    `;
+    row.querySelector('button').addEventListener('click', () => {
+      if (isOut) restRef.child('stockOpties/' + lkey).remove();
+      else restRef.child('stockOpties/' + lkey).set(true);
+    });
+    list.appendChild(row);
+  });
+}
 
 function openOrderModalForTable(table) {
   currentOrderTable = table;
@@ -1307,11 +1620,14 @@ function renderOrderOptionToggles(key) {
     }
     opties.forEach(opt => {
       const active = selected.includes(opt.label);
+      const isOptOut = isOptionUitverkocht(opt.label);
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'ice-chip' + (active ? ' met' : '');
-      chip.textContent = `${active ? '✅ ' : (opt.emoji ? opt.emoji + ' ' : '')}${opt.label}`;
+      chip.className = 'ice-chip' + (active ? ' met' : '') + (isOptOut ? ' uitverkocht' : '');
+      chip.textContent = `${active ? '✅ ' : (opt.emoji ? opt.emoji + ' ' : '')}${opt.label}${isOptOut ? ' (uitverkocht)' : ''}`;
+      if (isOptOut) chip.disabled = true;
       chip.addEventListener('click', () => {
+        if (isOptionUitverkocht(opt.label)) return;
         const idx = orderItemOptions[key][i].indexOf(opt.label);
         if (idx === -1) orderItemOptions[key][i].push(opt.label);
         else orderItemOptions[key][i].splice(idx, 1);

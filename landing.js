@@ -62,17 +62,9 @@ function renderMyRestaurants() {
           <div class="restaurant-card-name">${escapeHtml(r.naam)}</div>
           <div class="restaurant-card-role">${r.rol === 'eigenaar' ? '👑 Eigenaar' : '👤 Gejoined'}</div>
         </div>
-        <button type="button" class="restaurant-card-leave" data-id="${r.id}" title="Verlaat dit restaurant">✕</button>
       `;
-      card.querySelector('.restaurant-card-main').addEventListener('click', () => {
+      card.addEventListener('click', () => {
         window.location.href = `restaurant.html?id=${encodeURIComponent(r.id)}`;
-      });
-      card.querySelector('.restaurant-card-leave').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!confirm(`"${r.naam}" verlaten op dit apparaat?`)) return;
-        const updated = getMyRestaurants().filter(x => x.id !== r.id);
-        saveMyRestaurants(updated);
-        renderMyRestaurants();
       });
       myRestaurantsEl.appendChild(card);
     });
@@ -104,14 +96,17 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 // ---- Restaurant maken ----
 document.getElementById('btn-open-create').addEventListener('click', () => {
   document.getElementById('create-name').value = '';
+  document.getElementById('create-my-name').value = '';
   document.getElementById('create-error').textContent = '';
   openModal('modal-create');
 });
 
 document.getElementById('create-confirm').addEventListener('click', async () => {
   const naam = document.getElementById('create-name').value.trim();
+  const mijnNaam = document.getElementById('create-my-name').value.trim();
   const errorEl = document.getElementById('create-error');
   if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+  if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
   if (getMyRestaurants().length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je zit al op het maximum van 2 restaurants.'; return; }
 
   const btn = document.getElementById('create-confirm');
@@ -133,7 +128,8 @@ document.getElementById('create-confirm').addEventListener('click', async () => 
     const memberId = genMemberId();
     await newRef.child('leden/' + memberId).set({
       rol: 'eigenaar',
-      tabs: { bestellen: true, keuken: true, gereed: true, historie: true, instellingen: true },
+      naam: mijnNaam,
+      tabs: { bestellen: true, voorraad: true, keuken: true, gereed: true, historie: true, instellingen: true },
       toegevoegdOp: Date.now()
     });
 
@@ -160,14 +156,17 @@ document.getElementById('code-shown-ok').addEventListener('click', () => {
 // ---- Restaurant joinen ----
 document.getElementById('btn-open-join').addEventListener('click', () => {
   document.getElementById('join-code').value = '';
+  document.getElementById('join-my-name').value = '';
   document.getElementById('join-error').textContent = '';
   openModal('modal-join');
 });
 
 document.getElementById('join-confirm').addEventListener('click', async () => {
   const code = document.getElementById('join-code').value.trim().toUpperCase();
+  const mijnNaam = document.getElementById('join-my-name').value.trim();
   const errorEl = document.getElementById('join-error');
   if (!code) { errorEl.textContent = 'Vul een code in.'; return; }
+  if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
   if (getMyRestaurants().length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je zit al op het maximum van 2 restaurants.'; return; }
 
   const btn = document.getElementById('join-confirm');
@@ -192,7 +191,8 @@ document.getElementById('join-confirm').addEventListener('click', async () => {
     const memberId = genMemberId();
     await db.ref('restaurants/' + id + '/leden/' + memberId).set({
       rol: 'gejoined',
-      tabs: { bestellen: true, keuken: false, gereed: false, historie: false, instellingen: false },
+      naam: mijnNaam,
+      tabs: { bestellen: true, voorraad: false, keuken: false, gereed: false, historie: false, instellingen: false },
       toegevoegdOp: Date.now()
     });
 
