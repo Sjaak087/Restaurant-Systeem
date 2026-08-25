@@ -1,39 +1,76 @@
 :root {
-  --bg: #171310;
-  --bg-elevated: #211a14;
+  --bg: #14100c;
+  --bg-elevated: #1f1811;
   --card: #29211a;
-  --line: #473b2c;
-  --gold: #c9a24b;
-  --gold-soft: #e6cf94;
-  --wine: #8c3a3a;
+  --line: #4a3d2c;
+  --gold: #d4a94f;
+  --gold-soft: #eed49a;
+  --wine: #96403f;
   --wine-dark: #6e2c2c;
-  --ink: #f3ead9;
-  --muted: #a99a83;
+  --ink: #f6efe0;
+  --muted: #ab9c84;
   --paper: #f2e8d5;
   --paper-ink: #2a2115;
   --paper-line: #b8a67e;
-  --green: #6f8f5c;
+  --green: #71976a;
   --green-dark: #566f47;
-  --radius: 10px;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-lg: 22px;
   --radius-pill: 999px;
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Work Sans", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
+
+  /* ---- Upgraded depth & motion tokens ---- */
+  --glow-gold: rgba(212, 169, 79, 0.35);
+  --glow-gold-soft: rgba(212, 169, 79, 0.16);
+  --glow-wine: rgba(150, 64, 63, 0.35);
+  --glass: rgba(255, 255, 255, 0.035);
+  --glass-line: rgba(255, 255, 255, 0.08);
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.22);
+  --shadow-2: 0 10px 28px rgba(0, 0, 0, 0.34), 0 2px 8px rgba(0, 0, 0, 0.22);
+  --shadow-3: 0 20px 48px rgba(0, 0, 0, 0.42), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 * { box-sizing: border-box; }
 
+html { scroll-behavior: smooth; }
+
+::selection { background: var(--gold); color: #1a1006; }
+
 body {
   margin: 0;
   font-family: var(--font-body);
+  position: relative;
   background:
-    radial-gradient(ellipse 900px 500px at 50% -5%, rgba(201, 162, 75, 0.16), transparent 60%),
-    radial-gradient(ellipse 700px 500px at 100% 100%, rgba(140, 58, 58, 0.10), transparent 60%),
+    radial-gradient(ellipse 1000px 560px at 50% -8%, rgba(212, 169, 79, 0.20), transparent 60%),
+    radial-gradient(ellipse 780px 560px at 105% 105%, rgba(150, 64, 63, 0.14), transparent 60%),
+    radial-gradient(ellipse 620px 460px at -10% 60%, rgba(212, 169, 79, 0.07), transparent 60%),
     repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
     var(--bg);
   color: var(--ink);
   min-height: 100vh;
   font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(ellipse 1200px 800px at 50% 0%, transparent 55%, rgba(0,0,0,0.35) 100%);
+}
+
+button, input, textarea, select { font-family: inherit; }
+button { transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease), border-color 0.18s var(--ease), color 0.18s var(--ease); }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 2px;
 }
 
 @keyframes fadeSlideUp {
@@ -1050,6 +1087,24 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   background: linear-gradient(180deg, rgba(201,162,75,0.1), transparent);
 }
 
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1a1006;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+}
+.tab-badge:empty { display: none; }
+
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
@@ -1421,9 +1476,89 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
 
 .landing-topbar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 10px;
   width: 100%;
   margin-bottom: 14px;
+}
+
+/* ==================== Belletje (aankondigingen) ==================== */
+.bell-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold-soft);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.bell-btn:hover { background: var(--gold); color: var(--bg); }
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--wine);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.announcement-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  padding: 14px;
+}
+.announcement-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.announcement-item-title {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+.announcement-item-date {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.announcement-item-info {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.announcement-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.announcement-item-actions .btn-primary {
+  padding: 7px 16px;
+  font-size: 0.8rem;
 }
 
 .updates-list {
@@ -1597,6 +1732,27 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   color: var(--gold-soft);
   margin: 0 0 4px;
 }
+
+.sound-choice-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.sound-choice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-align: left;
+}
+.sound-choice-btn:hover:not(:disabled) { border-color: var(--gold); }
+.sound-choice-btn.selected { border-color: var(--gold); background: rgba(217, 162, 74, 0.12); }
+.sound-choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sound-preview-btn { flex-shrink: 0; }
+
 .voorraad-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .voorraad-row {
   display: flex;
@@ -1835,4 +1991,230 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
 @media (max-width:390px) {
   .selfservice-brand-line { font-size:.58rem; gap:6px; letter-spacing:.11em; }
   .selfservice-card { padding:14px; border-radius:14px; }
+}
+
+/* =========================================================================
+   ✦ PREMIUM UPGRADE LAYER ✦
+   Alles hieronder verrijkt de bestaande onderdelen (zelfde class-namen dus
+   niets in restaurant.js / admin.js / selfservice.js / landing.js hoeft te
+   veranderen) met meer diepte, glans, beweging en een verfijndere afwerking.
+   ========================================================================= */
+
+/* ---- Header ---- */
+header.top {
+  margin-bottom: 38px;
+  padding-bottom: 22px;
+}
+header.top::after {
+  width: 84px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  box-shadow: 0 0 10px var(--glow-gold);
+}
+header.top h1 {
+  font-size: 2.15rem;
+  background: linear-gradient(100deg, var(--gold-soft) 10%, var(--gold) 40%, var(--wine) 58%, var(--gold) 76%, var(--gold-soft) 92%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 8s linear infinite;
+  filter: drop-shadow(0 2px 14px rgba(212,169,79,0.18));
+}
+header.top a, .updates-btn, .history-btn, .admin-back-link, .bell-btn {
+  transition: transform 0.18s var(--ease), background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+header.top a:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
+.updates-btn:hover, .history-btn:hover, .bell-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px var(--glow-gold-soft); }
+.announcement-item { box-shadow: var(--shadow-1); transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+.announcement-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+
+/* ---- Tab navigatie: zwevende glazen pill-balk ---- */
+.tab-nav {
+  gap: 4px;
+  padding: 5px;
+  margin-bottom: 28px;
+  border: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--glass), transparent), var(--bg-elevated);
+  box-shadow: inset 0 1px 0 var(--glass-line), var(--shadow-1);
+}
+.tab-btn {
+  border-radius: var(--radius-lg);
+  padding: 11px 16px;
+  border-bottom: none;
+  position: relative;
+}
+.tab-btn:hover { color: var(--gold-soft); background: var(--glass); }
+.tab-btn.active {
+  color: var(--bg);
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+  box-shadow: 0 6px 18px var(--glow-gold), inset 0 1px 0 rgba(255,255,255,0.4);
+  font-weight: 700;
+}
+.tab-badge {
+  box-shadow: 0 0 0 2px var(--bg-elevated), 0 2px 6px rgba(0,0,0,0.3);
+}
+.settings-subnav { gap: 6px; padding: 4px; background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--radius-pill); display: inline-flex; }
+.subtab-btn { border-radius: var(--radius-pill); border-color: transparent; }
+.subtab-btn.active { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: var(--bg); border-color: transparent; box-shadow: 0 4px 12px var(--glow-gold-soft); font-weight: 700; }
+
+/* ---- Kaarten: zachte glazen elevatie + hover-lift ---- */
+.restaurant-card, .product-card, .order-card, .stock-row, .voorraad-row,
+.lid-row, .update-item, .selfservice-product, .settings-product-row {
+  border-radius: var(--radius);
+  background: linear-gradient(155deg, var(--glass), transparent 45%), var(--card);
+  box-shadow: var(--shadow-1);
+  transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease), border-color 0.22s var(--ease);
+}
+.restaurant-card:hover, .stock-row:hover, .voorraad-row:hover, .lid-row:hover,
+.settings-product-row:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--gold);
+}
+.product-card { border-radius: var(--radius); box-shadow: var(--shadow-1); }
+.product-card:hover { box-shadow: var(--shadow-2), 0 0 0 1px var(--glow-gold-soft); }
+.order-card { box-shadow: var(--shadow-1); }
+.order-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+
+.admin-restaurant-card { border-radius: var(--radius-lg); }
+
+/* ---- Knoppen: rijkere glans, glow en micro-interactie ---- */
+.btn-primary, .btn-secondary, .primary-btn, .toggle-btn, .big-choice,
+.chip-btn, .mini-btn, .stock-btn, .fp-tool-btn, .btn-danger,
+.selfservice-send, .subtab-btn {
+  transition: transform 0.18s var(--ease-snap), box-shadow 0.22s var(--ease), background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease), filter 0.18s var(--ease);
+}
+.btn-primary, .primary-btn, .selfservice-send {
+  box-shadow: var(--shadow-1), 0 6px 18px var(--glow-gold-soft);
+}
+.btn-primary:hover, .primary-btn:hover, .selfservice-send:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: var(--shadow-2), 0 10px 26px var(--glow-gold);
+}
+.btn-primary:active, .primary-btn:active, .selfservice-send:active { transform: translateY(0) scale(0.99); }
+.btn-secondary:hover, .toggle-btn:hover, .mini-btn.edit:hover, .fp-tool-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-1);
+}
+.btn-danger:hover, .mini-btn.danger:hover, .fp-tool-btn.danger:hover {
+  box-shadow: 0 8px 20px var(--glow-wine);
+}
+.big-choice { border-radius: var(--radius); box-shadow: var(--shadow-1); }
+.big-choice:hover { box-shadow: var(--shadow-3); }
+.chip-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
+.stepper button:hover { box-shadow: 0 4px 14px var(--glow-gold-soft); }
+
+/* ---- Modals: glazen achtergrond-vervaging + soepele entree ---- */
+.modal-overlay {
+  background: rgba(8, 6, 4, 0.66);
+  backdrop-filter: blur(6px) saturate(1.1);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-box {
+  border-radius: var(--radius-lg);
+  border-top: none;
+  background: linear-gradient(165deg, var(--glass), transparent 40%), var(--bg-elevated);
+  box-shadow: var(--shadow-3), inset 0 1px 0 var(--glass-line), 0 0 0 1px var(--line);
+  animation: modalPop 0.28s var(--ease) both;
+  position: relative;
+}
+.modal-box::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 14%; right: 14%;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  box-shadow: 0 0 12px var(--glow-gold);
+}
+.modal-title { letter-spacing: 0.01em; }
+.modal-input, .note-field, .selfservice-note {
+  border-radius: var(--radius-sm);
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
+}
+.modal-input:focus, .note-field:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--glow-gold-soft);
+  background: var(--bg-elevated);
+}
+
+/* ---- Landingspagina & keuze-scherm: meer sfeer ---- */
+.choice-screen::before { border-radius: 24px; }
+.landing-emblem, .choice-emblem { filter: drop-shadow(0 4px 18px var(--glow-gold-soft)); }
+.landing-actions .big-choice { border-radius: var(--radius); }
+
+/* ---- Keuken-bonnetjes: iets meer body & glans ---- */
+.kitchen-list .order-card {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-2);
+}
+.kitchen-list .order-card:hover { box-shadow: var(--shadow-3); }
+
+/* ---- Plattegrond: warmere gloed op tafels/areas ---- */
+.fp-table {
+  box-shadow: var(--shadow-1), inset 0 0 0 3px rgba(0,0,0,0.15);
+  transition: transform 0.18s var(--ease-snap), box-shadow 0.18s var(--ease);
+}
+.fp-table:hover { box-shadow: var(--shadow-2), 0 0 0 4px var(--glow-gold-soft); }
+.fp-table.bezet:hover { box-shadow: var(--shadow-2), 0 0 0 4px var(--glow-wine); }
+.fp-area { box-shadow: 0 0 0 1px rgba(212,169,79,0.15) inset; }
+.floorplan-viewport { border-radius: var(--radius); box-shadow: var(--shadow-1); }
+
+/* ---- Emoji-picker & swatches: subtiele diepte ---- */
+.emoji-picker, .product-option-picker, .sound-choice-btn, .font-swatch {
+  border-radius: var(--radius-sm);
+}
+.emoji-opt { border-radius: 9px; transition: transform 0.15s var(--ease-snap), background 0.15s var(--ease); }
+.emoji-opt:hover { transform: scale(1.12); }
+.color-swatch, .font-swatch { transition: transform 0.15s var(--ease-snap), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease); }
+.color-swatch.selected, .font-swatch.selected { box-shadow: 0 0 0 2px var(--gold), 0 4px 14px var(--glow-gold-soft); }
+
+/* ---- Zelfservice: extra glans op tabs, kaarten en stepper ---- */
+.selfservice-tabs { box-shadow: inset 0 1px 0 var(--glass-line), var(--shadow-1); border-radius: 18px; }
+.selfservice-tab { border-radius: 13px; }
+.selfservice-card { border-radius: 18px; box-shadow: var(--shadow-2); }
+.selfservice-card:hover { box-shadow: var(--shadow-3); }
+.selfservice-table { border-radius: 14px; transition: transform 0.18s var(--ease-snap), border-color 0.18s var(--ease), box-shadow 0.18s var(--ease); }
+.selfservice-table:hover { box-shadow: var(--shadow-1); }
+.selfservice-table.active { box-shadow: 0 0 0 1px var(--glow-gold), var(--shadow-2); }
+.selfservice-product { border-radius: 16px; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease); }
+.selfservice-product:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--gold); }
+.selfservice-product-emoji { border-radius: 11px; }
+.selfservice-stepper button { transition: transform 0.15s var(--ease-snap), background 0.15s var(--ease), box-shadow 0.15s var(--ease); }
+.selfservice-stepper button:hover { transform: scale(1.08); box-shadow: 0 4px 14px var(--glow-gold-soft); }
+.selfservice-option-button { transition: transform 0.15s var(--ease-snap), border-color 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease); }
+.selfservice-option-button:hover { transform: translateY(-1px); }
+.selfservice-order-card { border-radius: 16px; }
+
+/* ---- Zachte scroll-in animatie voor lijsten (geen JS nodig) ---- */
+.restaurant-card, .product-card, .order-card, .selfservice-product,
+.selfservice-table, .voorraad-row, .stock-row, .lid-row, .update-item {
+  animation: fadeSlideUp 0.32s var(--ease) both;
+}
+
+/* ---- Scrollbar overal consistent verfijnd ---- */
+* { scrollbar-width: thin; scrollbar-color: rgba(212,169,79,0.35) transparent; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-thumb { background: rgba(212,169,79,0.35); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--gold-soft); }
+
+/* Fix: keep the restaurant name above the decorative header layers,
+   including when the default restaurant colour theme is active. */
+header.top::before,
+header.top::after { z-index: 0; }
+header.top .top-title-group,
+header.top h1,
+.selfservice-brand-line,
+.selfservice-top .top-title-group,
+.selfservice-top h1 {
+  position: relative;
+  z-index: 2;
 }

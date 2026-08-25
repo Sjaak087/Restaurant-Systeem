@@ -15,13 +15,19 @@
 
 const UPDATES = [
   { 
+    title: 'Upload een eigen melding geluid!', 
+    date: '25-08-2026', 
+    time: '21:15', 
+    info: 'ik heb een paar kleine nieuwe dingen toegevoegd ten eerste heb ik toegevoegd dat je je eigen melding geluid kunt uploaden voor als er een bestelling binnenkomt de max is 1 bestand en 400KB ik heb ook een geluidje toegevoegd dat zich afspeeld als je betaald hebt ik heb ook nog toegeovegd dat ik een announcement kan plaatsen wat hetzelfde eruit ziet ls een waarschuwing en als laatste heb ik flinke aanpassingen gedaan aan de stijl hij zal er nu stukken cooler uitzien denk aan mooie pop-ups van uis en mooiere stijl!'
+  },     
+  { 
     title: 'Zelfservice en andere nieuwe dingen', 
     date: '24-08-2026', 
     time: '20:45', 
     info: 'dit is de grootste update die ooit gedaan zal worden het zal verschillende nieuwe grote dingen bevatten zoals een zelfservice systeem dit werkt zo: mensen scannen een qr code die te zien is in instellingen mensen kiezen een tafel en kiezen de producten die ze willen bestellen met de opmerkingen bijv. ijsklontjes ze kunnen ook nog een extra getypte opmerking toevoegen ze sturen de bestelling naar de keuken daar gaat alles zoals normaal maar terwijl de bestelling gemaakt wordt kunnen de klanten bij verzonden bestellingen zien in welk stadium de bestelling is en hoeveel bestellingen er nog voor zijn voordat hij naar het nieuwe stadium gaat uiteundelijk wordt de bestelling naar de historie gestuurd en werkt het afrekenen hetzelfde ik heb ook toegevoegd dat ik bij systeem beheer je restaurant een waarschuwing kan geven als je restaurant niet helemaal op orde is ik heb ook nog de stijl flink geupgrade hij ziet er nu nog veel beter uit de volgende update zal kleiner zijn maar nog steeds net zo cool en hij komt binnenkort al uit!'
   },     
   {
-    title: 'kleine update met een paar verbeteringen',
+    title: 'Kleine update met een paar verbeteringen',
     date: '24-08-2026',
     time: '11:45',
     info: 'ik heb een paar kleine dingen toegevoegd ten eerste kun je nu het lettertype veranderen je kunt kiezen uit 15 verschillende lettertypen ik heb ook mijn systeembeheer een beetje beter beveiligd ook kun je nu de tijd van de update release zien bij de update log natuurlijk zijn er ook ngo een paar bugfixes de volgende update zal de grootste ooit worden dus ben er zeker van dat je die ook uitcheckt als hij uit is!'

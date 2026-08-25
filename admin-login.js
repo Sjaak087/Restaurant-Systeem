@@ -84,7 +84,7 @@ function applyAdminLoginMode() {
     confirmInput.style.display = 'block';
     btn.textContent = 'Instellen';
   } else {
-    title.textContent = '🔧 Restaurant beheer';
+    title.textContent = '🔧 Sitebeheer';
     intro.style.display = 'none';
     confirmLabel.style.display = 'none';
     confirmInput.style.display = 'none';

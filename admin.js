@@ -154,6 +154,94 @@ document.getElementById('admin-warning-confirm').addEventListener('click', () =>
   });
 });
 
+// ==================== Aankondigingen (sitebreed, via belletje op index.html) ====================
+db.ref('announcements').on('value', snap => {
+  renderAdminAnnouncements(snap.val() || {});
+});
+
+function renderAdminAnnouncements(data) {
+  const list = document.getElementById('admin-announcement-list');
+  const emptyMsg = document.getElementById('admin-announcement-empty-msg');
+
+  const entries = Object.entries(data)
+    .sort((a, b) => (b[1].aangemaakt || 0) - (a[1].aangemaakt || 0));
+
+  if (entries.length === 0) {
+    list.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+  list.innerHTML = '';
+
+  entries.forEach(([id, a]) => {
+    const card = document.createElement('div');
+    card.className = 'restaurant-card admin-restaurant-card';
+    card.innerHTML = `
+      <div class="restaurant-card-main">
+        <div class="restaurant-card-name">📢 ${escapeHtmlAdmin(a.titel || 'Announcement')}</div>
+        <div class="restaurant-card-role">${escapeHtmlAdmin(a.info || '')}</div>
+        <div class="restaurant-card-role" style="margin-top:2px;">${formatDatumTijdAdmin(a.aangemaakt)}</div>
+      </div>
+      <div class="admin-restaurant-actions">
+        <button type="button" class="mini-btn danger" data-delete-announcement="${id}">Verwijderen</button>
+      </div>
+    `;
+    card.querySelector('[data-delete-announcement]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteAdminAnnouncement(id, a);
+    });
+    list.appendChild(card);
+  });
+}
+
+function formatDatumTijdAdmin(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  const datum = d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const tijd = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  return `${datum} · ${tijd}`;
+}
+
+document.getElementById('btn-admin-new-announcement').addEventListener('click', () => {
+  document.getElementById('admin-announcement-title-input').value = '';
+  document.getElementById('admin-announcement-info-input').value = '';
+  document.getElementById('admin-announcement-error').textContent = '';
+  openModal('modal-admin-announcement');
+});
+
+document.getElementById('admin-announcement-confirm').addEventListener('click', () => {
+  const titel = document.getElementById('admin-announcement-title-input').value.trim();
+  const info = document.getElementById('admin-announcement-info-input').value.trim();
+  const errorEl = document.getElementById('admin-announcement-error');
+  if (!titel) { errorEl.textContent = 'Vul een titel in.'; return; }
+  if (!info) { errorEl.textContent = 'Vul de info in.'; return; }
+
+  const btn = document.getElementById('admin-announcement-confirm');
+  btn.disabled = true;
+  db.ref('announcements').push().set({
+    titel: titel,
+    info: info,
+    aangemaakt: Date.now()
+  }).then(() => {
+    btn.disabled = false;
+    closeModal('modal-admin-announcement');
+  }).catch(err => {
+    console.error(err);
+    btn.disabled = false;
+    errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
+function deleteAdminAnnouncement(id, a) {
+  const titel = a.titel || 'dit announcement';
+  if (!confirm(`Weet je zeker dat je "${titel}" wilt verwijderen?`)) return;
+  db.ref('announcements/' + id).remove().catch(err => {
+    console.error(err);
+    alert('Er ging iets mis bij het verwijderen, probeer het opnieuw.');
+  });
+}
+
 function deleteAdminRestaurant(id, r) {
   const naam = r.naam || 'dit restaurant';
   if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit verwijdert het HELE restaurant definitief, inclusief alle leden, tafels, producten en geschiedenis. Dit kan niet ongedaan gemaakt worden.`)) return;

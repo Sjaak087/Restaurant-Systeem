@@ -15,6 +15,9 @@
 <div class="landing-wrap">
   <div class="landing-topbar">
     <button type="button" class="updates-btn" id="btn-updates">🆕 Update log</button>
+    <button type="button" class="bell-btn" id="btn-announcements" aria-label="Announcements">
+      🔔<span class="bell-badge" id="announcement-badge" style="display:none;"></span>
+    </button>
   </div>
   <div class="landing-emblem">🍽</div>
   <h1 class="brand-name">Bestelsysteem</h1>
@@ -31,7 +34,7 @@
     <button type="button" class="big-choice kitchen" id="btn-open-join">Restaurant joinen</button>
   </div>
 
-  <button type="button" class="admin-link" id="btn-admin">🔧 Restaurant beheer</button>
+  <button type="button" class="admin-link" id="btn-admin">🔧 Sitebeheer</button>
 </div>
 
 <!-- Modal: nieuw restaurant -->
@@ -77,6 +80,18 @@
   </div>
 </div>
 
+<!-- Modal: announcements -->
+<div class="modal-overlay" id="modal-announcements">
+  <div class="modal-box wide">
+    <div class="modal-title">📢 Announcements</div>
+    <div class="updates-list" id="announcements-list"></div>
+    <div class="empty-msg" id="announcements-empty-msg" style="display:none;">Geen nieuwe announcements.</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: code tonen na aanmaken -->
 <div class="modal-overlay" id="modal-code-shown">
   <div class="modal-box">
@@ -115,7 +130,7 @@
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['firebase-config.js', 'admin-config.js', 'landing.js', 'admin-login.js', 'updates.js'].forEach(function (file) {
+    ['firebase-config.js', 'admin-config.js', 'landing.js', 'admin-login.js', 'updates.js', 'announcements.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

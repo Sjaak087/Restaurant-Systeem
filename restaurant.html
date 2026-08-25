@@ -21,6 +21,9 @@
       <span class="my-name-badge" id="my-name-badge"></span>
     </div>
     <div class="header-actions">
+      <button type="button" class="bell-btn" id="btn-announcements" aria-label="Announcements">
+        🔔<span class="bell-badge" id="announcement-badge" style="display:none;"></span>
+      </button>
       <button type="button" class="updates-btn" id="btn-updates">🆕 Update log</button>
       <a href="index.html" id="back-link">← Restaurants</a>
     </div>
@@ -29,8 +32,8 @@
   <nav class="tab-nav">
     <button type="button" class="tab-btn active" data-tab="bestellen">🍽 Bestellen</button>
     <button type="button" class="tab-btn" data-tab="voorraad">📦 Voorraad</button>
-    <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken</button>
-    <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed</button>
+    <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken<span class="tab-badge" id="tab-badge-keuken"></span></button>
+    <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed<span class="tab-badge" id="tab-badge-gereed"></span></button>
     <button type="button" class="tab-btn" data-tab="historie">🧾 Historie</button>
     <button type="button" class="tab-btn" data-tab="instellingen">⚙️ Instellingen</button>
   </nav>
@@ -174,6 +177,30 @@
           <button type="button" class="mini-btn edit" id="btn-font" style="display:none;">Wijzigen</button>
         </span>
       </div>
+
+      <div class="settings-section-title" style="margin-top:20px;">Meldingsgeluid bij nieuwe bestelling</div>
+      <p class="modal-text" id="sound-readonly-note" style="display:none;">Alleen de eigenaar kan het meldingsgeluid aanpassen.</p>
+      <div class="sound-choice-list" id="sound-choice-list">
+        <button type="button" class="sound-choice-btn" id="sound-choice-none">
+          <span>🔕 Geen geluid</span>
+        </button>
+        <button type="button" class="sound-choice-btn" id="sound-choice-default">
+          <span>🔔 Standaardgeluid</span>
+          <span class="mini-btn edit sound-preview-btn" id="sound-preview-default">▶ Beluisteren</span>
+        </button>
+        <button type="button" class="sound-choice-btn" id="sound-choice-custom" disabled>
+          <span id="sound-custom-label">🎵 Mijn geüploade geluid</span>
+          <span class="mini-btn edit sound-preview-btn" id="sound-preview-custom" style="display:none;">▶ Beluisteren</span>
+        </button>
+      </div>
+      <div id="sound-upload-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+        <label class="mini-btn edit" for="sound-upload-input" style="cursor:pointer;">⬆️ Geluid uploaden</label>
+        <input type="file" id="sound-upload-input" accept="audio/*" style="display:none;">
+        <button type="button" class="mini-btn danger" id="sound-upload-remove" style="display:none;">Verwijderen</button>
+      </div>
+      <p class="modal-text" style="margin-top:6px;">Je kunt maximaal 1 eigen geluid uploaden, van maximaal 400 KB. Een nieuw bestand vervangt het vorige.</p>
+      <div class="modal-error" id="sound-upload-error"></div>
+
       <div class="settings-info-row" id="row-join-code" style="display:none;">
         <span>Join-code</span>
         <span class="code-display small" id="info-code">—</span>
@@ -394,6 +421,18 @@
   </div>
 </div>
 
+<!-- Modal: announcements -->
+<div class="modal-overlay" id="modal-announcements">
+  <div class="modal-box wide">
+    <div class="modal-title">📢 Announcements</div>
+    <div class="updates-list" id="announcements-list"></div>
+    <div class="empty-msg" id="announcements-empty-msg" style="display:none;">Geen nieuwe announcements.</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: product toevoegen/bewerken -->
 <div class="modal-overlay" id="modal-product">
   <div class="modal-box wide">
@@ -435,7 +474,7 @@
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['firebase-config.js', 'emojis.js', 'restaurant.js', 'updates.js'].forEach(function (file) {
+    ['firebase-config.js', 'emojis.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();
