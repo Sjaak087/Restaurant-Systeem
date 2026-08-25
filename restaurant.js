@@ -1862,6 +1862,7 @@ document.getElementById('bill-pay-confirm').addEventListener('click', () => {
   restRef.update(updates).then(() => {
     btn.disabled = false;
     closeModal('modal-bill');
+    speelBetaalGeluid();
   }).catch(err => {
     console.error(err);
     btn.disabled = false;
@@ -1913,13 +1914,129 @@ function itemsToLinesHtml(order) {
 }
 
 // ---- Meldingsgeluid ----
-const meldingGeluid = new Audio('melding%20geluid.mp3');
+// Instelbaar per restaurant: geen geluid, het standaardgeluid, of een zelf
+// geüpload geluid (max 400 KB, als base64 data-URL opgeslagen in Firebase).
+const meldingGeluidStandaard = new Audio('melding%20geluid.mp3');
+const betaalGeluid = new Audio('betaal%20geluid.mp3');
+function speelBetaalGeluid() {
+  try {
+    betaalGeluid.currentTime = 0;
+    betaalGeluid.play().catch(() => {});
+  } catch (e) { /* geluid niet beschikbaar */ }
+}
+let customGeluidAudio = null; // Audio-object voor het geüploade geluid (lazy)
+let soundSettings = { mode: 'default' };
 const paginaGeladenOp = Date.now();
+
+restRef.child('settings/notificationSound').on('value', snap => {
+  soundSettings = snap.val() || { mode: 'default' };
+  if (soundSettings.mode === 'custom' && soundSettings.data) {
+    customGeluidAudio = new Audio(soundSettings.data);
+  } else {
+    customGeluidAudio = null;
+  }
+  renderSoundSettingsUi();
+});
+
 function speelMeldingGeluid() {
   try {
-    meldingGeluid.currentTime = 0;
-    meldingGeluid.play().catch(() => {});
+    if (soundSettings.mode === 'none') return;
+    if (soundSettings.mode === 'custom' && customGeluidAudio) {
+      customGeluidAudio.currentTime = 0;
+      customGeluidAudio.play().catch(() => {});
+      return;
+    }
+    meldingGeluidStandaard.currentTime = 0;
+    meldingGeluidStandaard.play().catch(() => {});
   } catch (e) { /* geluid niet beschikbaar */ }
+}
+
+// ---- Instellingen: meldingsgeluid kiezen/uploaden (alleen eigenaar) ----
+const MAX_SOUND_BYTES = 400 * 1024;
+
+function renderSoundSettingsUi() {
+  const mode = soundSettings.mode || 'default';
+  const hasCustom = !!soundSettings.data;
+  const btnNone = document.getElementById('sound-choice-none');
+  const btnDefault = document.getElementById('sound-choice-default');
+  const btnCustom = document.getElementById('sound-choice-custom');
+  const previewCustom = document.getElementById('sound-preview-custom');
+  const removeBtn = document.getElementById('sound-upload-remove');
+  const customLabel = document.getElementById('sound-custom-label');
+  if (!btnNone || !btnDefault || !btnCustom) return;
+
+  btnNone.classList.toggle('selected', mode === 'none');
+  btnDefault.classList.toggle('selected', mode === 'default');
+  btnCustom.classList.toggle('selected', mode === 'custom');
+  btnCustom.disabled = !hasCustom;
+  customLabel.textContent = hasCustom
+    ? `🎵 ${soundSettings.name || 'Mijn geüploade geluid'}`
+    : '🎵 Mijn geüploade geluid (nog niets geüpload)';
+  if (previewCustom) previewCustom.style.display = hasCustom ? '' : 'none';
+  if (removeBtn) removeBtn.style.display = hasCustom ? '' : 'none';
+}
+
+if (!isOwner) {
+  document.getElementById('sound-choice-none').disabled = true;
+  document.getElementById('sound-choice-default').disabled = true;
+  document.getElementById('sound-choice-custom').disabled = true;
+  document.getElementById('sound-upload-row').style.display = 'none';
+  document.getElementById('sound-readonly-note').style.display = 'block';
+} else {
+  document.getElementById('sound-choice-none').addEventListener('click', () => {
+    restRef.child('settings/notificationSound/mode').set('none');
+  });
+  document.getElementById('sound-choice-default').addEventListener('click', () => {
+    restRef.child('settings/notificationSound/mode').set('default');
+  });
+  document.getElementById('sound-choice-custom').addEventListener('click', () => {
+    if (!soundSettings.data) return;
+    restRef.child('settings/notificationSound/mode').set('custom');
+  });
+  document.getElementById('sound-preview-default').addEventListener('click', (e) => {
+    e.stopPropagation();
+    meldingGeluidStandaard.currentTime = 0;
+    meldingGeluidStandaard.play().catch(() => {});
+  });
+  document.getElementById('sound-preview-custom').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!soundSettings.data) return;
+    const a = new Audio(soundSettings.data);
+    a.play().catch(() => {});
+  });
+  document.getElementById('sound-upload-remove').addEventListener('click', (e) => {
+    e.stopPropagation();
+    restRef.child('settings/notificationSound').set({ mode: 'default' });
+  });
+  document.getElementById('sound-upload-input').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    const errorEl = document.getElementById('sound-upload-error');
+    errorEl.textContent = '';
+    if (!file) return;
+    if (!file.type.startsWith('audio/')) {
+      errorEl.textContent = 'Kies een geluidsbestand.';
+      return;
+    }
+    if (file.size > MAX_SOUND_BYTES) {
+      errorEl.textContent = `Dit bestand is te groot (${Math.round(file.size / 1024)} KB). Maximaal 400 KB toegestaan.`;
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      restRef.child('settings/notificationSound').set({
+        mode: 'custom',
+        data: reader.result,
+        name: file.name,
+        size: file.size
+      }).catch(err => {
+        console.error(err);
+        errorEl.textContent = 'Uploaden mislukt, probeer opnieuw.';
+      });
+    };
+    reader.onerror = () => { errorEl.textContent = 'Bestand kon niet worden gelezen.'; };
+    reader.readAsDataURL(file);
+  });
 }
 
 function renderOrderCardHtml(id, order, actionHtml) {
@@ -1944,6 +2061,12 @@ function renderKitchen() {
   kitchenCount.textContent = (nieuw.length === 0 && bereiden.length === 0)
     ? 'Nieuwe bestellingen worden hier automatisch getoond.'
     : `${nieuw.length} nieuw · ${bereiden.length} in bereiding`;
+
+  const kitchenBadge = document.getElementById('tab-badge-keuken');
+  if (kitchenBadge) {
+    const totaalKeuken = nieuw.length + bereiden.length;
+    kitchenBadge.textContent = totaalKeuken > 0 ? totaalKeuken : '';
+  }
 
   if (nieuw.length === 0) {
     nieuwList.innerHTML = '<div class="empty-msg">Nog geen nieuwe bestellingen</div>';
@@ -1985,6 +2108,9 @@ function renderReady() {
   const readyCount = document.getElementById('ready-count');
 
   const klaar = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'klaar').sort((a, b) => a[1].tijd - b[1].tijd);
+
+  const readyBadge = document.getElementById('tab-badge-gereed');
+  if (readyBadge) readyBadge.textContent = klaar.length > 0 ? klaar.length : '';
 
   if (klaar.length === 0) {
     readyList.innerHTML = '<div class="empty-msg">Geen klaargemaakte bestellingen</div>';
