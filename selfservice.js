@@ -20,6 +20,7 @@ let PRODUCTS = {};
 let TABLES = {};
 let STOCK = {};
 let STOCK_OPTIONS = {};
+let CATEGORIES = {};
 let myOrders = {};
 let selectedTable = null;
 let counts = {};
@@ -83,6 +84,7 @@ restRef.on('value', snap => {
   TABLES = r.floorplan?.tables || {};
   STOCK = r.stock || {};
   STOCK_OPTIONS = r.stockOpties || {};
+  CATEGORIES = r.categories || {};
   renderTables();
   renderProducts();
   renderMine();
@@ -110,13 +112,48 @@ function renderTables() {
   });
 }
 
+// Sorteert categorieën op plaats (1 boven, 255 onder).
+function categoryList() {
+  return Object.entries(CATEGORIES)
+    .map(([key, c]) => ({ key, ...c }))
+    .sort((a, b) => (a.plaats ?? 999) - (b.plaats ?? 999) || (a.naam || '').localeCompare(b.naam || '', 'nl'));
+}
+
+// Verdeelt de product-entries in groepen per categorie, gesorteerd op plaats.
+// Producten zonder (bestaande) categorie komen in een groep "Overig" aan het
+// einde. Zolang er nog geen categorieën zijn ingesteld, blijft de lijst plat.
+function groupProductEntriesByCategory(entries) {
+  const cats = categoryList();
+  if (cats.length === 0) return [{ naam: null, entries }];
+  const groups = cats.map(c => ({ key: c.key, naam: c.naam, entries: [] }));
+  const overig = { key: null, naam: 'Overig', entries: [] };
+  entries.forEach(([key, p]) => {
+    const g = groups.find(g => g.key === p.categorie);
+    (g || overig).entries.push([key, p]);
+  });
+  const result = groups.filter(g => g.entries.length > 0);
+  if (overig.entries.length > 0) result.push(overig);
+  return result;
+}
+
 function renderProducts() {
   const el = document.getElementById('products');
   const entries = Object.entries(PRODUCTS);
   el.innerHTML = '';
   if (!entries.length) { el.innerHTML = '<div class="selfservice-muted">Dit restaurant heeft nog geen producten ingesteld.</div>'; return; }
 
-  entries.forEach(([key,p]) => {
+  groupProductEntriesByCategory(entries).forEach(group => {
+    if (group.naam) {
+      const heading = document.createElement('div');
+      heading.className = 'category-heading';
+      heading.textContent = group.naam;
+      el.appendChild(heading);
+    }
+    group.entries.forEach(([key, p]) => renderProductCard(key, p, el));
+  });
+}
+
+function renderProductCard(key, p, el) {
     if (counts[key] == null) counts[key] = 0;
     if (!optionsByProduct[key]) optionsByProduct[key] = [];
     const card = document.createElement('div');
@@ -164,7 +201,6 @@ function renderProducts() {
     card.querySelector('.minus').onclick = () => { counts[key] = Math.max(0, counts[key]-1); renderProducts(); };
     card.querySelector('.plus').onclick = () => { counts[key]++; renderProducts(); };
     el.appendChild(card);
-  });
 }
 
 function submitOrder() {

@@ -124,9 +124,11 @@ document.getElementById('admin-rename-confirm').addEventListener('click', () => 
 // Zodra de eigenaar op "Oké" drukt, wordt de waarschuwing verwijderd en komt
 // hij dus nooit meer terug (tenzij er een nieuwe wordt verstuurd).
 let editingWarningRestaurantId = null;
+let editingWarningRestaurantNaam = '';
 
 function openAdminWarning(id, naam) {
   editingWarningRestaurantId = id;
+  editingWarningRestaurantNaam = naam;
   document.getElementById('admin-warning-restaurant-name').textContent = `Voor: ${naam}`;
   document.getElementById('admin-warning-input').value = '';
   document.getElementById('admin-warning-error').textContent = '';
@@ -141,10 +143,22 @@ document.getElementById('admin-warning-confirm').addEventListener('click', () =>
 
   const btn = document.getElementById('admin-warning-confirm');
   btn.disabled = true;
-  db.ref('restaurants/' + editingWarningRestaurantId + '/warning').set({
-    text: tekst,
-    createdAt: Date.now()
-  }).then(() => {
+  const createdAt = Date.now();
+  Promise.all([
+    db.ref('restaurants/' + editingWarningRestaurantId + '/warning').set({
+      text: tekst,
+      createdAt: createdAt
+    }),
+    // Blijvende geschiedenis: dit blijft staan ook nadat de eigenaar de
+    // waarschuwing zelf heeft weggeklikt, zodat sitebeheerders kunnen
+    // terugzien wat er wanneer naar welk restaurant is gestuurd.
+    db.ref('warningHistory').push({
+      restaurantId: editingWarningRestaurantId,
+      restaurantNaam: editingWarningRestaurantNaam || 'Restaurant',
+      text: tekst,
+      createdAt: createdAt
+    })
+  ]).then(() => {
     btn.disabled = false;
     closeModal('modal-admin-warning');
   }).catch(err => {

@@ -139,15 +139,15 @@ if (isAdminMode) {
       }
       const lid = snap.val();
       applyTabPermissions(lid.tabs);
-      updateMyNameBadge(lid.naam);
+      updateMyNameBadge(lid.naam, lid.rolNaam);
     });
   });
 }
 
 // ==================== Eigen naam bovenaan ====================
-function updateMyNameBadge(naam) {
+function updateMyNameBadge(naam, rolNaam) {
   const badge = document.getElementById('my-name-badge');
-  if (badge) badge.textContent = naam ? `👤 ${naam}` : '';
+  if (badge) badge.textContent = naam ? `👤 ${naam}${rolNaam ? ' · ' + rolNaam : ''}` : '';
   const infoEl = document.getElementById('info-mijn-naam');
   if (infoEl) infoEl.textContent = naam || '—';
 }
@@ -213,8 +213,11 @@ function renderLedenList() {
     }).join('');
     row.innerHTML = `
       <div class="lid-row-head">
-        <span class="lid-row-name">${escapeHtml(naam)}${isMe ? ' <span class="lid-me-tag">(jij)</span>' : ''}</span>
-        ${isEigenaarRow ? '' : `<button type="button" class="mini-btn danger" data-kick="${mid}">Verwijderen</button>`}
+        <span class="lid-row-name">${escapeHtml(naam)}${isMe ? ' <span class="lid-me-tag">(jij)</span>' : ''}${lid.rolNaam ? ` <span class="ice-badge">🏷️ ${escapeHtml(lid.rolNaam)}</span>` : ''}</span>
+        <span class="settings-product-actions">
+          <button type="button" class="mini-btn edit" data-role="${mid}">Rol instellen</button>
+          ${isEigenaarRow ? '' : `<button type="button" class="mini-btn danger" data-kick="${mid}">Verwijderen</button>`}
+        </span>
       </div>
       <div class="lid-tabs">${tabsHtml}</div>
     `;
@@ -232,7 +235,83 @@ function renderLedenList() {
       kickLid(btn.dataset.kick, btn);
     });
   });
+  list.querySelectorAll('[data-role]').forEach(btn => {
+    btn.addEventListener('click', () => openMemberRoleModal(btn.dataset.role));
+  });
 }
+
+// Verzamelt alle al eerder gebruikte rollen (over alle leden heen), zodat je
+// die bij een ander lid kunt hergebruiken zonder opnieuw te typen.
+function allKnownRoles() {
+  const map = new Map();
+  Object.values(LEDEN_STATE).forEach(lid => {
+    const naam = lid.rolNaam && lid.rolNaam.trim();
+    if (naam && !map.has(naam.toLowerCase())) map.set(naam.toLowerCase(), naam);
+  });
+  return Array.from(map.values()).sort((a, b) => a.localeCompare(b, 'nl'));
+}
+
+let editingRoleMemberId = null;
+
+function openMemberRoleModal(mid) {
+  editingRoleMemberId = mid;
+  const lid = LEDEN_STATE[mid] || {};
+  document.getElementById('member-role-modal-title').textContent = `Rol voor ${lid.naam || 'lid'}`;
+  document.getElementById('member-role-input').value = '';
+  document.getElementById('member-role-error').textContent = '';
+  renderExistingRolesPicker();
+  openModal('modal-member-role');
+}
+
+// Toont de al eerder gebruikte rollen als klikbare chips, zodat je ze in
+// één klik kunt toewijzen zonder opnieuw te typen.
+function renderExistingRolesPicker() {
+  const wrap = document.getElementById('member-role-existing');
+  if (!wrap) return;
+  const known = allKnownRoles();
+  if (known.length === 0) {
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = '<div class="modal-label" style="margin-top:0;">Al bestaande rollen (klik om te kiezen)</div>';
+  const row = document.createElement('div');
+  row.className = 'product-options-list';
+  known.forEach(naam => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'product-option-chip existing';
+    chip.textContent = naam;
+    chip.addEventListener('click', () => saveMemberRole(naam));
+    row.appendChild(chip);
+  });
+  wrap.appendChild(row);
+}
+
+function saveMemberRole(naam) {
+  if (!editingRoleMemberId) return;
+  restRef.child('leden/' + editingRoleMemberId + '/rolNaam').set(naam).then(() => {
+    closeModal('modal-member-role');
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('member-role-error').textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+}
+
+document.getElementById('member-role-confirm').addEventListener('click', () => {
+  const naam = document.getElementById('member-role-input').value.trim();
+  if (!naam) { document.getElementById('member-role-error').textContent = 'Vul een rolnaam in.'; return; }
+  saveMemberRole(naam);
+});
+
+document.getElementById('member-role-clear').addEventListener('click', () => {
+  if (!editingRoleMemberId) return;
+  restRef.child('leden/' + editingRoleMemberId + '/rolNaam').remove().then(() => {
+    closeModal('modal-member-role');
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('member-role-error').textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
 
 async function kickLid(mid, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Bezig...'; }
@@ -304,6 +383,8 @@ if (!isOwner) {
   document.getElementById('fp-hint').textContent = 'Alleen de eigenaar kan de plattegrond aanpassen.';
   document.getElementById('btn-add-product').style.display = 'none';
   document.getElementById('producten-readonly-note').style.display = 'block';
+  document.getElementById('btn-add-category').style.display = 'none';
+  document.getElementById('categorieen-readonly-note').style.display = 'block';
 } else {
   document.getElementById('btn-rename-restaurant').style.display = '';
   document.getElementById('btn-header-color').style.display = '';
@@ -941,6 +1022,8 @@ document.getElementById('btn-add-product').addEventListener('click', () => {
   document.getElementById('product-modal-title').textContent = 'Nieuw product';
   document.getElementById('product-name-input').value = '';
   document.getElementById('product-price-input').value = '';
+  populateCategorySelect();
+  document.getElementById('product-category-select').value = '';
   document.getElementById('product-option-input').value = '';
   editingProductOptions = [];
   editingOptionIndex = null;
@@ -961,6 +1044,8 @@ function openEditProduct(key) {
   document.getElementById('product-modal-title').textContent = 'Product bewerken';
   document.getElementById('product-name-input').value = p.label || '';
   document.getElementById('product-price-input').value = p.price != null ? p.price : '';
+  populateCategorySelect();
+  document.getElementById('product-category-select').value = p.categorie || '';
   document.getElementById('product-option-input').value = '';
   editingProductOptions = productOptions(p).map(o => ({ label: o.label, emoji: o.emoji || null }));
   editingOptionIndex = null;
@@ -984,7 +1069,9 @@ document.getElementById('product-confirm').addEventListener('click', () => {
   const prijs = prijsRaw === '' ? 0 : Number(prijsRaw);
   if (isNaN(prijs) || prijs < 0) { errorEl.textContent = 'Vul een geldige prijs in.'; return; }
 
+  const categorie = document.getElementById('product-category-select').value;
   const data = { label: naam, emoji: selectedEmoji, price: prijs, opties: editingProductOptions.slice() };
+  if (categorie) data.categorie = categorie;
 
   const key = editingProductKey || restRef.child('products').push().key;
   restRef.child('products/' + key).set(data).then(() => {
@@ -1013,6 +1100,7 @@ function renderSettingsProducts() {
         <span class="settings-product-name">${escapeHtml(p.label)}</span>
         <span class="menu-dots"></span>
         <span class="settings-product-price">${formatPrice(p.price)}</span>
+        ${p.categorie && CATEGORIES_STATE[p.categorie] ? `<span class="ice-badge">🏷️ ${escapeHtml(CATEGORIES_STATE[p.categorie].naam)}</span>` : ''}
         ${opties.map(o => `<span class="ice-badge">${o.emoji || '📝'} ${escapeHtml(o.label)}</span>`).join('')}
       </div>
       ${isOwner ? `<div class="settings-product-actions">
@@ -1030,6 +1118,139 @@ function renderSettingsProducts() {
     }
     list.appendChild(row);
   });
+}
+
+// ==================== Categorieën (live) ====================
+let CATEGORIES_STATE = {}; // key -> {naam, plaats}
+
+restRef.child('categories').on('value', snap => {
+  CATEGORIES_STATE = snap.val() || {};
+  renderSettingsCategories();
+  renderSettingsProducts();
+  populateCategorySelect();
+  renderOrderModalIfOpen();
+  renderHistory();
+});
+
+// Sorteert op plaats (1 boven, 255 onder). Bij gelijke plaats alfabetisch.
+function categoryList() {
+  return Object.entries(CATEGORIES_STATE)
+    .map(([key, c]) => ({ key, ...c }))
+    .sort((a, b) => (a.plaats ?? 999) - (b.plaats ?? 999) || (a.naam || '').localeCompare(b.naam || '', 'nl'));
+}
+
+// Verdeelt een lijst producten in groepen per categorie, gesorteerd op plaats.
+// Producten zonder (bestaande) categorie komen in een groep "Overig" aan het
+// einde. Zolang er nog geen categorieën zijn ingesteld, komt er geen enkele
+// kop te staan en blijft de lijst plat, zoals voorheen.
+function groupProductsByCategory(items) {
+  const cats = categoryList();
+  if (cats.length === 0) return [{ naam: null, items }];
+  const groups = cats.map(c => ({ key: c.key, naam: c.naam, items: [] }));
+  const overig = { key: null, naam: 'Overig', items: [] };
+  items.forEach(p => {
+    const g = groups.find(g => g.key === p.categorie);
+    (g || overig).items.push(p);
+  });
+  const result = groups.filter(g => g.items.length > 0);
+  if (overig.items.length > 0) result.push(overig);
+  return result;
+}
+
+function renderSettingsCategories() {
+  const list = document.getElementById('settings-category-list');
+  if (!list) return;
+  const items = categoryList();
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Nog geen categorieën. Voeg er één toe.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  items.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'settings-product-row';
+    row.innerHTML = `
+      <div class="settings-product-main">
+        <span class="settings-product-name">${escapeHtml(c.naam)}</span>
+        <span class="menu-dots"></span>
+        <span class="ice-badge">Plaats: ${escapeHtml(String(c.plaats))}</span>
+      </div>
+      ${isOwner ? `<div class="settings-product-actions">
+        <button type="button" class="mini-btn edit" data-key="${c.key}">Bewerken</button>
+        <button type="button" class="mini-btn danger" data-key="${c.key}">Verwijderen</button>
+      </div>` : ''}
+    `;
+    if (isOwner) {
+      const [editBtn, delBtn] = row.querySelectorAll('.mini-btn');
+      editBtn.addEventListener('click', () => openEditCategory(c.key));
+      delBtn.addEventListener('click', () => {
+        if (!confirm(`Categorie "${c.naam}" verwijderen?`)) return;
+        restRef.child('categories/' + c.key).remove();
+      });
+    }
+    list.appendChild(row);
+  });
+}
+
+let editingCategoryKey = null;
+
+document.getElementById('btn-add-category').addEventListener('click', () => {
+  editingCategoryKey = null;
+  document.getElementById('category-modal-title').textContent = 'Nieuwe categorie';
+  document.getElementById('category-name-input').value = '';
+  document.getElementById('category-plaats-input').value = '';
+  document.getElementById('category-error').textContent = '';
+  openModal('modal-category');
+});
+
+function openEditCategory(key) {
+  const c = CATEGORIES_STATE[key];
+  if (!c) return;
+  editingCategoryKey = key;
+  document.getElementById('category-modal-title').textContent = 'Categorie bewerken';
+  document.getElementById('category-name-input').value = c.naam || '';
+  document.getElementById('category-plaats-input').value = c.plaats != null ? c.plaats : '';
+  document.getElementById('category-error').textContent = '';
+  openModal('modal-category');
+}
+
+document.getElementById('category-confirm').addEventListener('click', () => {
+  const naam = document.getElementById('category-name-input').value.trim();
+  const plaatsRaw = document.getElementById('category-plaats-input').value;
+  const errorEl = document.getElementById('category-error');
+
+  if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+  const plaats = Number(plaatsRaw);
+  if (plaatsRaw === '' || isNaN(plaats) || !Number.isInteger(plaats) || plaats < 1 || plaats > 255) {
+    errorEl.textContent = 'Vul een plaats in van 1 t/m 255.';
+    return;
+  }
+  const dubbel = categoryList().some(c => c.plaats === plaats && c.key !== editingCategoryKey);
+  if (dubbel) {
+    errorEl.textContent = `Plaats ${plaats} is al in gebruik door een andere categorie. Kies een andere plaats.`;
+    return;
+  }
+
+  const data = { naam, plaats };
+  const key = editingCategoryKey || restRef.child('categories').push().key;
+  restRef.child('categories/' + key).set(data).then(() => {
+    closeModal('modal-category');
+  }).catch(err => {
+    console.error(err);
+    errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
+// Vult de categorie-dropdown in het product-modal, en probeert de al eerder
+// geselecteerde waarde te behouden als die nog bestaat.
+function populateCategorySelect() {
+  const select = document.getElementById('product-category-select');
+  if (!select) return;
+  const current = select.value;
+  const items = categoryList();
+  select.innerHTML = '<option value="">Geen categorie</option>' +
+    items.map(c => `<option value="${c.key}">${escapeHtml(c.naam)}</option>`).join('');
+  if (items.some(c => c.key === current)) select.value = current;
 }
 
 // ==================== Plattegrond (live data) ====================
@@ -1672,23 +1893,34 @@ function renderOrderProducts() {
   container.innerHTML = '';
   items.forEach(p => {
     if (orderCounts[p.key] === undefined) { orderCounts[p.key] = 0; orderItemOptions[p.key] = []; }
-    const isOut = !!stockStatus[p.key];
-    const card = document.createElement('div');
-    card.className = 'product-card' + (isOut ? ' out-of-stock' : '');
-    card.id = `order-card-${p.key}`;
-    card.innerHTML = `
-      <div class="name"><span class="menu-name-text">${p.emoji} ${escapeHtml(p.label)}</span><span class="menu-dots"></span><span class="price-tag">${formatPrice(p.price)}</span></div>
-      <div class="product-row-main">
-        <div class="stepper">
-          <button type="button" class="min-btn" data-key="${p.key}" ${isOut ? 'disabled' : ''}>−</button>
-          <span class="count" id="order-${p.key}-count">${orderCounts[p.key]}</span>
-          <button type="button" class="plus-btn" data-key="${p.key}" ${isOut ? 'disabled' : ''}>+</button>
+  });
+
+  groupProductsByCategory(items).forEach(group => {
+    if (group.naam) {
+      const heading = document.createElement('div');
+      heading.className = 'category-heading';
+      heading.textContent = group.naam;
+      container.appendChild(heading);
+    }
+    group.items.forEach(p => {
+      const isOut = !!stockStatus[p.key];
+      const card = document.createElement('div');
+      card.className = 'product-card' + (isOut ? ' out-of-stock' : '');
+      card.id = `order-card-${p.key}`;
+      card.innerHTML = `
+        <div class="name"><span class="menu-name-text">${p.emoji} ${escapeHtml(p.label)}</span><span class="menu-dots"></span><span class="price-tag">${formatPrice(p.price)}</span></div>
+        <div class="product-row-main">
+          <div class="stepper">
+            <button type="button" class="min-btn" data-key="${p.key}" ${isOut ? 'disabled' : ''}>−</button>
+            <span class="count" id="order-${p.key}-count">${orderCounts[p.key]}</span>
+            <button type="button" class="plus-btn" data-key="${p.key}" ${isOut ? 'disabled' : ''}>+</button>
+          </div>
+          ${isOut ? '<span class="uitverkocht-tag">Uitverkocht</span>' : ''}
         </div>
-        ${isOut ? '<span class="uitverkocht-tag">Uitverkocht</span>' : ''}
-      </div>
-      <div class="ice-toggles" id="order-opts-${p.key}"></div>
-    `;
-    container.appendChild(card);
+        <div class="ice-toggles" id="order-opts-${p.key}"></div>
+      `;
+      container.appendChild(card);
+    });
   });
 
   container.querySelectorAll('.plus-btn').forEach(btn => {
@@ -2162,6 +2394,7 @@ function renderHistory() {
   list.innerHTML = '';
   let totaalOmzet = 0;
   const perProduct = {};
+  const perCategory = {}; // catKey ('__overig__' voor zonder categorie) -> {naam, aantal}
 
   entries.forEach(([id, order]) => {
     const card = document.createElement('div');
@@ -2182,6 +2415,13 @@ function renderHistory() {
       totaalOmzet += prijs * aantal;
       if (!perProduct[key]) perProduct[key] = { label: p ? p.label : '(verwijderd product)', aantal: 0 };
       perProduct[key].aantal += aantal;
+
+      const catKey = (p && p.categorie && CATEGORIES_STATE[p.categorie]) ? p.categorie : '__overig__';
+      if (!perCategory[catKey]) {
+        const catNaam = catKey === '__overig__' ? 'Overig' : CATEGORIES_STATE[catKey].naam;
+        perCategory[catKey] = { naam: catNaam, aantal: 0 };
+      }
+      perCategory[catKey].aantal += aantal;
     });
   });
 
@@ -2190,6 +2430,13 @@ function renderHistory() {
     summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(p.label)}</span><span>${p.aantal}x</span></div>`;
   });
   summaryHtml += `<div class="history-summary-row"><span>Totale omzet</span><span>${formatPrice(totaalOmzet)}</span></div>`;
+
+  if (Object.keys(CATEGORIES_STATE).length > 0) {
+    summaryHtml += `<div class="history-summary-title" style="margin-top:16px;">Per categorie</div>`;
+    Object.values(perCategory).sort((a, b) => b.aantal - a.aantal).forEach(c => {
+      summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(c.naam)}</span><span>${c.aantal}x</span></div>`;
+    });
+  }
   summaryEl.innerHTML = summaryHtml;
 }
 

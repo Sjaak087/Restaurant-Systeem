@@ -102,6 +102,7 @@
     <div class="settings-subnav">
       <button type="button" class="subtab-btn active" data-subtab="plattegrond">Plattegrond</button>
       <button type="button" class="subtab-btn" data-subtab="producten">Producten</button>
+      <button type="button" class="subtab-btn" data-subtab="categorieen">Categorieën</button>
       <button type="button" class="subtab-btn" id="subtab-btn-leden" data-subtab="leden">Leden</button>
       <button type="button" class="subtab-btn" data-subtab="algemeen">Algemeen</button>
       <button type="button" class="subtab-btn" data-subtab="zelfservice">Zelfservice QR</button>
@@ -134,6 +135,13 @@
       <p class="modal-text" id="producten-readonly-note" style="display:none;">Alleen de eigenaar kan producten toevoegen, bewerken of verwijderen.</p>
       <button type="button" class="primary-btn" id="btn-add-product">+ Nieuw product</button>
       <div class="settings-product-list" id="settings-product-list"></div>
+    </div>
+
+    <div class="subtab-panel" id="subpanel-categorieen">
+      <p class="modal-text" id="categorieen-readonly-note" style="display:none;">Alleen de eigenaar kan categorieën toevoegen, bewerken of verwijderen.</p>
+      <p class="modal-text" style="margin-top:0;">Verdeel je producten in categorieën, zoals Dranken of Voorgerechten. De plaats bepaalt de volgorde bij het bestellen en bij zelfservice: 1 staat bovenaan, 255 onderaan.</p>
+      <button type="button" class="primary-btn" id="btn-add-category">+ Nieuwe categorie</button>
+      <div class="settings-product-list" id="settings-category-list"></div>
     </div>
 
     <div class="subtab-panel" id="subpanel-leden">
@@ -425,10 +433,52 @@
 <div class="modal-overlay" id="modal-announcements">
   <div class="modal-box wide">
     <div class="modal-title">📢 Announcements</div>
-    <div class="updates-list" id="announcements-list"></div>
-    <div class="empty-msg" id="announcements-empty-msg" style="display:none;">Geen nieuwe announcements.</div>
+    <div class="tab-nav" style="margin-bottom:16px;">
+      <button type="button" class="tab-btn active" data-notiftab="announcements">Announcements</button>
+      <button type="button" class="tab-btn" data-notiftab="warnings">Eerdere waarschuwingen</button>
+    </div>
+    <div id="notiftab-announcements" class="tab-panel active">
+      <div class="updates-list" id="announcements-list"></div>
+      <div class="empty-msg" id="announcements-empty-msg" style="display:none;">Geen nieuwe announcements.</div>
+    </div>
+    <div id="notiftab-warnings" class="tab-panel">
+      <div class="updates-list" id="warnings-list"></div>
+      <div class="empty-msg" id="warnings-empty-msg" style="display:none;">Nog geen waarschuwingen verstuurd.</div>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: rol instellen voor een lid -->
+<div class="modal-overlay" id="modal-member-role">
+  <div class="modal-box">
+    <div class="modal-title" id="member-role-modal-title">Rol instellen</div>
+    <div class="product-option-picker-existing" id="member-role-existing"></div>
+    <label class="modal-label" style="margin-top:0;">Nieuwe rol</label>
+    <input type="text" id="member-role-input" class="modal-input" placeholder="Bijv. Ober" maxlength="30">
+    <div class="modal-error" id="member-role-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="member-role-clear">Geen rol</button>
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="member-role-confirm">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: categorie toevoegen/bewerken -->
+<div class="modal-overlay" id="modal-category">
+  <div class="modal-box">
+    <div class="modal-title" id="category-modal-title">Nieuwe categorie</div>
+    <label class="modal-label">Naam</label>
+    <input type="text" id="category-name-input" class="modal-input" placeholder="Bijv. Dranken" maxlength="30">
+    <label class="modal-label">Plaats (1 = bovenaan, 255 = onderaan)</label>
+    <input type="number" id="category-plaats-input" class="modal-input" placeholder="Bijv. 1" min="1" max="255" step="1">
+    <div class="modal-error" id="category-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="category-confirm">Opslaan</button>
     </div>
   </div>
 </div>
@@ -441,6 +491,8 @@
     <input type="text" id="product-name-input" class="modal-input" placeholder="Bijv. Fanta" maxlength="40">
     <label class="modal-label">Prijs (€)</label>
     <input type="number" id="product-price-input" class="modal-input" placeholder="Bijv. 2.50" step="0.05" min="0">
+    <label class="modal-label">Categorie (optioneel)</label>
+    <select id="product-category-select" class="modal-input"></select>
     <label class="modal-label">Opmerkingen om aan te vinken bij bestellen (optioneel)</label>
     <p class="modal-text" style="margin-top:-6px;">Bijv. "Zonder ijsklontjes", "Extra pittig". De klant kan deze per besteld stuk aanvinken, en er kunnen er meerdere tegelijk gekozen worden.</p>
     <div class="product-options-list" id="product-options-list"></div>
