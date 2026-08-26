@@ -84,8 +84,18 @@
 <div class="modal-overlay" id="modal-announcements">
   <div class="modal-box wide">
     <div class="modal-title">📢 Announcements</div>
-    <div class="updates-list" id="announcements-list"></div>
-    <div class="empty-msg" id="announcements-empty-msg" style="display:none;">Geen nieuwe announcements.</div>
+    <div class="tab-nav" style="margin-bottom:16px;">
+      <button type="button" class="tab-btn active" data-notiftab="announcements">Announcements</button>
+      <button type="button" class="tab-btn" data-notiftab="warnings">Eerdere waarschuwingen</button>
+    </div>
+    <div id="notiftab-announcements" class="tab-panel active">
+      <div class="updates-list" id="announcements-list"></div>
+      <div class="empty-msg" id="announcements-empty-msg" style="display:none;">Geen nieuwe announcements.</div>
+    </div>
+    <div id="notiftab-warnings" class="tab-panel">
+      <div class="updates-list" id="warnings-list"></div>
+      <div class="empty-msg" id="warnings-empty-msg" style="display:none;">Nog geen waarschuwingen verstuurd.</div>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Sluiten</button>
     </div>

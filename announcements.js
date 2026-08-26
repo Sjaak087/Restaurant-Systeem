@@ -97,6 +97,55 @@ if (typeof db !== 'undefined') {
 
 const btnAnnouncements = document.getElementById('btn-announcements');
 if (btnAnnouncements) {
-  // Gebruikt de openModal-functie die al door landing.js is gedefinieerd.
+  // Gebruikt de openModal-functie die al door landing.js/restaurant.js is gedefinieerd.
   btnAnnouncements.addEventListener('click', () => openModal('modal-announcements'));
+}
+
+// ==================== Tabs binnen de announcements-popup ====================
+document.querySelectorAll('[data-notiftab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-notiftab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('[id^="notiftab-"]').forEach(panel => panel.classList.remove('active'));
+    const target = document.getElementById('notiftab-' + btn.dataset.notiftab);
+    if (target) target.classList.add('active');
+  });
+});
+
+// ==================== Eerdere waarschuwingen (geschiedenis, per restaurant) ====================
+let ALL_WARNING_HISTORY = {};
+const warningsListEl = document.getElementById('warnings-list');
+const warningsEmptyEl = document.getElementById('warnings-empty-msg');
+
+function renderWarningHistory() {
+  if (!warningsListEl) return;
+  const entries = Object.entries(ALL_WARNING_HISTORY)
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+  warningsListEl.innerHTML = '';
+  if (entries.length === 0) {
+    if (warningsEmptyEl) warningsEmptyEl.style.display = 'block';
+    return;
+  }
+  if (warningsEmptyEl) warningsEmptyEl.style.display = 'none';
+
+  entries.forEach(([id, w]) => {
+    const item = document.createElement('div');
+    item.className = 'announcement-item';
+    item.innerHTML = `
+      <div class="announcement-item-head">
+        <span class="announcement-item-title">⚠️ ${escapeHtmlAnnouncements(w.restaurantNaam || 'Restaurant')}</span>
+        <span class="announcement-item-date">${escapeHtmlAnnouncements(formatAankondigingDatumTijd(w.createdAt))}</span>
+      </div>
+      <div class="announcement-item-info">${escapeHtmlAnnouncements(w.text)}</div>
+    `;
+    warningsListEl.appendChild(item);
+  });
+}
+
+if (typeof db !== 'undefined') {
+  db.ref('warningHistory').on('value', snap => {
+    ALL_WARNING_HISTORY = snap.val() || {};
+    renderWarningHistory();
+  });
 }
