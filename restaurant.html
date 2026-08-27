@@ -238,16 +238,23 @@
   </section>
 </div>
 
-<!-- Modal: bestelling plaatsen voor een tafel -->
+<!-- Modal: bestelling plaatsen voor een tafel of bar -->
 <div class="modal-overlay" id="modal-order">
   <div class="modal-box wide">
     <div class="modal-title" id="order-modal-title">Tafel</div>
     <div class="order-products" id="order-products"></div>
     <textarea class="note-field" id="order-note" placeholder="Opmerking (optioneel)"></textarea>
     <div class="modal-error" id="order-error"></div>
-    <div class="modal-actions">
+    <div class="modal-actions" id="order-default-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="order-confirm">Bestelling sturen naar keuken</button>
+    </div>
+    <div class="bill-confirm" id="order-bar-confirm" style="display:none;">
+      <p class="modal-text">Bevestig de betaling van <strong id="order-bar-confirm-amount"></strong> aan de bar.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="order-bar-confirm-cancel">Terug</button>
+        <button type="button" class="btn-primary" id="order-bar-confirm-pay">✅ Betaald, verstuur naar keuken</button>
+      </div>
     </div>
   </div>
 </div>
