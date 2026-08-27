@@ -15,6 +15,12 @@
 
 const UPDATES = [
   {
+    title: 'Volledige phone support', 
+    date: '27-08-2026', 
+    time: '13:00', 
+    info: 'ik heb toegevoegd dat je nu op de telefoon gewoon alles kunt zien zonder dat je helemaal naar links of rechts hoeft te scrollen en alles niet goed kunt zien ik heb ook nog een andere bugfix gedaan de volgende update komt binnenkort uit en zal wat kleiner zijn!'
+  },    
+  {
     title: 'Grote update met een aantal nieuwe dingen!', 
     date: '26-08-2026', 
     time: '20:45', 
