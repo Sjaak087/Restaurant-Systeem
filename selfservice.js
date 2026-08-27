@@ -305,6 +305,12 @@ function positionBefore(id, order) {
 
 function queueMessage(id, order) {
   if (!isWaitingForService(order)) return '';
+  // "Klaar" betekent dat de bestelling al helemaal bereid is en alleen nog
+  // gebracht moet worden. Een wachtrijpositie tellen binnen deze fase levert
+  // dan verwarrende tekst op (bijv. "nog 2 bestellingen voor jou" terwijl de
+  // klant al "Klaar" ziet staan), dus in deze fase tonen we gewoon dat het
+  // eraan komt, zonder positie.
+  if (order.status === 'klaar') return 'Wordt zo bij je gebracht!';
   const before = positionBefore(id, order);
   if (before === 0) return 'Je bestelling is aan de beurt.';
   if (before === 1) return 'Nog 1 bestelling voor jou in deze fase.';
@@ -345,7 +351,6 @@ function renderMine() {
   el.innerHTML = '<div class="selfservice-card"><h2>Mijn bestellingen</h2><div class="selfservice-device-note">Alleen bestellingen van dit apparaat worden hier getoond.</div></div>';
   entries.forEach(([id,o]) => {
     const st = statusInfo(o);
-    const before = positionBefore(id,o);
     const tk = tableKindLabel(o.tableNumber);
     const card = document.createElement('div');
     card.className = 'selfservice-card selfservice-order-card';
