@@ -1364,17 +1364,17 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   margin-top: calc(-35px * var(--fp-scale, 1));
 }
 
-/* ---- Bar en Keuken: alleen een naam, niet te bestellen ---- */
+/* ---- Bar: net als een tafel te bestellen, alleen op naam i.p.v. nummer ---- */
+/* ---- Keuken: enkel decoratief, niet te bestellen ---- */
 .fp-table.fp-kind-bar,
 .fp-table.fp-kind-keuken {
-  cursor: default;
   border-radius: 12px;
   width: calc(54px * var(--fp-scale, 1));
   height: calc(54px * var(--fp-scale, 1));
   margin-left: calc(-27px * var(--fp-scale, 1));
   margin-top: calc(-27px * var(--fp-scale, 1));
 }
-.fp-table.fp-kind-bar:hover,
+.fp-table.fp-kind-keuken { cursor: default; }
 .fp-table.fp-kind-keuken:hover { transform: none; }
 .fp-table.fp-kind-bar {
   border: 2px solid var(--gold-soft);
