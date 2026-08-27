@@ -196,6 +196,8 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 700;
@@ -1850,6 +1852,8 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 10px;
 }
 .lid-row-name {
@@ -2070,7 +2074,7 @@ header.top a:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
 .tab-badge {
   box-shadow: 0 0 0 2px var(--bg-elevated), 0 2px 6px rgba(0,0,0,0.3);
 }
-.settings-subnav { gap: 6px; padding: 4px; background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--radius-pill); display: inline-flex; }
+.settings-subnav { gap: 6px; padding: 4px; background: var(--bg-elevated); border: 1px solid var(--line); border-radius: var(--radius-pill); display: inline-flex; flex-wrap: wrap; }
 .subtab-btn { border-radius: var(--radius-pill); border-color: transparent; }
 .subtab-btn.active { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: var(--bg); border-color: transparent; box-shadow: 0 4px 12px var(--glow-gold-soft); font-weight: 700; }
 
@@ -2231,4 +2235,42 @@ header.top h1,
 .selfservice-top h1 {
   position: relative;
   z-index: 2;
+}
+
+/* =========================================================================
+   ✦ TELEFOON-ONDERSTEUNING (app-shell) ✦
+   Zorgt dat de header, tabs, instellingen-subtabs en losse rijen netjes
+   passen en meelopen op een smal telefoonscherm (portrait), zonder dat er
+   iets wordt afgesneden of dat de pagina breder wordt dan het scherm.
+   ========================================================================= */
+@media (max-width: 620px) {
+  .wrap { padding: 24px 14px 80px; }
+
+  header.top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 26px;
+  }
+  header.top h1 { font-size: 1.55rem; }
+  .top-title-group { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .header-actions { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .header-actions .updates-btn,
+  .header-actions .bell-btn,
+  header.top a#back-link {
+    flex: 0 0 auto;
+  }
+
+  .tab-btn { padding: 10px 12px; font-size: 0.8rem; }
+  .settings-subnav { width: 100%; }
+  .subtab-btn { padding: 7px 13px; font-size: 0.78rem; }
+
+  .history-panel-head { align-items: flex-start; }
+  .lid-row-head { align-items: flex-start; }
+
+  .modal-box { padding: 22px 18px; }
+}
+@media (max-width: 390px) {
+  header.top h1 { font-size: 1.35rem; }
+  .updates-btn, .bell-btn, header.top a#back-link { font-size: 0.7rem; padding: 6px 10px; }
 }
