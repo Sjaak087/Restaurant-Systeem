@@ -219,19 +219,40 @@ function submitOrder() {
   });
   if (!Object.keys(items).length) { sendError.textContent = 'Kies eerst minstens één product.'; return; }
 
-  const order = {
-    tableNumber: selectedTable,
-    items,
-    status: 'nieuw',
-    tijd: Date.now(),
-    deviceId
-  };
   const note = document.getElementById('note').value.trim();
-  if (note) order.opmerking = note;
-  if (Object.keys(itemOpties).length) order.itemOpties = itemOpties;
+
+  // Splits de bestelling op in een keuken- en een bar-deel, op basis van de
+  // bestemming die is ingesteld bij elk product (Instellingen -> Producten).
+  // Zo komt bijv. de frisdrank meteen bij de bar terecht en het eten bij de
+  // keuken, ook al is het in één keer besteld.
+  const groepen = { keuken: { items: {}, itemOpties: {} }, bar: { items: {}, itemOpties: {} } };
+  Object.entries(items).forEach(([key, aantal]) => {
+    const p = PRODUCTS[key];
+    const bestemming = (p && p.bestemming === 'bar') ? 'bar' : 'keuken';
+    groepen[bestemming].items[key] = aantal;
+    if (itemOpties[key]) groepen[bestemming].itemOpties[key] = itemOpties[key];
+  });
+
+  const nu = Date.now();
+  const updates = {};
+  ['keuken', 'bar'].forEach(bestemming => {
+    const groepItems = groepen[bestemming].items;
+    if (!Object.keys(groepItems).length) return;
+    const id = restRef.child('orders').push().key;
+    const order = {
+      tableNumber: selectedTable,
+      items: groepItems,
+      status: 'nieuw',
+      tijd: nu,
+      deviceId
+    };
+    if (note) order.opmerking = note;
+    if (Object.keys(groepen[bestemming].itemOpties).length) order.itemOpties = groepen[bestemming].itemOpties;
+    updates['orders/' + id] = order;
+  });
 
   document.getElementById('send').disabled = true;
-  restRef.child('orders').push().set(order).then(() => {
+  restRef.update(updates).then(() => {
     // Bewust NIET de aantallen/opmerkingen resetten: als je nog een bestelling
     // plaatst, blijft staan wat je al had aangeklikt (bijv. handig als je
     // meteen nog een rondje van hetzelfde wilt bestellen).
