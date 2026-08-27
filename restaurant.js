@@ -1433,7 +1433,7 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
       el.dataset.type = 'table';
       el.dataset.id = id;
       el.dataset.kind = kind;
-    } else if (onTableClick && isOrderable) {
+    } else if (onTableClick && (isOrderable || kind === 'bar')) {
       el.addEventListener('click', () => onTableClick(table));
     }
     canvasEl.appendChild(el);
@@ -1459,7 +1459,13 @@ function kindIconByNumber(number) {
 
 function renderOrderCanvas() {
   const canvas = document.getElementById('order-canvas');
-  renderCanvas(canvas, { editable: false, onTableClick: (table) => handleTableClick(table) });
+  renderCanvas(canvas, {
+    editable: false,
+    onTableClick: (item) => {
+      if (item.kind === 'bar') { openOrderModalForBar(item); return; }
+      handleTableClick(item);
+    }
+  });
   document.getElementById('order-no-tables').style.display =
     Object.keys(TABLES_STATE).length === 0 ? 'block' : 'none';
 }
@@ -1783,6 +1789,8 @@ function onResizeStart(e) {
 
 // ==================== Bestellen: tafel -> producten kiezen ====================
 let currentOrderTable = null;
+let currentOrderBar = null;   // gevuld i.p.v. currentOrderTable wanneer er bij de bar besteld wordt
+let pendingBarOrder = null;   // items/opties/opmerking die klaarstaan om na betaling te versturen
 let orderCounts = {};      // key -> aantal
 let orderItemOptions = {}; // key -> array (per besteld stuk) van gekozen opmerkingen
 let stockStatus = {};      // productKey -> uitverkocht?
@@ -1867,12 +1875,38 @@ function renderVoorraadOpmerkingen() {
 
 function openOrderModalForTable(table) {
   currentOrderTable = table;
+  currentOrderBar = null;
+  pendingBarOrder = null;
   orderCounts = {};
   orderItemOptions = {};
   productList().forEach(p => { orderCounts[p.key] = 0; orderItemOptions[p.key] = []; });
   document.getElementById('order-modal-title').textContent = `${kindWoord(table)} ${table.number}`;
   document.getElementById('order-note').value = '';
   document.getElementById('order-error').textContent = '';
+  document.getElementById('order-bar-confirm').style.display = 'none';
+  document.getElementById('order-default-actions').style.display = '';
+  document.getElementById('order-confirm').textContent = 'Bestelling sturen naar keuken';
+  renderOrderProducts();
+  openModal('modal-order');
+}
+
+// Bij de bar wordt eerst de bestelling samengesteld zoals normaal, maar in
+// plaats van meteen naar de keuken te sturen moet er eerst worden afgerekend
+// (zie order-confirm hieronder). Pas na bevestigde betaling gaat de
+// bestelling alsnog naar de keuken, met "Bar" in plaats van een tafelnummer.
+function openOrderModalForBar(barItem) {
+  currentOrderTable = null;
+  currentOrderBar = barItem;
+  pendingBarOrder = null;
+  orderCounts = {};
+  orderItemOptions = {};
+  productList().forEach(p => { orderCounts[p.key] = 0; orderItemOptions[p.key] = []; });
+  document.getElementById('order-modal-title').textContent = `🍸 ${barItem.name || 'Bar'}`;
+  document.getElementById('order-note').value = '';
+  document.getElementById('order-error').textContent = '';
+  document.getElementById('order-bar-confirm').style.display = 'none';
+  document.getElementById('order-default-actions').style.display = '';
+  document.getElementById('order-confirm').textContent = 'Doorgaan naar betalen';
   renderOrderProducts();
   openModal('modal-order');
 }
@@ -1987,6 +2021,15 @@ function renderOrderOptionToggles(key) {
   });
 }
 
+// Rekent het totaalbedrag uit van een items-object (key -> aantal), op basis
+// van de huidige productprijzen.
+function computeItemsTotal(items) {
+  return Object.entries(items).reduce((sum, [key, aantal]) => {
+    const p = PRODUCTS_STATE[key];
+    return sum + (p ? p.price : 0) * aantal;
+  }, 0);
+}
+
 document.getElementById('order-confirm').addEventListener('click', () => {
   const errorEl = document.getElementById('order-error');
   const items = {};
@@ -1997,12 +2040,23 @@ document.getElementById('order-confirm').addEventListener('click', () => {
     errorEl.textContent = 'Kies eerst iets.';
     return;
   }
+  errorEl.textContent = '';
 
   const itemOpties = {};
   Object.keys(items).forEach(key => {
     const opts = orderItemOptions[key] || [];
     if (opts.some(sel => sel.length > 0)) itemOpties[key] = opts.map(sel => sel.slice());
   });
+  const opmerking = document.getElementById('order-note').value.trim();
+
+  if (currentOrderBar) {
+    // Bij de bar wordt er eerst afgerekend, en pas daarna naar de keuken gestuurd.
+    pendingBarOrder = { items, itemOpties, opmerking };
+    document.getElementById('order-bar-confirm-amount').textContent = formatPrice(computeItemsTotal(items));
+    document.getElementById('order-default-actions').style.display = 'none';
+    document.getElementById('order-bar-confirm').style.display = 'block';
+    return;
+  }
 
   const orderData = {
     tableNumber: currentOrderTable.number,
@@ -2010,7 +2064,6 @@ document.getElementById('order-confirm').addEventListener('click', () => {
     status: 'nieuw',
     tijd: Date.now()
   };
-  const opmerking = document.getElementById('order-note').value.trim();
   if (opmerking) orderData.opmerking = opmerking;
   if (Object.keys(itemOpties).length > 0) orderData.itemOpties = itemOpties;
 
@@ -2019,6 +2072,49 @@ document.getElementById('order-confirm').addEventListener('click', () => {
   }).catch(err => {
     console.error(err);
     errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
+document.getElementById('order-bar-confirm-cancel').addEventListener('click', () => {
+  document.getElementById('order-bar-confirm').style.display = 'none';
+  document.getElementById('order-default-actions').style.display = '';
+});
+
+document.getElementById('order-bar-confirm-pay').addEventListener('click', () => {
+  if (!pendingBarOrder || !currentOrderBar) return;
+  const btn = document.getElementById('order-bar-confirm-pay');
+  btn.disabled = true;
+
+  const nu = Date.now();
+  const id = restRef.child('orders').push().key;
+  const orderData = {
+    bar: true,
+    barName: currentOrderBar.name || 'Bar',
+    tableNumber: null,
+    items: pendingBarOrder.items,
+    status: 'nieuw',
+    tijd: nu,
+    betaaldOp: nu
+  };
+  if (pendingBarOrder.opmerking) orderData.opmerking = pendingBarOrder.opmerking;
+  if (Object.keys(pendingBarOrder.itemOpties).length > 0) orderData.itemOpties = pendingBarOrder.itemOpties;
+
+  // Meteen zowel naar de keuken (orders) als in de historie (al betaald) zetten.
+  const updates = {};
+  updates['orders/' + id] = orderData;
+  updates['history/' + id] = orderData;
+
+  restRef.update(updates).then(() => {
+    btn.disabled = false;
+    pendingBarOrder = null;
+    closeModal('modal-order');
+    speelBetaalGeluid();
+  }).catch(err => {
+    console.error(err);
+    btn.disabled = false;
+    document.getElementById('order-bar-confirm').style.display = 'none';
+    document.getElementById('order-default-actions').style.display = '';
+    document.getElementById('order-error').textContent = 'Er ging iets mis, probeer opnieuw.';
   });
 });
 
@@ -2273,8 +2369,11 @@ if (!isOwner) {
 
 function renderOrderCardHtml(id, order, actionHtml) {
   const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
+  const badgeHtml = order.bar
+    ? `🍸 ${escapeHtml(order.barName || 'Bar')}`
+    : `${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}`;
   return `
-    <div class="table-badge">${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}</div>
+    <div class="table-badge">${badgeHtml}</div>
     <div class="items-block">${itemsToLinesHtml(order)}</div>
     ${noteHtml}
     <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
@@ -2361,6 +2460,13 @@ function renderReady() {
 
   readyList.querySelectorAll('.chip-btn.delivered').forEach(btn => {
     btn.addEventListener('click', () => {
+      const order = ALLE_ORDERS[btn.dataset.id];
+      if (order && order.bar) {
+        // Een bar-bestelling is al betaald (staat al in de historie), dus
+        // die hoeft na bezorging niet meer op een rekening te blijven staan.
+        restRef.child('orders/' + btn.dataset.id).remove();
+        return;
+      }
       // Bezorgd, maar nog niet afgerekend: blijft meetellen op de rekening van de tafel
       // totdat er via "Bestelde dingen" -> "Betalen" wordt afgerekend.
       restRef.child('orders/' + btn.dataset.id + '/status').set('bezorgd');
@@ -2401,8 +2507,11 @@ function renderHistory() {
     card.className = 'order-card';
     const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
     const betaaldHtml = order.betaaldOp ? ` · betaald om ${formatTime(order.betaaldOp)}` : '';
+    const badgeHtml = order.bar
+      ? `🍸 ${escapeHtml(order.barName || 'Bar')}`
+      : `${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}`;
     card.innerHTML = `
-      <div class="table-badge">${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}</div>
+      <div class="table-badge">${badgeHtml}</div>
       <div class="items-block">${itemsToLinesHtml(order)}</div>
       ${noteHtml}
       <div class="time-line">Besteld om ${formatTime(order.tijd)}${betaaldHtml}</div>
