@@ -2039,6 +2039,22 @@ function renderOrderOptionToggles(key) {
   });
 }
 
+// Splitst items (en bijbehorende itemOpties) van één bestelling op in een
+// keuken-groep en een bar-groep, op basis van de bestemming die is ingesteld
+// bij elk product. Zo komt bijv. bij "2x Fanta, 1x Pizza" de Fanta gewoon in
+// de Bar-tab terecht en de Pizza in de Keuken-tab, ook al werden ze in één
+// keer besteld.
+function splitItemsByBestemming(items, itemOpties) {
+  const groepen = { keuken: { items: {}, itemOpties: {} }, bar: { items: {}, itemOpties: {} } };
+  Object.entries(items).forEach(([key, aantal]) => {
+    const p = PRODUCTS_STATE[key];
+    const bestemming = (p && p.bestemming === 'bar') ? 'bar' : 'keuken';
+    groepen[bestemming].items[key] = aantal;
+    if (itemOpties && itemOpties[key]) groepen[bestemming].itemOpties[key] = itemOpties[key];
+  });
+  return groepen;
+}
+
 // Rekent het totaalbedrag uit van een items-object (key -> aantal), op basis
 // van de huidige productprijzen.
 function computeItemsTotal(items) {
@@ -2076,16 +2092,25 @@ document.getElementById('order-confirm').addEventListener('click', () => {
     return;
   }
 
-  const orderData = {
-    tableNumber: currentOrderTable.number,
-    items: items,
-    status: 'nieuw',
-    tijd: Date.now()
-  };
-  if (opmerking) orderData.opmerking = opmerking;
-  if (Object.keys(itemOpties).length > 0) orderData.itemOpties = itemOpties;
+  const nu = Date.now();
+  const groepen = splitItemsByBestemming(items, itemOpties);
+  const updates = {};
+  ['keuken', 'bar'].forEach(bestemming => {
+    const groepItems = groepen[bestemming].items;
+    if (Object.keys(groepItems).length === 0) return;
+    const id = restRef.child('orders').push().key;
+    const orderData = {
+      tableNumber: currentOrderTable.number,
+      items: groepItems,
+      status: 'nieuw',
+      tijd: nu
+    };
+    if (opmerking) orderData.opmerking = opmerking;
+    if (Object.keys(groepen[bestemming].itemOpties).length > 0) orderData.itemOpties = groepen[bestemming].itemOpties;
+    updates['orders/' + id] = orderData;
+  });
 
-  restRef.child('orders').push().set(orderData).then(() => {
+  restRef.update(updates).then(() => {
     closeModal('modal-order');
   }).catch(err => {
     console.error(err);
@@ -2104,23 +2129,27 @@ document.getElementById('order-bar-confirm-pay').addEventListener('click', () =>
   btn.disabled = true;
 
   const nu = Date.now();
-  const id = restRef.child('orders').push().key;
-  const orderData = {
-    bar: true,
-    barName: currentOrderBar.name || 'Bar',
-    tableNumber: null,
-    items: pendingBarOrder.items,
-    status: 'nieuw',
-    tijd: nu,
-    betaaldOp: nu
-  };
-  if (pendingBarOrder.opmerking) orderData.opmerking = pendingBarOrder.opmerking;
-  if (Object.keys(pendingBarOrder.itemOpties).length > 0) orderData.itemOpties = pendingBarOrder.itemOpties;
-
-  // Meteen zowel naar de keuken (orders) als in de historie (al betaald) zetten.
+  const groepen = splitItemsByBestemming(pendingBarOrder.items, pendingBarOrder.itemOpties);
   const updates = {};
-  updates['orders/' + id] = orderData;
-  updates['history/' + id] = orderData;
+  ['keuken', 'bar'].forEach(bestemming => {
+    const groepItems = groepen[bestemming].items;
+    if (Object.keys(groepItems).length === 0) return;
+    const id = restRef.child('orders').push().key;
+    const orderData = {
+      bar: true,
+      barName: currentOrderBar.name || 'Bar',
+      tableNumber: null,
+      items: groepItems,
+      status: 'nieuw',
+      tijd: nu,
+      betaaldOp: nu
+    };
+    if (pendingBarOrder.opmerking) orderData.opmerking = pendingBarOrder.opmerking;
+    if (Object.keys(groepen[bestemming].itemOpties).length > 0) orderData.itemOpties = groepen[bestemming].itemOpties;
+    // Meteen zowel naar de keuken/bar (orders) als in de historie (al betaald) zetten.
+    updates['orders/' + id] = orderData;
+    updates['history/' + id] = orderData;
+  });
 
   restRef.update(updates).then(() => {
     btn.disabled = false;
