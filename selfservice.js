@@ -305,12 +305,6 @@ function positionBefore(id, order) {
 
 function queueMessage(id, order) {
   if (!isWaitingForService(order)) return '';
-  // "Klaar" betekent dat de bestelling al helemaal bereid is en alleen nog
-  // gebracht moet worden. Een wachtrijpositie tellen binnen deze fase levert
-  // dan verwarrende tekst op (bijv. "nog 2 bestellingen voor jou" terwijl de
-  // klant al "Klaar" ziet staan), dus in deze fase tonen we gewoon dat het
-  // eraan komt, zonder positie.
-  if (order.status === 'klaar') return 'Wordt zo bij je gebracht!';
   const before = positionBefore(id, order);
   if (before === 0) return 'Je bestelling is aan de beurt.';
   if (before === 1) return 'Nog 1 bestelling voor jou in deze fase.';
