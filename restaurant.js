@@ -2094,10 +2094,14 @@ document.getElementById('order-confirm').addEventListener('click', () => {
 
   const nu = Date.now();
   const groepen = splitItemsByBestemming(items, itemOpties);
+  const bestemmingen = ['keuken', 'bar'].filter(b => Object.keys(groepen[b].items).length > 0);
+  // Alleen een gedeelde groupId nodig als de bestelling écht in meerdere
+  // tickets wordt opgesplitst; zo telt de wachtrijpositie (in zelfservice)
+  // dit straks als één bestelling in plaats van als twee.
+  const groupId = bestemmingen.length > 1 ? restRef.child('orders').push().key : null;
   const updates = {};
-  ['keuken', 'bar'].forEach(bestemming => {
+  bestemmingen.forEach(bestemming => {
     const groepItems = groepen[bestemming].items;
-    if (Object.keys(groepItems).length === 0) return;
     const id = restRef.child('orders').push().key;
     const orderData = {
       tableNumber: currentOrderTable.number,
@@ -2107,6 +2111,7 @@ document.getElementById('order-confirm').addEventListener('click', () => {
     };
     if (opmerking) orderData.opmerking = opmerking;
     if (Object.keys(groepen[bestemming].itemOpties).length > 0) orderData.itemOpties = groepen[bestemming].itemOpties;
+    if (groupId) orderData.orderGroupId = groupId;
     updates['orders/' + id] = orderData;
   });
 
@@ -2130,10 +2135,11 @@ document.getElementById('order-bar-confirm-pay').addEventListener('click', () =>
 
   const nu = Date.now();
   const groepen = splitItemsByBestemming(pendingBarOrder.items, pendingBarOrder.itemOpties);
+  const bestemmingen = ['keuken', 'bar'].filter(b => Object.keys(groepen[b].items).length > 0);
+  const groupId = bestemmingen.length > 1 ? restRef.child('orders').push().key : null;
   const updates = {};
-  ['keuken', 'bar'].forEach(bestemming => {
+  bestemmingen.forEach(bestemming => {
     const groepItems = groepen[bestemming].items;
-    if (Object.keys(groepItems).length === 0) return;
     const id = restRef.child('orders').push().key;
     const orderData = {
       bar: true,
@@ -2146,6 +2152,7 @@ document.getElementById('order-bar-confirm-pay').addEventListener('click', () =>
     };
     if (pendingBarOrder.opmerking) orderData.opmerking = pendingBarOrder.opmerking;
     if (Object.keys(groepen[bestemming].itemOpties).length > 0) orderData.itemOpties = groepen[bestemming].itemOpties;
+    if (groupId) orderData.orderGroupId = groupId;
     // Meteen zowel naar de keuken/bar (orders) als in de historie (al betaald) zetten.
     updates['orders/' + id] = orderData;
     updates['history/' + id] = orderData;
