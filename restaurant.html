@@ -33,6 +33,7 @@
     <button type="button" class="tab-btn active" data-tab="bestellen">🍽 Bestellen</button>
     <button type="button" class="tab-btn" data-tab="voorraad">📦 Voorraad</button>
     <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken<span class="tab-badge" id="tab-badge-keuken"></span></button>
+    <button type="button" class="tab-btn" data-tab="bar">🍸 Bar<span class="tab-badge" id="tab-badge-bar"></span></button>
     <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed<span class="tab-badge" id="tab-badge-gereed"></span></button>
     <button type="button" class="tab-btn" data-tab="historie">🧾 Historie</button>
     <button type="button" class="tab-btn" data-tab="instellingen">⚙️ Instellingen</button>
@@ -71,6 +72,25 @@
       <div class="kitchen-column">
         <h3 class="kitchen-subheading">🔥 In bereiding</h3>
         <div class="kitchen-list" id="kitchen-list-bereiden">
+          <div class="empty-msg">Nog niets in bereiding</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== BAR ===== -->
+  <section class="tab-panel" id="panel-bar">
+    <div class="kitchen-count" id="bar-count">Nieuwe bestellingen worden hier automatisch getoond.</div>
+    <div class="kitchen-columns">
+      <div class="kitchen-column">
+        <h3 class="kitchen-subheading">📥 Binnengekomen</h3>
+        <div class="kitchen-list" id="bar-list-nieuw">
+          <div class="empty-msg">Nog geen nieuwe bestellingen</div>
+        </div>
+      </div>
+      <div class="kitchen-column">
+        <h3 class="kitchen-subheading">🔥 In bereiding</h3>
+        <div class="kitchen-list" id="bar-list-bereiden">
           <div class="empty-msg">Nog niets in bereiding</div>
         </div>
       </div>
@@ -500,6 +520,13 @@
     <input type="number" id="product-price-input" class="modal-input" placeholder="Bijv. 2.50" step="0.05" min="0">
     <label class="modal-label">Categorie (optioneel)</label>
     <select id="product-category-select" class="modal-input"></select>
+    <div class="fp-shape-row" id="product-bestemming-row">
+      <span class="modal-label" style="margin:0 0 8px;">Waar moet dit product besteld worden?</span>
+      <div class="fp-shape-options" id="product-bestemming-options">
+        <button type="button" class="fp-shape-btn" data-bestemming="keuken">🔔 Keuken</button>
+        <button type="button" class="fp-shape-btn" data-bestemming="bar">🍸 Bar</button>
+      </div>
+    </div>
     <label class="modal-label">Opmerkingen om aan te vinken bij bestellen (optioneel)</label>
     <p class="modal-text" style="margin-top:-6px;">Bijv. "Zonder ijsklontjes", "Extra pittig". De klant kan deze per besteld stuk aanvinken, en er kunnen er meerdere tegelijk gekozen worden.</p>
     <div class="product-options-list" id="product-options-list"></div>
