@@ -57,8 +57,8 @@ function saveMyRestaurantsLocal(list) {
 }
 
 // ==================== Leden & rechten per tabblad ====================
-const ALL_TABS = ['bestellen', 'voorraad', 'keuken', 'gereed', 'historie', 'instellingen'];
-const TAB_LABELS = { bestellen: 'Bestellen', voorraad: 'Voorraad', keuken: 'Keuken', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
+const ALL_TABS = ['bestellen', 'voorraad', 'keuken', 'bar', 'gereed', 'historie', 'instellingen'];
+const TAB_LABELS = { bestellen: 'Bestellen', voorraad: 'Voorraad', keuken: 'Keuken', bar: 'Bar', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
 
 function genLidId() {
   return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -96,7 +96,10 @@ function applyTabPermissions(tabs) {
     if (!btn) return;
     // Veiligheidsklep: de eigenaar behoudt altijd toegang tot Instellingen, anders zou
     // die zichzelf per ongeluk kunnen buitensluiten van het ledenbeheer.
-    const allowed = (isOwner && t === 'instellingen') || tabs[t] === true;
+    // Ontbreekt een tabblad helemaal in het ledenrecord (bijv. "bar", toegevoegd nadat dit
+    // lid al bestond), dan tellen we dat als toegestaan i.p.v. verborgen — anders zou een
+    // nieuw tabblad onzichtbaar blijven voor iedereen die al langer lid was.
+    const allowed = (isOwner && t === 'instellingen') || tabs[t] === true || tabs[t] === undefined;
     btn.style.display = allowed ? '' : 'none';
     if (allowed && !firstVisible) firstVisible = t;
   });
@@ -208,7 +211,7 @@ function renderLedenList() {
     const row = document.createElement('div');
     row.className = 'lid-row';
     const tabsHtml = ALL_TABS.map(t => {
-      const checked = tabs[t] ? 'checked' : '';
+      const checked = tabs[t] !== false ? 'checked' : '';
       return `<label class="lid-tab-toggle"><input type="checkbox" data-mid="${mid}" data-tab="${t}" ${checked}> ${TAB_LABELS[t]}</label>`;
     }).join('');
     row.innerHTML = `
@@ -844,6 +847,18 @@ function markEmojiSelected(em) {
 let editingProductKey = null;
 let editingProductOptions = []; // array van {label, emoji}
 
+// ---- Bestemming van een product (keuken of bar) ----
+let selectedBestemming = 'keuken';
+function setBestemmingSelection(bestemming) {
+  selectedBestemming = bestemming === 'bar' ? 'bar' : 'keuken';
+  document.querySelectorAll('#product-bestemming-options .fp-shape-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.bestemming === selectedBestemming);
+  });
+}
+document.querySelectorAll('#product-bestemming-options .fp-shape-btn').forEach(btn => {
+  btn.addEventListener('click', () => setBestemmingSelection(btn.dataset.bestemming));
+});
+
 // Klein vast setje emoji's om een opmerking mee te markeren.
 const OPTION_EMOJIS = ['🧊', '🧴', '🥛', '🌶️', '🍋', '➕', '🚫', '✨'];
 let selectedOptionEmoji = null;
@@ -1024,6 +1039,7 @@ document.getElementById('btn-add-product').addEventListener('click', () => {
   document.getElementById('product-price-input').value = '';
   populateCategorySelect();
   document.getElementById('product-category-select').value = '';
+  setBestemmingSelection('keuken');
   document.getElementById('product-option-input').value = '';
   editingProductOptions = [];
   editingOptionIndex = null;
@@ -1046,6 +1062,7 @@ function openEditProduct(key) {
   document.getElementById('product-price-input').value = p.price != null ? p.price : '';
   populateCategorySelect();
   document.getElementById('product-category-select').value = p.categorie || '';
+  setBestemmingSelection(p.bestemming || 'keuken');
   document.getElementById('product-option-input').value = '';
   editingProductOptions = productOptions(p).map(o => ({ label: o.label, emoji: o.emoji || null }));
   editingOptionIndex = null;
@@ -1070,7 +1087,7 @@ document.getElementById('product-confirm').addEventListener('click', () => {
   if (isNaN(prijs) || prijs < 0) { errorEl.textContent = 'Vul een geldige prijs in.'; return; }
 
   const categorie = document.getElementById('product-category-select').value;
-  const data = { label: naam, emoji: selectedEmoji, price: prijs, opties: editingProductOptions.slice() };
+  const data = { label: naam, emoji: selectedEmoji, price: prijs, opties: editingProductOptions.slice(), bestemming: selectedBestemming };
   if (categorie) data.categorie = categorie;
 
   const key = editingProductKey || restRef.child('products').push().key;
@@ -1101,6 +1118,7 @@ function renderSettingsProducts() {
         <span class="menu-dots"></span>
         <span class="settings-product-price">${formatPrice(p.price)}</span>
         ${p.categorie && CATEGORIES_STATE[p.categorie] ? `<span class="ice-badge">🏷️ ${escapeHtml(CATEGORIES_STATE[p.categorie].naam)}</span>` : ''}
+        <span class="ice-badge">${p.bestemming === 'bar' ? '🍸 Bar' : '🔔 Keuken'}</span>
         ${opties.map(o => `<span class="ice-badge">${o.emoji || '📝'} ${escapeHtml(o.label)}</span>`).join('')}
       </div>
       ${isOwner ? `<div class="settings-product-actions">
@@ -2367,6 +2385,20 @@ if (!isOwner) {
   });
 }
 
+// Bepaalt of een bestelling in de Keuken- of de Bar-tab thuishoort. Een
+// bestelling gaat alleen naar de Bar als ÁL zijn producten daar besteld
+// moeten worden; zit er ook maar één keuken-product bij, dan gaat de hele
+// bestelling (net als vroeger) naar de Keuken.
+function orderBestemming(order) {
+  const keys = Object.keys(order.items || {});
+  if (keys.length === 0) return 'keuken';
+  const allesBar = keys.every(key => {
+    const p = PRODUCTS_STATE[key];
+    return p && p.bestemming === 'bar';
+  });
+  return allesBar ? 'bar' : 'keuken';
+}
+
 function renderOrderCardHtml(id, order, actionHtml) {
   const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
   const badgeHtml = order.bar
@@ -2381,22 +2413,28 @@ function renderOrderCardHtml(id, order, actionHtml) {
   `;
 }
 
-function renderKitchen() {
-  const nieuwList = document.getElementById('kitchen-list-nieuw');
-  const bereidenList = document.getElementById('kitchen-list-bereiden');
-  const kitchenCount = document.getElementById('kitchen-count');
+// Rendert de "Binnengekomen" / "In bereiding" kolommen voor Keuken of Bar.
+// bestemming is 'keuken' of 'bar' en bepaalt zowel welke bestellingen worden
+// getoond als in welke DOM-elementen (kitchen-* voor Keuken, bar-* voor Bar).
+function renderPrepTab(bestemming) {
+  const idPrefix = bestemming === 'bar' ? 'bar' : 'kitchen';
+  const nieuwList = document.getElementById(idPrefix + '-list-nieuw');
+  const bereidenList = document.getElementById(idPrefix + '-list-bereiden');
+  const countEl = document.getElementById(idPrefix + '-count');
+  const badgeEl = document.getElementById('tab-badge-' + bestemming);
+  if (!nieuwList || !bereidenList || !countEl) return;
 
-  const nieuw = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'nieuw').sort((a, b) => a[1].tijd - b[1].tijd);
-  const bereiden = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'bereiden').sort((a, b) => a[1].tijd - b[1].tijd);
+  const relevant = Object.entries(ALLE_ORDERS).filter(([, o]) => orderBestemming(o) === bestemming);
+  const nieuw = relevant.filter(([, o]) => o.status === 'nieuw').sort((a, b) => a[1].tijd - b[1].tijd);
+  const bereiden = relevant.filter(([, o]) => o.status === 'bereiden').sort((a, b) => a[1].tijd - b[1].tijd);
 
-  kitchenCount.textContent = (nieuw.length === 0 && bereiden.length === 0)
+  countEl.textContent = (nieuw.length === 0 && bereiden.length === 0)
     ? 'Nieuwe bestellingen worden hier automatisch getoond.'
     : `${nieuw.length} nieuw · ${bereiden.length} in bereiding`;
 
-  const kitchenBadge = document.getElementById('tab-badge-keuken');
-  if (kitchenBadge) {
-    const totaalKeuken = nieuw.length + bereiden.length;
-    kitchenBadge.textContent = totaalKeuken > 0 ? totaalKeuken : '';
+  if (badgeEl) {
+    const totaal = nieuw.length + bereiden.length;
+    badgeEl.textContent = totaal > 0 ? totaal : '';
   }
 
   if (nieuw.length === 0) {
@@ -2432,6 +2470,11 @@ function renderKitchen() {
       });
     });
   }
+}
+
+function renderKitchen() {
+  renderPrepTab('keuken');
+  renderPrepTab('bar');
 }
 
 function renderReady() {
@@ -2563,7 +2606,7 @@ ordersRef.on('child_added', snap => {
   renderKitchen();
   renderReady();
   herbereken_actieve_tafels();
-  if (isNew && activeTab === 'keuken') speelMeldingGeluid();
+  if (isNew && (activeTab === 'keuken' || activeTab === 'bar') && orderBestemming(order) === activeTab) speelMeldingGeluid();
 });
 ordersRef.on('child_changed', snap => {
   const vorige = ALLE_ORDERS[snap.key];
