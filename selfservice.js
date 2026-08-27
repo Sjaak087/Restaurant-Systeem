@@ -234,10 +234,14 @@ function submitOrder() {
   });
 
   const nu = Date.now();
+  const bestemmingen = ['keuken', 'bar'].filter(b => Object.keys(groepen[b].items).length > 0);
+  // Alleen een gedeelde groupId nodig als de bestelling écht in meerdere
+  // tickets wordt opgesplitst; zo telt de wachtrijpositie hierna dit als één
+  // bestelling in plaats van als twee (of meer).
+  const groupId = bestemmingen.length > 1 ? restRef.child('orders').push().key : null;
   const updates = {};
-  ['keuken', 'bar'].forEach(bestemming => {
+  bestemmingen.forEach(bestemming => {
     const groepItems = groepen[bestemming].items;
-    if (!Object.keys(groepItems).length) return;
     const id = restRef.child('orders').push().key;
     const order = {
       tableNumber: selectedTable,
@@ -248,6 +252,7 @@ function submitOrder() {
     };
     if (note) order.opmerking = note;
     if (Object.keys(groepen[bestemming].itemOpties).length) order.itemOpties = groepen[bestemming].itemOpties;
+    if (groupId) order.orderGroupId = groupId;
     updates['orders/' + id] = order;
   });
 
@@ -295,12 +300,27 @@ function positionBefore(id, order) {
   // Een nieuwe bestelling die nog in 'nieuw' staat mag bijvoorbeeld niet
   // ineens de wachtrij van een bestelling die al 'bereiden' is veranderen.
   const phase = order.status;
-  const ahead = Object.entries(allOrders)
-    .filter(([oid, o]) => oid !== id && o && o.status === phase);
+  const mijnGroep = order.orderGroupId || id;
 
-  // Tel alle andere bestellingen in dezelfde fase die er eerder waren
-  // (eerdere tijd = eerder binnengekomen = voor jou in de rij).
-  return ahead.filter(([, o]) => (o.tijd || 0) < (order.tijd || 0)).length;
+  // Een bestelling die is opgesplitst in een keuken- en een bar-ticket
+  // (zelfde orderGroupId) telt hier als ÉÉN bestelling, niet als twee. Per
+  // groep pakken we de vroegste tijd, zodat de positie klopt met het moment
+  // waarop de klant écht besteld heeft.
+  const groepenTijd = new Map(); // groupId -> vroegste tijd
+  Object.entries(allOrders).forEach(([oid, o]) => {
+    if (!o || o.status !== phase) return;
+    const gid = o.orderGroupId || oid;
+    const tijd = o.tijd || 0;
+    if (!groepenTijd.has(gid) || tijd < groepenTijd.get(gid)) groepenTijd.set(gid, tijd);
+  });
+
+  const mijnTijd = order.tijd || 0;
+  let voorMij = 0;
+  groepenTijd.forEach((tijd, gid) => {
+    if (gid === mijnGroep) return;
+    if (tijd < mijnTijd) voorMij++;
+  });
+  return voorMij;
 }
 
 function queueMessage(id, order) {
