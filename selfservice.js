@@ -271,10 +271,64 @@ function submitOrder() {
 document.getElementById('send').onclick = submitOrder;
 
 const ordersRef = restRef.child('orders');
+let allGroups = {}; // gegroepeerd op orderGroupId (of eigen id als er geen split is)
+let myGroups = {};
+
+// Volgorde van de fases, van "moet nog beginnen" tot "helemaal klaar". Wordt
+// gebruikt om de gecombineerde status van een gesplitste bestelling te
+// bepalen: zolang bijv. de bar-helft nog 'bereiden' is en de keuken-helft al
+// 'klaar', is de bestelling als geheel nog niet klaar.
+const STAGE_RANK = { nieuw: 1, bereiden: 2, klaar: 3, bezorgd: 4 };
+
+function combinedStatus(statuses) {
+  let worst = statuses[0];
+  statuses.forEach(s => {
+    if ((STAGE_RANK[s] || 0) < (STAGE_RANK[worst] || 0)) worst = s;
+  });
+  return worst;
+}
+
+// Groepeert de losse keuken-/bar-tickets weer tot hun oorspronkelijke
+// bestelling (zelfde orderGroupId = zelfde moment van bestellen), zodat
+// zowel de weergave als de wachtrij-telling keuken en bar weer gewoon samen
+// tellen, net als vóór de keuken/bar-splitsing.
+function buildOrderGroups(ordersObj) {
+  const groups = {};
+  Object.entries(ordersObj).forEach(([id, o]) => {
+    if (!o) return;
+    const gid = o.orderGroupId || id;
+    if (!groups[gid]) {
+      groups[gid] = {
+        id: gid,
+        ids: [],
+        tableNumber: o.tableNumber,
+        tijd: o.tijd || 0,
+        deviceId: o.deviceId,
+        opmerking: o.opmerking || '',
+        items: {},
+        itemOpties: {},
+        itemIce: {},
+        statuses: []
+      };
+    }
+    const g = groups[gid];
+    g.ids.push(id);
+    if (o.tijd && (!g.tijd || o.tijd < g.tijd)) g.tijd = o.tijd;
+    if (o.opmerking && !g.opmerking) g.opmerking = o.opmerking;
+    Object.assign(g.items, o.items || {});
+    if (o.itemOpties) Object.assign(g.itemOpties, o.itemOpties);
+    if (o.itemIce) Object.assign(g.itemIce, o.itemIce);
+    g.statuses.push(o.status);
+  });
+  Object.values(groups).forEach(g => { g.status = combinedStatus(g.statuses); });
+  return groups;
+}
+
 ordersRef.on('value', snap => {
   const all = snap.val() || {};
   allOrders = all;
-  myOrders = Object.fromEntries(Object.entries(all).filter(([,o]) => o && o.deviceId === deviceId));
+  allGroups = buildOrderGroups(all);
+  myGroups = Object.fromEntries(Object.entries(allGroups).filter(([, g]) => g.deviceId === deviceId));
   renderMine();
 });
 
@@ -287,45 +341,33 @@ function statusInfo(order) {
   return { label:status || 'Onbekend', pct:10, key:status };
 }
 
-function isWaitingForService(order) {
-  // "klaar" betekent: klaar in de keuken maar nog niet bezorgd/geserveerd.
+function isWaitingForService(group) {
+  // "klaar" betekent: klaar in de keuken/bar maar nog niet bezorgd/geserveerd.
   // De klant moet zijn wachtrijpositie dus ook in deze fase blijven zien.
-  return !!order && ['nieuw', 'bereiden', 'klaar'].includes(order.status);
+  return !!group && ['nieuw', 'bereiden', 'klaar'].includes(group.status);
 }
 
-function positionBefore(id, order) {
-  if (!isWaitingForService(order)) return 0;
+function positionBefore(gid, group) {
+  if (!isWaitingForService(group)) return 0;
 
-  // Alleen bestellingen in DEZELFDE fase tellen mee.
-  // Een nieuwe bestelling die nog in 'nieuw' staat mag bijvoorbeeld niet
-  // ineens de wachtrij van een bestelling die al 'bereiden' is veranderen.
-  const phase = order.status;
-  const mijnGroep = order.orderGroupId || id;
-
-  // Een bestelling die is opgesplitst in een keuken- en een bar-ticket
-  // (zelfde orderGroupId) telt hier als ÉÉN bestelling, niet als twee. Per
-  // groep pakken we de vroegste tijd, zodat de positie klopt met het moment
-  // waarop de klant écht besteld heeft.
-  const groepenTijd = new Map(); // groupId -> vroegste tijd
-  Object.entries(allOrders).forEach(([oid, o]) => {
-    if (!o || o.status !== phase) return;
-    const gid = o.orderGroupId || oid;
-    const tijd = o.tijd || 0;
-    if (!groepenTijd.has(gid) || tijd < groepenTijd.get(gid)) groepenTijd.set(gid, tijd);
-  });
-
-  const mijnTijd = order.tijd || 0;
+  // Alleen bestellingen in DEZELFDE fase tellen mee. Een bestelling die nog
+  // in 'nieuw' staat mag bijvoorbeeld niet ineens de wachtrij van een
+  // bestelling die al 'bereiden' is veranderen. Keuken- en bar-tickets van
+  // dezelfde bestelling zijn hierboven al samengevoegd tot één groep, dus
+  // die tellen vanzelf als ÉÉN bestelling in de wachtrij.
+  const phase = group.status;
+  const mijnTijd = group.tijd || 0;
   let voorMij = 0;
-  groepenTijd.forEach((tijd, gid) => {
-    if (gid === mijnGroep) return;
-    if (tijd < mijnTijd) voorMij++;
+  Object.entries(allGroups).forEach(([otherGid, g]) => {
+    if (otherGid === gid || g.status !== phase) return;
+    if ((g.tijd || 0) < mijnTijd) voorMij++;
   });
   return voorMij;
 }
 
-function queueMessage(id, order) {
-  if (!isWaitingForService(order)) return '';
-  const before = positionBefore(id, order);
+function queueMessage(gid, group) {
+  if (!isWaitingForService(group)) return '';
+  const before = positionBefore(gid, group);
   if (before === 0) return 'Je bestelling is aan de beurt.';
   if (before === 1) return 'Nog 1 bestelling voor jou in deze fase.';
   return `Nog ${before} bestellingen voor jou in deze fase.`;
@@ -357,23 +399,23 @@ function tableKindLabel(number) {
 
 function renderMine() {
   const el = document.getElementById('mine');
-  const entries = Object.entries(myOrders).sort((a,b)=>(b[1].tijd||0)-(a[1].tijd||0));
+  const entries = Object.entries(myGroups).sort((a,b)=>(b[1].tijd||0)-(a[1].tijd||0));
   if (!entries.length) {
     el.innerHTML = '<div class="selfservice-card"><h2>Mijn bestellingen</h2><div class="muted">Je hebt op dit apparaat nog geen actieve bestellingen.</div></div>';
     return;
   }
   el.innerHTML = '<div class="selfservice-card"><h2>Mijn bestellingen</h2><div class="selfservice-device-note">Alleen bestellingen van dit apparaat worden hier getoond.</div></div>';
-  entries.forEach(([id,o]) => {
-    const st = statusInfo(o);
-    const tk = tableKindLabel(o.tableNumber);
+  entries.forEach(([gid,g]) => {
+    const st = statusInfo(g);
+    const tk = tableKindLabel(g.tableNumber);
     const card = document.createElement('div');
     card.className = 'selfservice-card selfservice-order-card';
     card.innerHTML = `
-      <div class="selfservice-order-top"><strong>${tk.icon} ${tk.woord} ${esc(o.tableNumber)}</strong><span class="selfservice-status">${esc(st.label)}</span></div>
+      <div class="selfservice-order-top"><strong>${tk.icon} ${tk.woord} ${esc(g.tableNumber)}</strong><span class="selfservice-status">${esc(st.label)}</span></div>
       <div class="selfservice-progress"><div style="width:${st.pct}%"></div></div>
-      <div class="selfservice-items">${esc(itemText(o))}</div>
-      ${o.opmerking ? `<div class="selfservice-small selfservice-muted">Opmerking: "${esc(o.opmerking)}"</div>` : ''}
-      ${isWaitingForService(o) ? `<div class="selfservice-small selfservice-muted" style="margin-top:8px;">${esc(queueMessage(id, o))}</div>` : ''}
+      <div class="selfservice-items">${esc(itemText(g))}</div>
+      ${g.opmerking ? `<div class="selfservice-small selfservice-muted">Opmerking: "${esc(g.opmerking)}"</div>` : ''}
+      ${isWaitingForService(g) ? `<div class="selfservice-small selfservice-muted" style="margin-top:8px;">${esc(queueMessage(gid, g))}</div>` : ''}
     `;
     el.appendChild(card);
   });
