@@ -2513,31 +2513,21 @@ function renderKitchen() {
   renderPrepTab('bar');
 }
 
-// Telt het aantal unieke bestellingen in een lijst van [id, order]-paren. Een
-// bestelling die is opgesplitst in een keuken- en een bar-ticket (zelfde
-// orderGroupId) telt hier als ÉÉN bestelling, niet als twee.
-function countOrderGroups(entries) {
-  const groepen = new Set();
-  entries.forEach(([id, o]) => groepen.add(o.orderGroupId || id));
-  return groepen.size;
-}
-
 function renderReady() {
   const readyList = document.getElementById('ready-list');
   const readyCount = document.getElementById('ready-count');
 
   const klaar = Object.entries(ALLE_ORDERS).filter(([, o]) => o.status === 'klaar').sort((a, b) => a[1].tijd - b[1].tijd);
-  const klaarAantal = countOrderGroups(klaar);
 
   const readyBadge = document.getElementById('tab-badge-gereed');
-  if (readyBadge) readyBadge.textContent = klaarAantal > 0 ? klaarAantal : '';
+  if (readyBadge) readyBadge.textContent = klaar.length > 0 ? klaar.length : '';
 
   if (klaar.length === 0) {
     readyList.innerHTML = '<div class="empty-msg">Geen klaargemaakte bestellingen</div>';
     readyCount.textContent = 'Klaargemaakte bestellingen wachtend op bezorging.';
     return;
   }
-  readyCount.textContent = `${klaarAantal} klaar voor bezorging`;
+  readyCount.textContent = `${klaar.length} klaar voor bezorging`;
   readyList.innerHTML = '';
 
   klaar.forEach(([id, order]) => {
