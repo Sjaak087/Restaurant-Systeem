@@ -293,14 +293,28 @@ function isWaitingForService(order) {
   return !!order && ['nieuw', 'bereiden', 'klaar'].includes(order.status);
 }
 
+// Een ticket bevat na het opsplitsen in submitOrder altijd producten van
+// precies één bestemming (bar of keuken), dus het eerste item bepaalt de
+// bestemming van het hele ticket.
+function orderBestemming(order) {
+  const keys = Object.keys(order?.items || {});
+  for (const key of keys) {
+    const p = PRODUCTS[key];
+    if (p && p.bestemming === 'bar') return 'bar';
+  }
+  return 'keuken';
+}
+
 function positionBefore(id, order) {
   if (!isWaitingForService(order)) return 0;
 
   const phase = order.status;
+  const bestemming = orderBestemming(order);
 
-  // In elke fase (ook Klaar) tellen we ELK order/ticket apart, dus keuken-
-  // en bar-tickets tellen gewoon samen mee (niet samengevoegd per
-  // oorspronkelijke bestelling/orderGroupId).
+  // In Ontvangen en Wordt bereid tellen bar en keuken apart (een bar-ticket
+  // telt alleen andere bar-tickets voor zich, een keuken-ticket alleen
+  // andere keuken-tickets). Alleen in Klaar worden bar + keuken weer samen
+  // geteld als één wachtrij.
   //
   // Let op: we sorteren hier bewust op de Firebase push-id en niet op het
   // veld 'tijd'. Keuken- en bar-tickets van dezelfde bestelling krijgen
@@ -310,6 +324,7 @@ function positionBefore(id, order) {
   // ook binnen dezelfde milliseconde, dus daarmee ontstaat geen gelijkstand.
   return Object.entries(allOrders).filter(([oid, o]) => {
     if (oid === id || !o || o.status !== phase) return false;
+    if (phase !== 'klaar' && orderBestemming(o) !== bestemming) return false;
     return oid < id;
   }).length;
 }
