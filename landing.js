@@ -42,6 +42,39 @@ async function genUniqueCode() {
   throw new Error('Kon geen unieke code genereren');
 }
 
+// ---- Opruimen: spookrestaurants & verlopen verwijdertimers ----
+// index.html is de pagina die vrijwel iedereen als eerste opent (leden,
+// niet alleen sitebeheerders). Door dit hier ook te checken, wordt een
+// verlopen restaurant al opgeruimd zodra ÉÉN willekeurig iemand de site
+// bezoekt, in plaats van pas wanneer specifiek dat restaurant of het
+// sitebeheer geopend wordt. Draait één keer per bezoek, op de achtergrond,
+// zonder de pagina te blokkeren.
+(async function cleanupExpiredRestaurants() {
+  try {
+    const snap = await db.ref('restaurants').get();
+    const data = snap.val() || {};
+    const nu = Date.now();
+    const updates = {};
+
+    for (const [id, r] of Object.entries(data)) {
+      const isGhost = !r.leden || Object.keys(r.leden).length === 0;
+      const isExpired = !!(r.autoDelete && r.autoDelete.deleteAt && r.autoDelete.deleteAt <= nu);
+      if (!isGhost && !isExpired) continue;
+
+      updates[`restaurants/${id}`] = null;
+      if (r.code) updates[`restaurantCodes/${r.code}`] = null;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.ref().update(updates);
+    }
+  } catch (e) {
+    // Stil falen: dit is opruimen op de achtergrond, geen kernfunctionaliteit
+    // van de pagina, dus een foutje hierin mag de rest niet verstoren.
+    console.error('Opruimen mislukt:', e);
+  }
+})();
+
 // ---- Render "Mijn restaurants" ----
 const myRestaurantsEl = document.getElementById('my-restaurants');
 const maxMsgEl = document.getElementById('max-msg');
