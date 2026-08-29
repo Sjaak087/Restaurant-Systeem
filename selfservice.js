@@ -297,14 +297,20 @@ function positionBefore(id, order) {
   if (!isWaitingForService(order)) return 0;
 
   const phase = order.status;
-  const mijnTijd = order.tijd || 0;
 
   // In elke fase (ook Klaar) tellen we ELK order/ticket apart, dus keuken-
   // en bar-tickets tellen gewoon samen mee (niet samengevoegd per
   // oorspronkelijke bestelling/orderGroupId).
+  //
+  // Let op: we sorteren hier bewust op de Firebase push-id en niet op het
+  // veld 'tijd'. Keuken- en bar-tickets van dezelfde bestelling krijgen
+  // namelijk exact dezelfde 'tijd' (ze worden in één klik aangemaakt), dus
+  // met 'tijd' zouden ze elkaar niet meetellen en dezelfde (verkeerde)
+  // positie tonen. Push-id's zijn altijd strikt oplopend in aanmaakvolgorde,
+  // ook binnen dezelfde milliseconde, dus daarmee ontstaat geen gelijkstand.
   return Object.entries(allOrders).filter(([oid, o]) => {
     if (oid === id || !o || o.status !== phase) return false;
-    return (o.tijd || 0) < mijnTijd;
+    return oid < id;
   }).length;
 }
 
