@@ -299,36 +299,13 @@ function positionBefore(id, order) {
   const phase = order.status;
   const mijnTijd = order.tijd || 0;
 
-  // In Ontvangen en Wordt bereid tellen we ELKE order/ticket apart.
-  // Alleen in de fase Klaar worden keuken + bar van dezelfde bestelling
-  // samengevoegd tot één wachtrij-item.
-  if (phase !== 'klaar') {
-    return Object.entries(allOrders).filter(([oid, o]) => {
-      if (oid === id || !o || o.status !== phase) return false;
-      return (o.tijd || 0) < mijnTijd;
-    }).length;
-  }
-
-  // Klaar: keuken + bar met dezelfde orderGroupId zijn één oorspronkelijke
-  // bestelling voor de wachtrijtelling. In Mijn bestellingen blijven ze
-  // gewoon als losse keuken-/bar-orders zichtbaar.
-  const groepenTijd = new Map();
-  Object.entries(allOrders).forEach(([oid, o]) => {
-    if (!o || o.status !== 'klaar') return;
-
-    const gid = o.orderGroupId || oid;
-    const tijd = o.tijd || 0;
-    if (!groepenTijd.has(gid) || tijd < groepenTijd.get(gid)) {
-      groepenTijd.set(gid, tijd);
-    }
-  });
-
-  const mijnGroep = order.orderGroupId || id;
-  let voorMij = 0;
-  groepenTijd.forEach((tijd, gid) => {
-    if (gid !== mijnGroep && tijd < mijnTijd) voorMij++;
-  });
-  return voorMij;
+  // In elke fase (ook Klaar) tellen we ELK order/ticket apart, dus keuken-
+  // en bar-tickets tellen gewoon samen mee (niet samengevoegd per
+  // oorspronkelijke bestelling/orderGroupId).
+  return Object.entries(allOrders).filter(([oid, o]) => {
+    if (oid === id || !o || o.status !== phase) return false;
+    return (o.tijd || 0) < mijnTijd;
+  }).length;
 }
 
 function queueMessage(id, order) {
