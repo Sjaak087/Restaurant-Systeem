@@ -15,6 +15,12 @@
 
 const UPDATES = [
   {
+    title: 'Bugfix eindelijk gefixt', 
+    date: '29-08-2026', 
+    time: '18:00', 
+    info: 'ik heb ff snel deze update uitgebracht naar 2 dagen is de bug dan eindelijk gefixt je zou de counting van de bestellingen voor je nu weer goed moeten kunnen zien i.p.v. dat er altijd 1 staat ik zal waarschijnlijk straks nog een andere update uitbrengen dus tot dan!'
+  },    
+  {
     title: 'Middel grote update', 
     date: '27-08-2026', 
     time: '21:30', 
