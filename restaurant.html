@@ -136,6 +136,7 @@
       <button type="button" class="subtab-btn active" data-subtab="plattegrond">Plattegrond</button>
       <button type="button" class="subtab-btn" data-subtab="producten">Producten</button>
       <button type="button" class="subtab-btn" data-subtab="categorieen">Categorieën</button>
+      <button type="button" class="subtab-btn" data-subtab="services">Services</button>
       <button type="button" class="subtab-btn" id="subtab-btn-leden" data-subtab="leden">Leden</button>
       <button type="button" class="subtab-btn" data-subtab="algemeen">Algemeen</button>
       <button type="button" class="subtab-btn" data-subtab="zelfservice">Zelfservice QR</button>
@@ -175,6 +176,13 @@
       <p class="modal-text" style="margin-top:0;">Verdeel je producten in categorieën, zoals Dranken of Voorgerechten. De plaats bepaalt de volgorde bij het bestellen en bij zelfservice: 1 staat bovenaan, 255 onderaan.</p>
       <button type="button" class="primary-btn" id="btn-add-category">+ Nieuwe categorie</button>
       <div class="settings-product-list" id="settings-category-list"></div>
+    </div>
+
+    <div class="subtab-panel" id="subpanel-services">
+      <p class="modal-text" id="services-readonly-note" style="display:none;">Alleen de eigenaar kan services toevoegen, bewerken of verwijderen.</p>
+      <p class="modal-text" style="margin-top:0;">Services die klanten via zelfservice kunnen aanvragen bij hun tafel, bijv. "Rekening graag" of "Nieuw bestek". Alleen een titel nodig.</p>
+      <button type="button" class="primary-btn" id="btn-add-service">+ Nieuwe service</button>
+      <div class="settings-product-list" id="settings-service-list"></div>
     </div>
 
     <div class="subtab-panel" id="subpanel-leden">
@@ -312,6 +320,7 @@
     <div class="modal-actions" style="flex-direction:column; align-items:stretch; margin-top:0;">
       <button type="button" class="primary-btn" id="choice-new-order">🍽 Bestelling opnemen</button>
       <button type="button" class="toggle-btn" id="choice-view-bill">🧾 Bestelde dingen</button>
+      <button type="button" class="toggle-btn" id="choice-view-service" style="display:none;">🛎️ Service</button>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
@@ -519,6 +528,31 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="category-confirm">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: service toevoegen/bewerken -->
+<div class="modal-overlay" id="modal-service">
+  <div class="modal-box">
+    <div class="modal-title" id="service-modal-title">Nieuwe service</div>
+    <label class="modal-label">Titel</label>
+    <input type="text" id="service-title-input" class="modal-input" placeholder="Bijv. Rekening graag" maxlength="40">
+    <div class="modal-error" id="service-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="service-confirm">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: gevraagde service(s) bij een tafel -->
+<div class="modal-overlay" id="modal-table-service">
+  <div class="modal-box">
+    <div class="modal-title" id="table-service-title">Service</div>
+    <div class="settings-product-list" id="table-service-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
     </div>
   </div>
 </div>

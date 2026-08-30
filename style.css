@@ -1331,6 +1331,26 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   background: radial-gradient(circle at 32% 28%, #a34848, var(--wine) 72%);
   color: white;
 }
+.fp-service-badge {
+  position: absolute;
+  top: calc(-6px * var(--fp-scale, 1));
+  right: calc(-6px * var(--fp-scale, 1));
+  min-width: calc(18px * var(--fp-scale, 1));
+  height: calc(18px * var(--fp-scale, 1));
+  padding: 0 3px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #241c12;
+  border: 2px solid var(--bg-elevated);
+  font-family: var(--font-mono);
+  font-size: calc(0.66rem * var(--fp-scale, 1));
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
 
 /* ---- Vormen (alleen tafels) ---- */
 .fp-table.fp-shape-vierkant { border-radius: 8px; }
@@ -1944,7 +1964,27 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
 }
 .selfservice-hidden { display:none !important; }
 .selfservice-error { color:#d99a9a; font-size:.82rem; font-weight:600; min-height:18px; margin-top:10px; }
+.selfservice-confirm { color: var(--green, #6fae7a); font-size:.88rem; font-weight:600; margin-top:10px; }
 .selfservice-muted { color:var(--muted); }
+.selfservice-my-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.selfservice-my-service-title { font-weight: 600; }
+.selfservice-my-service-status {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--gold-soft, var(--gold));
+  white-space: nowrap;
+}
 .selfservice-small { font-size:.8rem; }
 
 .selfservice-tabs {
