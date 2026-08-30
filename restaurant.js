@@ -182,15 +182,31 @@ if (isAdminMode) {
   // of beluisteren. Alle tabbladen blijven gewoon zichtbaar (standaard uit de
   // HTML) en de rechten hieronder (isOwner === true) geven volledige toegang.
 } else {
-  restRef.child('leden/' + myMemberId).once('value').then(snap => {
-    if (!snap.exists()) {
-      const tabs = {};
-      ALL_TABS.forEach(t => { tabs[t] = true; });
-      const data = { rol: isOwner ? 'eigenaar' : 'gejoined', naam: mijnEntry.mijnNaam || 'Naamloos', tabs: tabs, toegevoegdOp: Date.now() };
-      return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
+  // Eerst checken of het RESTAURANT ZELF nog bestaat, vóórdat we concluderen
+  // dat alleen ons eigen ledenrecord nog aangemaakt moet worden. Zonder deze
+  // check zou een verwijderd restaurant (bijv. door de automatische
+  // verwijdertimer) per ongeluk weer helemaal opnieuw aangemaakt worden
+  // zodra iemand met een oude link/bladwijzer terugkomt — met een lege naam
+  // ("Restaurant") en onszelf als "Naamloos" lid.
+  restRef.once('value').then(restSnap => {
+    if (!restSnap.exists()) {
+      const list = getMyRestaurants().filter(r => r.id !== restaurantId);
+      saveMyRestaurantsLocal(list);
+      alert('Dit restaurant bestaat niet meer.');
+      window.location.href = backUrl;
+      return null;
     }
-    return snap.val().tabs;
+    return restRef.child('leden/' + myMemberId).once('value').then(snap => {
+      if (!snap.exists()) {
+        const tabs = {};
+        ALL_TABS.forEach(t => { tabs[t] = true; });
+        const data = { rol: isOwner ? 'eigenaar' : 'gejoined', naam: mijnEntry.mijnNaam || 'Naamloos', tabs: tabs, toegevoegdOp: Date.now() };
+        return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
+      }
+      return snap.val().tabs;
+    });
   }).then(tabs => {
+    if (!tabs) return; // restaurant bestond niet meer, hierboven al afgehandeld
     applyTabPermissions(tabs);
     if (isOwner) {
       // Zorg dat de eigenaar zichzelf meteen in de ledenlijst ziet, ook nog vóórdat
@@ -456,6 +472,8 @@ if (!isOwner) {
   document.getElementById('producten-readonly-note').style.display = 'block';
   document.getElementById('btn-add-category').style.display = 'none';
   document.getElementById('categorieen-readonly-note').style.display = 'block';
+  document.getElementById('btn-add-service').style.display = 'none';
+  document.getElementById('services-readonly-note').style.display = 'block';
 } else {
   document.getElementById('btn-rename-restaurant').style.display = '';
   document.getElementById('btn-header-color').style.display = '';
@@ -1327,6 +1345,139 @@ document.getElementById('category-confirm').addEventListener('click', () => {
   });
 });
 
+// ==================== Services (live) — instelbare lijst die klanten via
+// zelfservice kunnen aanvragen bij hun tafel (alleen een titel nodig) ====
+let SERVICES_STATE = {}; // key -> {titel}
+
+restRef.child('services').on('value', snap => {
+  SERVICES_STATE = snap.val() || {};
+  renderSettingsServices();
+});
+
+function renderSettingsServices() {
+  const list = document.getElementById('settings-service-list');
+  if (!list) return;
+  const items = Object.entries(SERVICES_STATE).map(([key, s]) => ({ key, ...s }));
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Nog geen services. Voeg er één toe.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  items.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'settings-product-row';
+    row.innerHTML = `
+      <div class="settings-product-main">
+        <span class="settings-product-name">🛎️ ${escapeHtml(s.titel)}</span>
+      </div>
+      ${isOwner ? `<div class="settings-product-actions">
+        <button type="button" class="mini-btn edit" data-key="${s.key}">Bewerken</button>
+        <button type="button" class="mini-btn danger" data-key="${s.key}">Verwijderen</button>
+      </div>` : ''}
+    `;
+    if (isOwner) {
+      const [editBtn, delBtn] = row.querySelectorAll('.mini-btn');
+      editBtn.addEventListener('click', () => openEditService(s.key));
+      delBtn.addEventListener('click', () => {
+        if (!confirm(`Service "${s.titel}" verwijderen?`)) return;
+        restRef.child('services/' + s.key).remove();
+      });
+    }
+    list.appendChild(row);
+  });
+}
+
+let editingServiceKey = null;
+
+document.getElementById('btn-add-service').addEventListener('click', () => {
+  editingServiceKey = null;
+  document.getElementById('service-modal-title').textContent = 'Nieuwe service';
+  document.getElementById('service-title-input').value = '';
+  document.getElementById('service-error').textContent = '';
+  openModal('modal-service');
+});
+
+function openEditService(key) {
+  const s = SERVICES_STATE[key];
+  if (!s) return;
+  editingServiceKey = key;
+  document.getElementById('service-modal-title').textContent = 'Service bewerken';
+  document.getElementById('service-title-input').value = s.titel || '';
+  document.getElementById('service-error').textContent = '';
+  openModal('modal-service');
+}
+
+document.getElementById('service-confirm').addEventListener('click', () => {
+  const titel = document.getElementById('service-title-input').value.trim();
+  const errorEl = document.getElementById('service-error');
+  if (!titel) { errorEl.textContent = 'Vul een titel in.'; return; }
+
+  const key = editingServiceKey || restRef.child('services').push().key;
+  restRef.child('services/' + key).set({ titel }).then(() => {
+    closeModal('modal-service');
+  }).catch(err => {
+    console.error(err);
+    errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
+// ==================== Serviceaanvragen (live) — door klanten via
+// zelfservice aangevraagd, per tafel ====
+let SERVICE_REQUESTS_STATE = {}; // pushId -> {tableNumber, titel, tijd}
+
+function serviceRequestsForTable(number) {
+  return Object.entries(SERVICE_REQUESTS_STATE).filter(([, s]) => s.tableNumber === number);
+}
+
+restRef.child('serviceRequests').on('value', snap => {
+  SERVICE_REQUESTS_STATE = snap.val() || {};
+  renderOrderCanvas();
+  // Als het tafel-keuzemenu of het service-overzicht open staat voor de
+  // tafel waarvoor net iets veranderde, houden we die live in sync.
+  if (window.pendingChoiceTable) {
+    const aantal = serviceRequestsForTable(window.pendingChoiceTable.number).length;
+    const btn = document.getElementById('choice-view-service');
+    if (btn) btn.style.display = aantal > 0 ? '' : 'none';
+  }
+  if (window.openServiceTable && document.getElementById('modal-table-service').classList.contains('open')) {
+    renderTableServiceModal(window.openServiceTable);
+  }
+});
+
+function openServiceModalForTable(table) {
+  window.openServiceTable = table;
+  document.getElementById('table-service-title').textContent = `Service — ${kindWoord(table)} ${table.number}`;
+  renderTableServiceModal(table);
+  openModal('modal-table-service');
+}
+
+function renderTableServiceModal(table) {
+  const list = document.getElementById('table-service-list');
+  const requests = serviceRequestsForTable(table.number).sort((a, b) => (a[1].tijd || 0) - (b[1].tijd || 0));
+  if (requests.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Geen openstaande serviceaanvragen.</div>';
+    closeModal('modal-table-service');
+    return;
+  }
+  list.innerHTML = '';
+  requests.forEach(([id, s]) => {
+    const row = document.createElement('div');
+    row.className = 'settings-product-row';
+    row.innerHTML = `
+      <div class="settings-product-main">
+        <span class="settings-product-name">🛎️ ${escapeHtml(s.titel)}</span>
+      </div>
+      <div class="settings-product-actions">
+        <button type="button" class="mini-btn edit" data-id="${id}">✅ Gedaan</button>
+      </div>
+    `;
+    row.querySelector('.mini-btn').addEventListener('click', () => {
+      restRef.child('serviceRequests/' + id).remove();
+    });
+    list.appendChild(row);
+  });
+}
+
 // Vult de categorie-dropdown in het product-modal, en probeert de al eerder
 // geselecteerde waarde te behouden als die nog bestaat.
 function populateCategorySelect() {
@@ -1504,6 +1655,16 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
         bankLabel.textContent = 'Bank';
         el.appendChild(bankLabel);
       }
+      if (!editable) {
+        const serviceAantal = serviceRequestsForTable(table.number).length;
+        if (serviceAantal > 0) {
+          const serviceBadge = document.createElement('span');
+          serviceBadge.className = 'fp-service-badge';
+          serviceBadge.textContent = serviceAantal;
+          serviceBadge.title = 'Service aangevraagd';
+          el.appendChild(serviceBadge);
+        }
+      }
     } else {
       const icon = document.createElement('span');
       icon.className = 'fp-building-icon';
@@ -1562,12 +1723,17 @@ function tableOrders(number) {
 }
 
 function handleTableClick(table) {
-  if (tableOrders(table.number).length === 0) {
+  const heeftBestellingen = tableOrders(table.number).length > 0;
+  const heeftService = serviceRequestsForTable(table.number).length > 0;
+
+  if (!heeftBestellingen && !heeftService) {
     openOrderModalForTable(table);
     return;
   }
   window.pendingChoiceTable = table;
   document.getElementById('table-choice-title').textContent = `${kindWoord(table)} ${table.number}`;
+  document.getElementById('choice-view-bill').style.display = heeftBestellingen ? '' : 'none';
+  document.getElementById('choice-view-service').style.display = heeftService ? '' : 'none';
   openModal('modal-table-choice');
 }
 
@@ -1578,6 +1744,10 @@ document.getElementById('choice-new-order').addEventListener('click', () => {
 document.getElementById('choice-view-bill').addEventListener('click', () => {
   closeModal('modal-table-choice');
   openBillModal(window.pendingChoiceTable);
+});
+document.getElementById('choice-view-service').addEventListener('click', () => {
+  closeModal('modal-table-choice');
+  openServiceModalForTable(window.pendingChoiceTable);
 });
 
 function renderEditCanvas() {

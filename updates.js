@@ -15,7 +15,13 @@
 
 const UPDATES = [
   {
-    title: 'small update', 
+    title: 'Grote Toevoeging in zelfservice systeem!', 
+    date: '30-08-2026', 
+    time: '20:30', 
+    info: 'ik heb een paar veranderingen toegevoegd ten eerste heb ik services toegevoegd nu kun je bij de zelfservice om een service vragen die je aanmaakt in instellingen als je een service vraagt dan komt hij binnen bij de tafel waar jij hem bij gevraagd hebt er komt dan een 1tje bij de tafel te staan en dan kun je op een tab services klikken en dan kun je de gevraagde services zien en ze op gedaan zetten dan verdwijnt hij weer je kunt ook je gevraagde services zien en in welke fase ze zijn ook kun je nu bij zelfservice een tafel onselecteren dit is een kleine bugfix die ik heb doorgevoerd en ook nog een bugfix als je restaurant automatisch verwijdert wordt dan wordt er niet meer een nieuwe aangemaakt dit was de update en tot de volgende keer!'
+  },    
+  {
+    title: 'Kleine update', 
     date: '29-08-2026', 
     time: '22:00', 
     info: 'ik heb toegevoegd dat je nu notities kunt maken je mag er max 20 hebben je kunt ze afvinken en daarna worden ze automatisch verwijdert de notities worden gedeeld met het hele restaurant en iedereen kan er een maken of avinken ook heb ik toegevoegd dat ik nu kan instellen dat je restaurant automatisch verwijdert wordt er zit nog een kleine bug in maar die wordt zo gefixt tot morgen!'
