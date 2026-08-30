@@ -21,6 +21,7 @@
       <span class="my-name-badge" id="my-name-badge"></span>
     </div>
     <div class="header-actions">
+      <span class="delete-timer-badge" id="delete-timer-badge" style="display:none;"></span>
       <button type="button" class="bell-btn" id="btn-announcements" aria-label="Announcements">
         🔔<span class="bell-badge" id="announcement-badge" style="display:none;"></span>
       </button>
@@ -31,6 +32,7 @@
 
   <nav class="tab-nav">
     <button type="button" class="tab-btn active" data-tab="bestellen">🍽 Bestellen</button>
+    <button type="button" class="tab-btn" data-tab="notities">📝 Notities</button>
     <button type="button" class="tab-btn" data-tab="voorraad">📦 Voorraad</button>
     <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken<span class="tab-badge" id="tab-badge-keuken"></span></button>
     <button type="button" class="tab-btn" data-tab="bar">🍸 Bar<span class="tab-badge" id="tab-badge-bar"></span></button>
@@ -48,6 +50,17 @@
       <div class="floorplan-canvas" id="order-canvas"></div>
     </div>
     <div class="empty-msg" id="order-no-tables" style="display:none;">Nog geen plattegrond. Ga naar Instellingen → Plattegrond om tafels toe te voegen.</div>
+  </section>
+
+  <!-- ===== NOTITIES ===== -->
+  <section class="tab-panel" id="panel-notities">
+    <p class="modal-text" style="margin-top:0;">Notities worden gedeeld met het hele restaurant. Typ iets en druk op Enter om het als vinkje toe te voegen. Afgevinkte notities verdwijnen na 5 seconden.</p>
+    <div class="notes-input-row">
+      <input type="text" id="notes-input" class="modal-input" maxlength="750" placeholder="Typ een notitie en druk op Enter...">
+    </div>
+    <div class="notes-list" id="notes-list">
+      <div class="empty-msg">Nog geen notities</div>
+    </div>
   </section>
 
   <!-- ===== VOORRAAD ===== -->

@@ -15,11 +15,11 @@
 
 const UPDATES = [
   {
-    title: 'Bugfix eindelijk gefixt', 
+    title: 'small update', 
     date: '29-08-2026', 
-    time: '18:00', 
-    info: 'ik heb ff snel deze update uitgebracht naar 2 dagen is de bug dan eindelijk gefixt je zou de counting van de bestellingen voor je nu weer goed moeten kunnen zien i.p.v. dat er altijd 1 staat ik zal waarschijnlijk straks nog een andere update uitbrengen dus tot dan!'
-  },    
+    time: '22:00', 
+    info: 'ik heb toegevoegd dat je nu notities kunt maken je mag er max 20 hebben je kunt ze afvinken en daarna worden ze automatisch verwijdert de notities worden gedeeld met het hele restaurant en iedereen kan er een maken of avinken ook heb ik toegevoegd dat ik nu kan instellen dat je restaurant automatisch verwijdert wordt er zit nog een kleine bug in maar die wordt zo gefixt tot morgen!'
+  },     
   {
     title: 'Middel grote update', 
     date: '27-08-2026', 

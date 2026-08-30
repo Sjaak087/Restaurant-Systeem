@@ -89,6 +89,25 @@
   </div>
 </div>
 
+<!-- Modal: automatische verwijdertimer instellen (admin) -->
+<div class="modal-overlay" id="modal-admin-timer">
+  <div class="modal-box">
+    <div class="modal-title">⏱ Automatische verwijdertimer</div>
+    <p class="modal-text" id="admin-timer-restaurant-name" style="margin-top:-10px;"></p>
+    <p class="modal-text" style="margin-top:0;">Na deze tijd wordt het restaurant automatisch en definitief verwijderd. Het restaurant toont zelf bovenin een aftellende timer.</p>
+    <label class="modal-label" style="margin-top:0;">Uren</label>
+    <input type="number" id="admin-timer-uren-input" class="modal-input" min="0" step="1" placeholder="Bijv. 2">
+    <label class="modal-label">Minuten</label>
+    <input type="number" id="admin-timer-minuten-input" class="modal-input" min="0" max="59" step="1" placeholder="Bijv. 30">
+    <div class="modal-error" id="admin-timer-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="admin-timer-cancel">Timer verwijderen</button>
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="admin-timer-confirm">Instellen</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script>
