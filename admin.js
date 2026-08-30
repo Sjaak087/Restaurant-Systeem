@@ -29,6 +29,7 @@ let editingRestaurantId = null;
 db.ref('restaurants').on('value', snap => {
   const data = snap.val() || {};
   renderAdminRestaurants(data);
+  cleanupGhostAndExpiredRestaurants(data);
 });
 
 function renderAdminRestaurants(data) {
@@ -58,11 +59,13 @@ function renderAdminRestaurants(data) {
       <div class="restaurant-card-main">
         <div class="restaurant-card-name">${escapeHtmlAdmin(r.naam || 'Restaurant')}</div>
         <div class="restaurant-card-role">Code: ${escapeHtmlAdmin(r.code || '—')} · ${ledenAantal} lid/leden · aangemaakt ${formatDatumAdmin(r.aangemaakt)}</div>
+        ${r.autoDelete && r.autoDelete.deleteAt ? `<div class="restaurant-card-role" style="color:#d99a9a;">⏱ Verwijdert automatisch op ${formatDatumTijdAdmin(r.autoDelete.deleteAt)}</div>` : ''}
       </div>
       <div class="admin-restaurant-actions">
         <button type="button" class="mini-btn edit" data-view="${id}">Bekijken &amp; beheren</button>
         <button type="button" class="mini-btn edit" data-edit="${id}">Naam</button>
         <button type="button" class="mini-btn edit" data-warn="${id}">⚠️ Waarschuwing</button>
+        <button type="button" class="mini-btn edit" data-timer="${id}">⏱ Verwijdertimer</button>
         <button type="button" class="mini-btn danger" data-delete="${id}">Verwijderen</button>
       </div>
     `;
@@ -80,6 +83,10 @@ function renderAdminRestaurants(data) {
     card.querySelector('[data-warn]').addEventListener('click', (e) => {
       e.stopPropagation();
       openAdminWarning(id, r.naam || 'dit restaurant');
+    });
+    card.querySelector('[data-timer]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openAdminDeleteTimer(id, r.naam || 'dit restaurant', r.autoDelete);
     });
     card.querySelector('[data-delete]').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -265,5 +272,71 @@ function deleteAdminRestaurant(id, r) {
   }).catch(err => {
     console.error(err);
     alert('Er ging iets mis bij het verwijderen, probeer het opnieuw.');
+  });
+}
+
+// ==================== Automatische verwijdertimer ====================
+// Stelt in na hoeveel uur/minuten een restaurant automatisch verwijderd
+// wordt. Het restaurant zelf toont hierboven een countdown en verwijdert
+// zichzelf zodra de tijd om is (zie restaurant.js). Dit sitebeheer ruimt
+// daarnaast, zolang deze pagina open is, ook verlopen/leeggelopen
+// restaurants op als niemand het restaurant zelf open heeft staan.
+let editingTimerRestaurantId = null;
+
+function openAdminDeleteTimer(id, naam, autoDelete) {
+  editingTimerRestaurantId = id;
+  document.getElementById('admin-timer-restaurant-name').textContent = `Voor: ${naam}`;
+  document.getElementById('admin-timer-uren-input').value = '';
+  document.getElementById('admin-timer-minuten-input').value = '';
+  document.getElementById('admin-timer-error').textContent = '';
+  const cancelBtn = document.getElementById('admin-timer-cancel');
+  cancelBtn.style.display = (autoDelete && autoDelete.deleteAt) ? '' : 'none';
+  openModal('modal-admin-timer');
+}
+
+document.getElementById('admin-timer-confirm').addEventListener('click', () => {
+  const errorEl = document.getElementById('admin-timer-error');
+  const uren = parseInt(document.getElementById('admin-timer-uren-input').value, 10) || 0;
+  const minuten = parseInt(document.getElementById('admin-timer-minuten-input').value, 10) || 0;
+  if (uren <= 0 && minuten <= 0) { errorEl.textContent = 'Vul minimaal 1 minuut of 1 uur in.'; return; }
+  if (!editingTimerRestaurantId) return;
+
+  const deleteAt = Date.now() + (uren * 60 + minuten) * 60000;
+  const btn = document.getElementById('admin-timer-confirm');
+  btn.disabled = true;
+  db.ref('restaurants/' + editingTimerRestaurantId + '/autoDelete').set({ deleteAt, setAt: Date.now() }).then(() => {
+    btn.disabled = false;
+    closeModal('modal-admin-timer');
+  }).catch(err => {
+    console.error(err);
+    btn.disabled = false;
+    errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
+document.getElementById('admin-timer-cancel').addEventListener('click', () => {
+  if (!editingTimerRestaurantId) return;
+  db.ref('restaurants/' + editingTimerRestaurantId + '/autoDelete').remove().then(() => {
+    closeModal('modal-admin-timer');
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('admin-timer-error').textContent = 'Er ging iets mis, probeer opnieuw.';
+  });
+});
+
+// ==================== Opruimen: spookrestaurants & verlopen timers ====================
+// Draait elke keer dat de restaurantenlijst binnenkomt (dus zolang deze
+// sitebeheerpagina open staat). Een restaurant zonder leden (bijv. door een
+// mislukte aanmaak, of omdat iedereen 'm heeft verlaten) of waarvan de
+// verwijdertimer is verstreken, wordt dan definitief uit Firebase gehaald.
+function cleanupGhostAndExpiredRestaurants(data) {
+  const nu = Date.now();
+  Object.entries(data).forEach(([id, r]) => {
+    const isGhost = !r.leden || Object.keys(r.leden).length === 0;
+    const isExpired = r.autoDelete && r.autoDelete.deleteAt && r.autoDelete.deleteAt <= nu;
+    if (!isGhost && !isExpired) return;
+    db.ref('restaurants/' + id).remove().then(() => {
+      if (r.code) return db.ref('restaurantCodes/' + r.code).remove();
+    }).catch(err => console.error('Opruimen mislukt voor', id, err));
   });
 }
