@@ -30,16 +30,34 @@
   <h1 class="brand-name">Sitebeheer</h1>
   <p class="brand-sub">Alle restaurants in het systeem</p>
 
-  <div class="landing-section">
-    <div class="landing-section-title">Announcements</div>
-    <div id="admin-announcement-list" class="my-restaurants"></div>
-    <div class="empty-msg" id="admin-announcement-empty-msg" style="display:none;">Nog geen announcements verstuurd.</div>
+  <div class="admin-tab-nav tab-nav" role="tablist" aria-label="Sitebeheer secties">
+    <button type="button" class="tab-btn active" data-admin-tab="restaurants" role="tab" aria-selected="true">Restaurants</button>
+    <button type="button" class="tab-btn" data-admin-tab="feedback" role="tab" aria-selected="false">Gegeven feedback</button>
+    <button type="button" class="tab-btn" data-admin-tab="announcements" role="tab" aria-selected="false">Announcements</button>
   </div>
 
-  <div class="landing-section">
-    <div class="landing-section-title">Restaurants</div>
-    <div id="admin-restaurant-list" class="my-restaurants"></div>
-    <div class="empty-msg" id="admin-empty-msg" style="display:none;">Nog geen restaurants aangemaakt.</div>
+  <div id="admin-tab-restaurants" class="tab-panel active">
+    <div class="landing-section">
+      <div class="landing-section-title">Restaurants</div>
+      <div id="admin-restaurant-list" class="my-restaurants"></div>
+      <div class="empty-msg" id="admin-empty-msg" style="display:none;">Nog geen restaurants aangemaakt.</div>
+    </div>
+  </div>
+
+  <div id="admin-tab-feedback" class="tab-panel">
+    <div class="landing-section">
+      <div class="landing-section-title">Gegeven feedback</div>
+      <div id="feedback-list" class="feedback-list"></div>
+      <div class="empty-msg" id="feedback-empty-msg" style="display:none;">Nog geen feedback ontvangen.</div>
+    </div>
+  </div>
+
+  <div id="admin-tab-announcements" class="tab-panel">
+    <div class="landing-section">
+      <div class="landing-section-title">Announcements</div>
+      <div id="admin-announcement-list" class="my-restaurants"></div>
+      <div class="empty-msg" id="admin-announcement-empty-msg" style="display:none;">Nog geen announcements verstuurd.</div>
+    </div>
   </div>
 </div>
 

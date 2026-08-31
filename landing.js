@@ -82,30 +82,50 @@ const landingActionsEl = document.getElementById('landing-actions');
 
 function renderMyRestaurants() {
   const list = getMyRestaurants();
+  const aangemaakt = list.filter(r => r.rol === 'eigenaar');
+  const gejoined = list.filter(r => r.rol !== 'eigenaar');
   myRestaurantsEl.innerHTML = '';
+
+  function renderCard(r) {
+    const card = document.createElement('div');
+    card.className = 'restaurant-card';
+    card.innerHTML = `
+      <div class="restaurant-card-main">
+        <div class="restaurant-card-name">${escapeHtml(r.naam)}</div>
+        <div class="restaurant-card-role">${r.rol === 'eigenaar' ? '👑 Eigenaar' : '👤 Gejoined'}</div>
+      </div>
+    `;
+    card.addEventListener('click', () => {
+      window.location.href = `restaurant.html?id=${encodeURIComponent(r.id)}`;
+    });
+    return card;
+  }
 
   if (list.length === 0) {
     myRestaurantsEl.innerHTML = '<div class="empty-msg">Je hebt nog geen restaurant. Maak er één, of join met een code.</div>';
   } else {
-    list.forEach(r => {
-      const card = document.createElement('div');
-      card.className = 'restaurant-card';
-      card.innerHTML = `
-        <div class="restaurant-card-main">
-          <div class="restaurant-card-name">${escapeHtml(r.naam)}</div>
-          <div class="restaurant-card-role">${r.rol === 'eigenaar' ? '👑 Eigenaar' : '👤 Gejoined'}</div>
-        </div>
-      `;
-      card.addEventListener('click', () => {
-        window.location.href = `restaurant.html?id=${encodeURIComponent(r.id)}`;
-      });
-      myRestaurantsEl.appendChild(card);
-    });
+    if (aangemaakt.length > 0) {
+      const title = document.createElement('div');
+      title.className = 'my-restaurants-group-title';
+      title.textContent = '🏠 Door mij aangemaakt';
+      myRestaurantsEl.appendChild(title);
+      aangemaakt.forEach(r => myRestaurantsEl.appendChild(renderCard(r)));
+    }
+    if (gejoined.length > 0) {
+      const title = document.createElement('div');
+      title.className = 'my-restaurants-group-title';
+      title.textContent = '🤝 Gejoined';
+      myRestaurantsEl.appendChild(title);
+      gejoined.forEach(r => myRestaurantsEl.appendChild(renderCard(r)));
+    }
   }
 
-  const atMax = list.length >= MAX_RESTAURANTS;
-  maxMsgEl.style.display = atMax ? 'block' : 'none';
-  landingActionsEl.style.display = atMax ? 'none' : 'flex';
+  // Alleen het ZELF AANMAKEN is aan een maximum van 2 gebonden; joinen mag
+  // onbeperkt. Het "Restaurant maken"-knopje verdwijnt dus op zichzelf zodra
+  // dat maximum bereikt is, terwijl "Restaurant joinen" altijd zichtbaar blijft.
+  const createAtMax = aangemaakt.length >= MAX_RESTAURANTS;
+  maxMsgEl.style.display = createAtMax ? 'block' : 'none';
+  document.getElementById('btn-open-create').style.display = createAtMax ? 'none' : '';
 }
 
 function escapeHtml(str) {
@@ -140,7 +160,7 @@ document.getElementById('create-confirm').addEventListener('click', async () => 
   const errorEl = document.getElementById('create-error');
   if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
   if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
-  if (getMyRestaurants().length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je zit al op het maximum van 2 restaurants.'; return; }
+  if (getMyRestaurants().filter(r => r.rol === 'eigenaar').length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je hebt al 2 zelf aangemaakte restaurants. Verwijder er eerst één om een nieuwe te maken.'; return; }
 
   const btn = document.getElementById('create-confirm');
   btn.disabled = true;
@@ -200,7 +220,6 @@ document.getElementById('join-confirm').addEventListener('click', async () => {
   const errorEl = document.getElementById('join-error');
   if (!code) { errorEl.textContent = 'Vul een code in.'; return; }
   if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
-  if (getMyRestaurants().length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je zit al op het maximum van 2 restaurants.'; return; }
 
   const btn = document.getElementById('join-confirm');
   btn.disabled = true;
@@ -239,3 +258,70 @@ document.getElementById('join-confirm').addEventListener('click', async () => {
     btn.textContent = 'Joinen';
   }
 });
+
+
+// ---- Feedback ----
+const feedbackButton = document.getElementById('btn-feedback');
+const feedbackSendButton = document.getElementById('send-feedback');
+const feedbackLimitKey = 'feedbackLastSentAt';
+const FEEDBACK_COOLDOWN_MS = 5 * 60 * 1000;
+
+function getFeedbackCooldownRemaining() {
+  const lastSent = Number(localStorage.getItem(feedbackLimitKey) || 0);
+  return Math.max(0, FEEDBACK_COOLDOWN_MS - (Date.now() - lastSent));
+}
+
+if (feedbackButton) {
+  feedbackButton.addEventListener('click', () => {
+    const errorEl = document.getElementById('feedback-error');
+    errorEl.textContent = '';
+    document.getElementById('feedback-name').value = '';
+    document.getElementById('feedback-text').value = '';
+    const remaining = getFeedbackCooldownRemaining();
+    if (remaining > 0) {
+      const minutes = Math.ceil(remaining / 60000);
+      errorEl.textContent = `Je kunt over ${minutes} minuut${minutes === 1 ? '' : 'en'} opnieuw feedback geven.`;
+    }
+    openModal('modal-feedback');
+  });
+}
+
+if (feedbackSendButton) {
+  feedbackSendButton.addEventListener('click', async () => {
+    const nameEl = document.getElementById('feedback-name');
+    const textEl = document.getElementById('feedback-text');
+    const errorEl = document.getElementById('feedback-error');
+    const name = nameEl.value.trim();
+    const text = textEl.value.trim();
+
+    errorEl.textContent = '';
+    if (!name) { errorEl.textContent = 'Vul je naam in.'; nameEl.focus(); return; }
+    if (!text) { errorEl.textContent = 'Vul je feedback in.'; textEl.focus(); return; }
+
+    const remaining = getFeedbackCooldownRemaining();
+    if (remaining > 0) {
+      const minutes = Math.ceil(remaining / 60000);
+      errorEl.textContent = `Je kunt over ${minutes} minuut${minutes === 1 ? '' : 'en'} opnieuw feedback geven.`;
+      return;
+    }
+
+    feedbackSendButton.disabled = true;
+    feedbackSendButton.textContent = 'Versturen...';
+    try {
+      await db.ref('feedback').push({
+        name: name,
+        text: text,
+        createdAt: Date.now()
+      });
+      localStorage.setItem(feedbackLimitKey, String(Date.now()));
+      closeModal('modal-feedback');
+      alert('Bedankt voor je feedback!');
+    } catch (e) {
+      console.error('Feedback versturen mislukt:', e);
+      errorEl.textContent = 'Er ging iets mis bij het versturen. Probeer het opnieuw.';
+    } finally {
+      feedbackSendButton.disabled = false;
+      feedbackSendButton.textContent = 'Versturen';
+    }
+  });
+}
