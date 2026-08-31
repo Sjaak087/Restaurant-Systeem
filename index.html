@@ -32,6 +32,7 @@
   <div class="landing-actions" id="landing-actions">
     <button type="button" class="big-choice order" id="btn-open-create">Restaurant maken</button>
     <button type="button" class="big-choice kitchen" id="btn-open-join">Restaurant joinen</button>
+    <button type="button" class="big-choice feedback-btn" id="btn-feedback">💬 Feedback</button>
   </div>
 
   <button type="button" class="admin-link" id="btn-admin">🔧 Sitebeheer</button>
@@ -65,6 +66,23 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="join-confirm">Joinen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: feedback -->
+<div class="modal-overlay" id="modal-feedback">
+  <div class="modal-box">
+    <div class="modal-title">💬 Feedback geven</div>
+    <p class="modal-text">Laat ons weten wat je van het systeem vindt of wat er beter kan.</p>
+    <label class="modal-label" for="feedback-name">Naam</label>
+    <input type="text" id="feedback-name" class="modal-input" maxlength="50" placeholder="Je naam" autocomplete="name">
+    <label class="modal-label" for="feedback-text">Feedback</label>
+    <textarea id="feedback-text" class="modal-input" rows="6" maxlength="1000" placeholder="Schrijf hier je feedback..."></textarea>
+    <div class="modal-error" id="feedback-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="send-feedback">Versturen</button>
     </div>
   </div>
 </div>

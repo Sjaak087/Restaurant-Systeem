@@ -15,6 +15,12 @@
 
 const UPDATES = [
   {
+    title: 'Feedback en systeembeheer fix', 
+    date: '31-08-2026', 
+    time: '20:30', 
+    info: 'ik heb ten eerste feedback toegevoegd je kunt nu feedback geven gebruik dit om bijv. bugs te melden en iedeen te geven voor het systeem ik kan deze feedback lezen in de sitebeheer en je kunt nu maar 2 restaurants maken (dat was al zo) maar je kunt er zoveel joinen als je wilt dit is nu ook onder categorien verdeelt en trouwens de feedback kun je maar eens in de 5 min verzenden omdat ik anders volgespammed zal worden dit was de update tot morgen!'
+  },    
+  {
     title: 'Grote Toevoeging in zelfservice systeem!', 
     date: '30-08-2026', 
     time: '20:30', 

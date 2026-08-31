@@ -340,3 +340,75 @@ function cleanupGhostAndExpiredRestaurants(data) {
     }).catch(err => console.error('Opruimen mislukt voor', id, err));
   });
 }
+
+
+// ==================== Sitebeheer tabs ====================
+document.querySelectorAll('[data-admin-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.adminTab;
+    document.querySelectorAll('[data-admin-tab]').forEach(b => {
+      const active = b === btn;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[id^="admin-tab-"]').forEach(panel => panel.classList.remove('active'));
+    document.getElementById('admin-tab-' + tab)?.classList.add('active');
+  });
+});
+
+// ==================== Gegeven feedback ====================
+const feedbackListEl = document.getElementById('feedback-list');
+const feedbackEmptyEl = document.getElementById('feedback-empty-msg');
+
+db.ref('feedback').on('value', snap => {
+  if (!feedbackListEl) return;
+  const data = snap.val() || {};
+  const entries = Object.entries(data).sort((a, b) => {
+    const aTime = Number(a[1]?.createdAt ?? a[1]?.time ?? 0);
+    const bTime = Number(b[1]?.createdAt ?? b[1]?.time ?? 0);
+    return bTime - aTime;
+  });
+
+  feedbackListEl.innerHTML = '';
+  feedbackEmptyEl.style.display = entries.length ? 'none' : 'block';
+
+  entries.forEach(([id, feedback]) => {
+    const card = document.createElement('article');
+    card.className = 'feedback-card';
+
+    const createdAt = Number(feedback.createdAt ?? feedback.time ?? 0);
+    const dateText = createdAt ? formatDatumTijdAdmin(createdAt) : '—';
+    const name = feedback.name ?? feedback.naam ?? 'Onbekend';
+    const text = feedback.text ?? feedback.tekst ?? '';
+
+    card.innerHTML = `
+      <div class="feedback-card-main">
+        <div class="feedback-card-header">
+          <div class="feedback-card-from">Van: ${escapeHtmlAdmin(name)}</div>
+          <div class="feedback-card-date">${escapeHtmlAdmin(dateText)}</div>
+        </div>
+        <div class="feedback-card-text">${escapeHtmlAdmin(text).replace(/\n/g, '<br>')}</div>
+      </div>
+      <div class="admin-restaurant-actions">
+        <button type="button" class="mini-btn edit" data-feedback-read="${escapeHtmlAdmin(id)}">Gelezen</button>
+      </div>
+    `;
+
+    card.querySelector('[data-feedback-read]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const button = e.currentTarget;
+      button.disabled = true;
+      button.textContent = 'Verwijderen...';
+      try {
+        await db.ref('feedback/' + id).remove();
+      } catch (err) {
+        console.error('Feedback verwijderen mislukt:', err);
+        button.disabled = false;
+        button.textContent = 'Gelezen';
+        alert('Er ging iets mis bij het verwijderen van de feedback.');
+      }
+    });
+
+    feedbackListEl.appendChild(card);
+  });
+});

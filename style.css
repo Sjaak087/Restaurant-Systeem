@@ -2359,3 +2359,18 @@ header.top h1,
   header.top h1 { font-size: 1.35rem; }
   .updates-btn, .bell-btn, header.top a#back-link { font-size: 0.7rem; padding: 6px 10px; }
 }
+
+
+/* Feedback button = Restaurant joinen style */
+#feedbackBtn,
+.feedback-btn{
+  background: var(--bg) !important;
+  color: var(--gold-soft) !important;
+  border: 1px solid var(--gold) !important;
+  border-radius: 16px !important;
+  font-weight: 700 !important;
+}
+#feedbackBtn:hover,
+.feedback-btn:hover{
+  background: #1a1a1a !important;
+}
