@@ -15,6 +15,12 @@
 
 const UPDATES = [
   {
+    title: 'Geblokkeerde woorden', 
+    date: '01-09-2026', 
+    time: '20:30', 
+    info: 'ik heb iets heel belangrijks toegevoegd namelijk..... blocked words oftoewel geblokkeerde woorden dit zal erg nodig zijn om ruzie en verbanningen te verkomen de blokkeerde woorden zijn onder andere scheld woorden enzo als ik toch zo een woorden zie maar dan anders getypt heb je een heeeeel groot probleem als je hiertegen een klacht hebt dan moet je contact met mij opnemen ik heb ook nog een paar andere dingen gefixt maar daar merken jullie niks van tot de volgende update!!'
+  },     
+  {
     title: 'Feedback en systeembeheer fix', 
     date: '31-08-2026', 
     time: '20:30', 

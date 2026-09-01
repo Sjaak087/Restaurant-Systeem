@@ -607,7 +607,7 @@
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['firebase-config.js', 'emojis.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
+    ['blocked-words.js', 'firebase-config.js', 'emojis.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();
