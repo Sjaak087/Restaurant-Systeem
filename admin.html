@@ -22,6 +22,7 @@
   <div class="landing-topbar" style="justify-content:space-between;">
     <a href="index.html" class="admin-back-link">← Terug</a>
     <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+      <button type="button" class="updates-btn" id="btn-admin-messages">✉️ Berichten <span id="admin-message-badge" style="display:none;"></span></button>
       <button type="button" class="updates-btn" id="btn-admin-new-announcement">📢 New announcement</button>
       <button type="button" class="updates-btn" id="btn-admin-logout">🚪 Uitloggen</button>
     </div>
@@ -34,6 +35,7 @@
     <button type="button" class="tab-btn active" data-admin-tab="restaurants" role="tab" aria-selected="true">Restaurants</button>
     <button type="button" class="tab-btn" data-admin-tab="feedback" role="tab" aria-selected="false">Gegeven feedback</button>
     <button type="button" class="tab-btn" data-admin-tab="announcements" role="tab" aria-selected="false">Announcements</button>
+    <button type="button" class="tab-btn" data-admin-tab="users" role="tab" aria-selected="false">Username beheer</button>
   </div>
 
   <div id="admin-tab-restaurants" class="tab-panel active">
@@ -57,6 +59,15 @@
       <div class="landing-section-title">Announcements</div>
       <div id="admin-announcement-list" class="my-restaurants"></div>
       <div class="empty-msg" id="admin-announcement-empty-msg" style="display:none;">Nog geen announcements verstuurd.</div>
+    </div>
+  </div>
+
+  <div id="admin-tab-users" class="tab-panel">
+    <div class="landing-section">
+      <div class="landing-section-title">Username beheer</div>
+      <p class="modal-text">Bekijk alle geregistreerde usernames, hun online-status, restaurants, waarschuwingen en toegangsstatus.</p>
+      <div id="admin-user-list" class="my-restaurants"></div>
+      <div class="empty-msg" id="admin-user-empty-msg" style="display:none;">Nog geen usernames gevonden.</div>
     </div>
   </div>
 </div>
@@ -126,12 +137,47 @@
   </div>
 </div>
 
+
+<!-- Modal: gebruiker timeout -->
+<div class="modal-overlay" id="modal-admin-user-timeout">
+  <div class="modal-box">
+    <div class="modal-title">⏱ Time out geven</div>
+    <p class="modal-text" id="admin-user-timeout-name"></p>
+    <label class="modal-label">Time out tot</label>
+    <input type="datetime-local" id="admin-user-timeout-input" class="modal-input">
+    <div class="modal-error" id="admin-user-timeout-error"></div>
+    <div class="modal-actions"><button type="button" class="btn-secondary" data-close>Annuleren</button><button type="button" class="btn-primary" id="admin-user-timeout-confirm">Time out geven</button></div>
+  </div>
+</div>
+
+<!-- Modal: gebruiker waarschuwing -->
+<div class="modal-overlay" id="modal-admin-user-warning">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Waarschuwing geven</div>
+    <p class="modal-text" id="admin-user-warning-name"></p>
+    <label class="modal-label">Bericht</label>
+    <textarea id="admin-user-warning-input" class="modal-input" rows="5" maxlength="1000" placeholder="Typ de waarschuwing..."></textarea>
+    <div class="modal-error" id="admin-user-warning-error"></div>
+    <div class="modal-actions"><button type="button" class="btn-secondary" data-close>Annuleren</button><button type="button" class="btn-primary" id="admin-user-warning-confirm">Waarschuwing geven</button></div>
+  </div>
+</div>
+
+<!-- Modal: berichten -->
+<div class="modal-overlay" id="modal-admin-messages">
+  <div class="modal-box wide">
+    <div class="modal-title">✉️ Berichten</div>
+    <div id="admin-user-messages-list" class="updates-list"></div>
+    <div class="empty-msg" id="admin-user-messages-empty" style="display:none;">Geen berichten.</div>
+    <div class="modal-actions"><button type="button" class="btn-secondary" data-close>Sluiten</button></div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script>
   (function () {
     var v = Date.now();
-    ['blocked-words.js', 'firebase-config.js', 'admin.js'].forEach(function (file) {
+    ['blocked-words.js', 'firebase-config.js', 'admin.js', 'admin-user-management.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

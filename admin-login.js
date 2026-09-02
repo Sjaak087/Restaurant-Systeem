@@ -215,3 +215,17 @@ document.getElementById('admin-password-input').addEventListener('keydown', (e) 
 document.getElementById('admin-password-confirm-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('admin-login-confirm').click();
 });
+
+// Open Sitebeheer automatisch wanneer een geblokkeerde gebruiker via het
+// Sitebeheer-knopje op het blokkadescherm hier terechtkomt. De normale login
+// blijft verplicht; er wordt geen beheersessie overgeslagen.
+function openSitebeheerFromQuery() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('openSitebeheer') !== '1') return;
+    const btn = document.getElementById('btn-admin');
+    if (btn) btn.click();
+  } catch (e) { console.error(e); }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', openSitebeheerFromQuery);
+else openSitebeheerFromQuery();

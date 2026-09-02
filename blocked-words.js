@@ -1,230 +1,368 @@
-/*
- * Blocked words
- * Voeg hieronder woorden of zinnen toe die nergens in de website mogen worden ingevoerd.
- * De controle werkt hoofdletterongevoelig en geldt voor inputs, tekstvelden,
- * opmerkingen, feedback, productnamen, etc.
- */
-(function () {
+/* Blocked words: every variant below is an explicit whole-word entry.
+   No runtime letter-by-letter substitution is used. */
+(function(){
   'use strict';
-
-  // =========================
-  // LIJST MET GEBLOKKEERDE WOORDEN
-  // =========================
   window.BLOCKED_WORDS = [
-    'l systeem', 
-    'kut systeem', 
-    'kut', 
-    'kanker', 
-    'mongool', 
-    'loser', 
-    'kut lars', 
-    'l lars', 
-    'fuck', 
-    'gay', 
-    'hoer', 
-    'neuken', 
-    'raggen', 
-    'verkrachten', 
-    'seksen', 
-    'sex', 
-    'opgekankerd', 
-    'nigger', 
-    'nigga', 
-    'aftrekken', 
-    'masturberen', 
-    'kkr', 
-    'lul', 
-    'piemel', 
-    'pimel', 
-    'plassertje', 
-    'comdoom', 
-    'vagina', 
-    'bek', 
-    'vape', 
-    'sigaret', 
-    'sigaar', 
-    'wiet', 
-    'cocaiene', 
-    'drugs', 
-    
-    
-    // 'voorbeeld',
-    // 'voorbeeld zin'
+    'l systeem',
+    'lsystaem',
+    'lsysteeem',
+    'slysteem',
+    'lsyseem',
+    'kut systeem',
+    'kutsystaem',
+    'kutsysteeem',
+    'koetsysteem',
+    'kuutsysteem',
+    'uktsysteem',
+    'kutsyteem',
+    'kut',
+    'kutt',
+    'kud',
+    'kuttt',
+    'koet',
+    'kuut',
+    'kanker',
+    'kancer',
+    'canker',
+    'cancer',
+    'kankar',
+    'kankor',
+    'kankur',
+    'kankerr',
+    'kancerr',
+    'cankerr',
+    'kankerh',
+    'kenker',
+    'kaanker',
+    'kankeer',
+    'aknker',
+    'kaner',
+    'mongool',
+    'mongol',
+    'mongooll',
+    'mongoul',
+    'moongool',
+    'mungool',
+    'omngool',
+    'monool',
+    'loser',
+    'looser',
+    'lozar',
+    'losor',
+    'lozer',
+    'loserr',
+    'losar',
+    'loseer',
+    'luser',
+    'olser',
+    'loer',
+    'kut lars',
+    'kutlers',
+    'kutlaars',
+    'koetlars',
+    'kuutlars',
+    'uktlars',
+    'kutars',
+    'l lars',
+    'llers',
+    'llaars',
+    'lalrs',
+    'llrs',
+    'fuck',
+    'fuk',
+    'fock',
+    'fukk',
+    'fucc',
+    'fuc',
+    'fukkk',
+    'foeck',
+    'fuuck',
+    'ufck',
+    'gay',
+    'gaay',
+    'gai',
+    'gey',
+    'gei',
+    'gayy',
+    'hoer',
+    'hoerh',
+    'hoeer',
+    'huur',
+    'hoor',
+    'hoar',
+    'hooer',
+    'huer',
+    'oher',
+    'hor',
+    'neuken',
+    'neuke',
+    'nueken',
+    'neukke',
+    'neukenn',
+    'nauken',
+    'neeuken',
+    'neoeken',
+    'neuuken',
+    'enuken',
+    'neuen',
+    'raggen',
+    'ragge',
+    'raggenn',
+    'ragggen',
+    'reggen',
+    'raaggen',
+    'raggan',
+    'raggeen',
+    'arggen',
+    'ragen',
+    'verkrachten',
+    'verkrachte',
+    'verkraghten',
+    'verkr8ten',
+    'verkrachtte',
+    'verkrachtten',
+    'verkrechten',
+    'verkraachten',
+    'varkrachten',
+    'veerkrachten',
+    'evrkrachten',
+    'verkrchten',
+    'seksen',
+    'sexen',
+    'seksenn',
+    'sekssen',
+    'saksen',
+    'seeksen',
+    'esksen',
+    'seken',
+    'sex',
+    'seks',
+    'sexx',
+    'sexs',
+    's3x',
+    'segs',
+    'sax',
+    'seex',
+    'opgekankerd',
+    'opgekancerd',
+    'opgecankerd',
+    'opgekankert',
+    'opgekankerdd',
+    'opgekanckerd',
+    'opgekenkerd',
+    'opgekaankerd',
+    'opgakankerd',
+    'opgeekankerd',
+    'oopgekankerd',
+    'upgekankerd',
+    'pogekankerd',
+    'opgeknkerd',
+    'nigger',
+    'niger',
+    'nigerr',
+    'niggerr',
+    'niggar',
+    'niggr',
+    'niggeer',
+    'nygger',
+    'niegger',
+    'ingger',
+    'nigga',
+    'niga',
+    'niggaa',
+    'niggaah',
+    'nigge',
+    'nygga',
+    'niegga',
+    'ingga',
+    'aftrekken',
+    'aftrekke',
+    'aftreken',
+    'aftrekkken',
+    'aftrekk',
+    'aftrecken',
+    'eftrekken',
+    'aaftrekken',
+    'aftrakken',
+    'aftreekken',
+    'fatrekken',
+    'aftrkken',
+    'masturberen',
+    'masturbere',
+    'masturbeeren',
+    'masturbren',
+    'mesturberen',
+    'maasturberen',
+    'masturbaren',
+    'mastoerberen',
+    'mastuurberen',
+    'amsturberen',
+    'mastuberen',
+    'kkr',
+    'kkrr',
+    'kkrh',
+    'lul',
+    'lull',
+    'lulll',
+    'loel',
+    'luul',
+    'piemel',
+    'piemell',
+    'piemal',
+    'piemil',
+    'piemmel',
+    'pimel',
+    'piamel',
+    'pieemel',
+    'pyemel',
+    'ipemel',
+    'pieel',
+    'pimell',
+    'pimml',
+    'pimal',
+    'pimeel',
+    'pymel',
+    'ipmel',
+    'piel',
+    'plassertje',
+    'plassertjee',
+    'plassert',
+    'plaserstje',
+    'plessertje',
+    'plaassertje',
+    'plassartje',
+    'plasseertje',
+    'lpassertje',
+    'plassrtje',
+    'comdoom',
+    'condoom',
+    'komdoom',
+    'comdoon',
+    'comdoem',
+    'comdooom',
+    'condom',
+    'coomdoom',
+    'cumdoom',
+    'ocmdoom',
+    'comoom',
+    'vagina',
+    'vaginaa',
+    'vagyna',
+    'vagiena',
+    'vegina',
+    'vaagina',
+    'avgina',
+    'vagna',
+    'bek',
+    'beq',
+    'b3k',
+    'bakk',
+    'bekk',
+    'beek',
+    'bak',
+    'vape',
+    'vaap',
+    'vappe',
+    'vepe',
+    'vaype',
+    'vapee',
+    'vaape',
+    'vapa',
+    'avpe',
+    'vae',
+    'sigaret',
+    'sigarett',
+    'sigeret',
+    'sigaaret',
+    'sigarat',
+    'sigareet',
+    'sygaret',
+    'siegaret',
+    'isgaret',
+    'sigret',
+    'sigaar',
+    'sigar',
+    'sigaarr',
+    'sigaer',
+    'sigear',
+    'sigaaar',
+    'sygaar',
+    'siegaar',
+    'isgaar',
+    'wiet',
+    'wiett',
+    'wied',
+    'wjeit',
+    'weat',
+    'wiat',
+    'wieet',
+    'wyet',
+    'iwet',
+    'wit',
+    'cocaiene',
+    'coccaiene',
+    'cocaine',
+    'cocaene',
+    'cocayene',
+    'coccaine',
+    'coceiene',
+    'cocaaiene',
+    'cocaiane',
+    'cocaieene',
+    'coocaiene',
+    'cucaiene',
+    'occaiene',
+    'drugs',
+    'druks',
+    'drux',
+    'droegs',
+    'druugs',
+    'rdugs',
+    'drgs',
+    'tering',
+    'taring',
+    'teering',
+    'teryng',
+    'terieng',
+    'etring',
+    'terng',
+    'tifus',
+    'tyfus',
+    'tiefus',
+    'tifoes',
+    'tifuus',
+    'itfus',
+    'tius',
+    'fiefus',
+    'fiafus',
+    'fieefus',
+    'fyefus',
+    'fiefoes',
+    'fiefuus',
+    'ifefus',
+    'fieus',
+    'pijpen',
+    'pijpan',
+    'pijpeen',
+    'pyjpen',
+    'piejpen',
+    'ipjpen',
+    'pijen',
   ];
 
-  var ERROR_MESSAGE = 'Dit woord is niet toegestaan.';
-  var lastAllowedValue = new WeakMap();
-  var textFieldTypes = ['text', 'search', 'email', 'url', 'tel', 'password'];
-
-  function isTextField(el) {
-    if (!el || el.nodeType !== 1) return false;
-    if (el.tagName === 'TEXTAREA') return true;
-    if (el.tagName === 'INPUT') {
-      return textFieldTypes.indexOf((el.type || 'text').toLowerCase()) !== -1;
-    }
-    return el.isContentEditable === true;
-  }
-
-  function clean(value) {
-    return String(value || '')
-      .normalize('NFKC')
-      .toLocaleLowerCase()
-      .replace(/[\u200B-\u200D\uFEFF]/g, '')
-      .replace(/\s+/g, '')
-  }
-
-  function containsBlockedWord(value) {
-    var text = clean(value);
-    if (!text) return null;
-
-    for (var i = 0; i < window.BLOCKED_WORDS.length; i++) {
-      var blocked = clean(window.BLOCKED_WORDS[i]);
-      if (!blocked) continue;
-
-      // Woorden/zinnen worden als afzonderlijke woorden gecontroleerd.
-      var escaped = blocked.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      var pattern = new RegExp('(^|[^\\p{L}\\p{N}_])' + escaped + '(?=$|[^\\p{L}\\p{N}_])', 'iu');
-
-      if (pattern.test(text)) {
-        return window.BLOCKED_WORDS[i];
-      }
-    }
-
-    return null;
-  }
-
-  function getValue(el) {
-    if (el.isContentEditable) return el.textContent || '';
-    return el.value || '';
-  }
-
-  function setValue(el, value) {
-    if (el.isContentEditable) {
-      el.textContent = value;
-    } else {
-      el.value = value;
-    }
-  }
-
-  function showBlockedMessage() {
-    // Gebruik de standaard browserfoutmelding, zodat dit overal hetzelfde werkt.
-    window.alert(ERROR_MESSAGE);
-  }
-
-  function rememberAllowed(el) {
-    if (isTextField(el)) {
-      lastAllowedValue.set(el, getValue(el));
-    }
-  }
-
-  function proposedInputValue(el, event) {
-    if (el.isContentEditable) {
-      // beforeinput op contenteditable is lastiger exact te voorspellen;
-      // de input-handler hieronder vangt het alsnog af.
-      return null;
-    }
-
-    if (typeof el.selectionStart !== 'number' || typeof el.selectionEnd !== 'number') {
-      return null;
-    }
-
-    var value = el.value || '';
-    var start = el.selectionStart;
-    var end = el.selectionEnd;
-
-    if (event.inputType && event.inputType.indexOf('delete') === 0) {
-      return value.slice(0, start) + value.slice(end);
-    }
-
-    var inserted = event.data || '';
-    if (event.inputType === 'insertLineBreak') inserted = '\\n';
-
-    return value.slice(0, start) + inserted + value.slice(end);
-  }
-
-  // Blokkeer het al vóórdat tekst wordt ingevoerd.
-  document.addEventListener('beforeinput', function (event) {
-    var el = event.target;
-    if (!isTextField(el)) return;
-
-    var value = proposedInputValue(el, event);
-    if (value !== null && containsBlockedWord(value)) {
-      event.preventDefault();
-      showBlockedMessage();
-    }
-  }, true);
-
-  // Plakken blokkeren.
-  document.addEventListener('paste', function (event) {
-    var el = event.target;
-    if (!isTextField(el)) return;
-
-    var pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
-    var value = proposedInputValue(el, { data: pasted, inputType: 'insertText' });
-
-    if ((value !== null && containsBlockedWord(value)) || (value === null && containsBlockedWord((getValue(el) || '') + pasted))) {
-      event.preventDefault();
-      showBlockedMessage();
-    }
-  }, true);
-
-  // Tekst slepen/neerzetten blokkeren.
-  document.addEventListener('drop', function (event) {
-    var el = event.target;
-    if (!isTextField(el)) return;
-
-    var dropped = event.dataTransfer ? event.dataTransfer.getData('text') : '';
-    var value = proposedInputValue(el, { data: dropped, inputType: 'insertText' });
-
-    if ((value !== null && containsBlockedWord(value)) || (value === null && containsBlockedWord((getValue(el) || '') + dropped))) {
-      event.preventDefault();
-      showBlockedMessage();
-    }
-  }, true);
-
-  // Fallback voor browsers/frameworks die de waarde rechtstreeks aanpassen.
-  document.addEventListener('focusin', function (event) {
-    rememberAllowed(event.target);
-  }, true);
-
-  document.addEventListener('input', function (event) {
-    var el = event.target;
-    if (!isTextField(el)) return;
-
-    var value = getValue(el);
-    if (containsBlockedWord(value)) {
-      var previous = lastAllowedValue.get(el);
-      if (previous === undefined) previous = '';
-
-      setValue(el, previous);
-
-      // Laat frameworks zoals React/Vue/etc. weten dat de waarde is teruggezet.
-      try {
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (_) {}
-
-      showBlockedMessage();
-      return;
-    }
-
-    lastAllowedValue.set(el, value);
-  }, true);
-
-  // Extra controle voor formulieren die de waarde programmatisch wijzigen.
-  document.addEventListener('change', function (event) {
-    var el = event.target;
-    if (!isTextField(el)) return;
-
-    var value = getValue(el);
-    if (containsBlockedWord(value)) {
-      var previous = lastAllowedValue.get(el);
-      setValue(el, previous === undefined ? '' : previous);
-      showBlockedMessage();
-    } else {
-      lastAllowedValue.set(el, value);
-    }
-  }, true);
-
-  // Maak de controle ook beschikbaar voor bestaande scripts.
-  window.containsBlockedWord = containsBlockedWord;
+  var ERROR_MESSAGE='Dit woord is niet toegestaan.';
+  var lastAllowedValue=new WeakMap();
+  var textFieldTypes=['text','search','email','url','tel','password'];
+  function isTextField(el){if(!el||el.nodeType!==1)return false;if(el.tagName==='TEXTAREA')return true;if(el.tagName==='INPUT')return textFieldTypes.indexOf((el.type||'text').toLowerCase())!==-1;return el.isContentEditable===true;}
+  function clean(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,'');}
+  function containsBlockedWord(value){var text=clean(value);if(!text)return null;for(var i=0;i<window.BLOCKED_WORDS.length;i++){var blocked=clean(window.BLOCKED_WORDS[i]);if(!blocked)continue;var escaped=blocked.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');var pattern=new RegExp('(^|[^\\p{L}\\p{N}_])'+escaped+'(?=$|[^\\p{L}\\p{N}_])','iu');if(pattern.test(text))return window.BLOCKED_WORDS[i];}return null;}
+  function getValue(el){return el.isContentEditable?(el.textContent||''):(el.value||'');}
+  function showBlockedMessage(){window.alert(ERROR_MESSAGE);}
+  function proposedInputValue(el,event){if(el.isContentEditable)return null;if(typeof el.selectionStart!=='number'||typeof el.selectionEnd!=='number')return null;var value=el.value||'',start=el.selectionStart,end=el.selectionEnd;if(event.inputType&&event.inputType.indexOf('delete')===0)return value.slice(0,start)+value.slice(end);var inserted=event.data||'';if(event.inputType==='insertLineBreak')inserted='\n';return value.slice(0,start)+inserted+value.slice(end);}
+  document.addEventListener('beforeinput',function(event){var el=event.target;if(!isTextField(el))return;var value=proposedInputValue(el,event);if(value!==null&&containsBlockedWord(value)){event.preventDefault();showBlockedMessage();}},true);
+  document.addEventListener('paste',function(event){var el=event.target;if(!isTextField(el))return;var pasted=(event.clipboardData||window.clipboardData).getData('text')||'';var value=proposedInputValue(el,{data:pasted,inputType:'insertText'});if((value!==null&&containsBlockedWord(value))||(value===null&&containsBlockedWord((getValue(el)||'')+pasted))){event.preventDefault();showBlockedMessage();}},true);
+  document.addEventListener('drop',function(event){var el=event.target;if(!isTextField(el))return;var dropped=(event.dataTransfer||{}).getData?event.dataTransfer.getData('text')||'':'';var value=proposedInputValue(el,{data:dropped,inputType:'insertText'});if((value!==null&&containsBlockedWord(value))||(value===null&&containsBlockedWord((getValue(el)||'')+dropped))){event.preventDefault();showBlockedMessage();}},true);
+  document.addEventListener('input',function(event){var el=event.target;if(!isTextField(el))return;if(containsBlockedWord(getValue(el))){var previous=lastAllowedValue.get(el)||'';if(el.isContentEditable)el.textContent=previous;else el.value=previous;showBlockedMessage();}else lastAllowedValue.set(el,getValue(el));},true);
+  document.addEventListener('focusin',function(event){if(isTextField(event.target))lastAllowedValue.set(event.target,getValue(event.target));},true);
+  window.containsBlockedWord=containsBlockedWord;
 })();

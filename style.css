@@ -2374,3 +2374,61 @@ header.top h1,
 .feedback-btn:hover{
   background: #1a1a1a !important;
 }
+
+/* ---- Username / sitebrede toegang ---- */
+.username-top-btn {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 8px 13px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold);
+  background: linear-gradient(180deg, rgba(238,212,154,0.10), rgba(212,169,79,0.04));
+  color: var(--gold-soft);
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--glow-gold-soft);
+}
+.username-top-btn:hover { color: var(--gold-soft); border-color: var(--gold-soft); transform: translateY(-1px); }
+.username-top-btn span { color: var(--gold-soft); }
+.username-edit-btn { color: var(--gold-soft) !important; border: 1px solid var(--gold) !important; background: rgba(212,169,79,0.06) !important; cursor: pointer; padding: 7px 12px; border-radius: var(--radius-pill); }
+.global-access-lock { position: fixed; inset: 0; z-index: 99999; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(8,6,4,.92); backdrop-filter:blur(12px); }
+.global-access-lock-card { width:min(560px,100%); text-align:center; padding:42px 30px; border:1px solid var(--line); border-radius:var(--radius-lg); background:linear-gradient(165deg,var(--glass),transparent 40%),var(--bg-elevated); box-shadow:var(--shadow-3); }
+.global-access-lock-icon { font-size:3rem; margin-bottom:12px; }
+.global-access-lock-card h1 { font-family:var(--font-display); margin:0 0 12px; font-size:2rem; background:linear-gradient(100deg,var(--gold-soft),var(--gold),var(--gold-soft)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.global-access-lock-card p { color:var(--muted); line-height:1.65; margin:0 0 24px; }
+.user-status-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; background:#777; box-shadow:0 0 0 2px rgba(255,255,255,.05); }
+.user-status-dot.online { background:#55a64d; box-shadow:0 0 10px rgba(85,166,77,.55); }
+.user-admin-card { cursor:default; }
+.user-admin-detail { margin-top:10px; padding:12px; border-radius:var(--radius); border:1px solid var(--line); background:rgba(0,0,0,.12); }
+.user-admin-restaurants { display:flex; flex-direction:column; gap:7px; margin-top:8px; }
+.user-admin-restaurant { padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--ink); }
+.user-admin-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:12px; }
+.user-message-item { padding:14px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(155deg,var(--glass),transparent 45%),var(--card); margin-bottom:9px; }
+.user-message-head { display:flex; justify-content:space-between; gap:10px; font-weight:700; color:var(--gold-soft); }
+.user-message-text { margin-top:8px; white-space:pre-wrap; line-height:1.55; color:var(--ink); }
+
+
+.global-access-lock-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+.global-access-lock-actions .btn-primary, .global-access-lock-actions .btn-secondary { margin-top:0; }
+
+/* Username beheer: uitsluitend Online/Offline als presence-status. */
+.user-presence { font-weight: 700; }
+.user-presence.online { color: #55a64d; }
+.user-presence.offline { color: #777; }
+
+/* Sitebeheer-login moet ook boven het globale blokkadescherm kunnen openen. */
+#modal-admin-login { z-index: 100002 !important; }
+#modal-admin-login.open { z-index: 100002 !important; }
+
+/* ==================== Persoonlijke berichten ==================== */
+.tab-count, .bell-badge { align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:999px; font-size:12px; font-weight:700; line-height:20px; }
+.tab-count { margin-left:5px; background:var(--gold, #c9a227); color:#fff; vertical-align:middle; }
+.message-toolbar { display:flex; justify-content:flex-end; margin-bottom:14px; }
+.user-search-results { display:flex; flex-direction:column; gap:6px; margin-top:7px; max-height:180px; overflow:auto; }
+.user-search-result { width:100%; text-align:left; border:1px solid rgba(0,0,0,.1); background:rgba(255,255,255,.7); border-radius:10px; padding:10px 12px; cursor:pointer; font:inherit; }
+.user-search-result:hover { filter:brightness(.97); }
+.selected-user { margin:7px 0 12px; padding:9px 12px; border-radius:10px; background:rgba(201,162,39,.12); font-weight:600; }
+.user-message-item { cursor:pointer; }
+.user-message-item.unread { border-left:4px solid var(--gold, #c9a227); }
+.message-full-text { white-space:pre-wrap; line-height:1.6; margin:14px 0; padding:14px; border-radius:10px; background:rgba(0,0,0,.035); }

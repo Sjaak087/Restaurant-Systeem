@@ -14,6 +14,12 @@
 // },
 
 const UPDATES = [
+  { 
+    title: 'Mega update!', 
+    date: '02-09-2026', 
+    time: '20:45', 
+    info: 'Dit is echt een mega update met veel grote toevoegingen zoals ten eerste heb ik toegevoegd dat je nu een username moet instellen als je voor het eerst online komt je kunt deze ook veranderen maar let op: als ik erachter kom dat dit niet je eigen naam is of dat je eigen naam erin zit dan krijg je een time out of wordt je gebanned want dit heb ik namelijk ook toegevoegd ik kan nu mensen bannen, een time out geven of een waarschuwing geven een timeout dat is tijdelijk dan kun je niks een ban is voor altijd als ik je niet unban je zou een klacht kunnen indienen en dan unban ik je misschien ik heb ook nog toegevoegd dat je nu berichten naar elkaar kunt sturen zoek de username typ een titel in en de tekst die je wilt sturen en stuur het bericht de berichten zijn te vinden bij de plek waar ook de announcements staan dus bij het belletje bovenin als laatste heb ik ook nog een aantal geblokkeerde woorden toegevoegd en verschillende versies ervan misschien komt er morgen nog een update maar dat weet ik nog niet misschien tot morgen!'
+  },     
   {
     title: 'Geblokkeerde woorden', 
     date: '01-09-2026', 

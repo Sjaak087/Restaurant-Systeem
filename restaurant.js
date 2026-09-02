@@ -12,8 +12,10 @@ function getMyRestaurants() {
 // zonder dat er een eigen ledenrecord wordt aangemaakt.
 const isAdminMode = params.get('admin') === '1' && sessionStorage.getItem('isRestaurantAdmin') === '1';
 
+const deviceUsername = getUsername();
+
 const mijnEntry = getMyRestaurants().find(r => r.id === restaurantId);
-if (!restaurantId || (!mijnEntry && !isAdminMode)) {
+if (!restaurantId || (!mijnEntry && !isAdminMode) || (!deviceUsername && !isAdminMode)) {
   alert('Dit restaurant is niet bekend op dit apparaat. Join het eerst met een code.');
   window.location.href = 'index.html';
 }
@@ -23,21 +25,31 @@ const backUrl = isAdminMode ? 'admin.html' : 'index.html';
 
 const restRef = db.ref('restaurants/' + restaurantId);
 
+window.addEventListener('usernameChanged', event => {
+  if (isAdminMode || !myMemberId || !event.detail || !event.detail.username) return;
+  restRef.child('leden/' + myMemberId + '/naam').set(event.detail.username).catch(err => {
+    console.error('Username synchroniseren mislukt:', err);
+  });
+});
+
 // ==================== Waarschuwing van systeembeheer ====================
-// Alleen voor de echte eigenaar op zijn eigen apparaat (niet voor de admin die
-// het restaurant zelf beheert, en niet voor gewone leden). Verschijnt de
-// eerste keer dat hij het restaurant opent na het versturen van een
-// waarschuwing, en verdwijnt daarna voorgoed zodra hij op Oké drukt.
+// Persoonlijke waarschuwingen worden centraal via access-control.js opgehaald.
+// Daardoor krijgt iedere gebruiker zijn waarschuwing zodra de restaurantsite
+// geopend/joined wordt, ongeacht of hij eigenaar of gewoon lid is.
+// De oude restaurant-waarschuwing blijft alleen voor het bestaande
+// restaurant-specifieke waarschuwingstype.
 if (isOwner && !isAdminMode) {
   restRef.child('warning').once('value').then(snap => {
     const warning = snap.val();
     if (warning && warning.text) {
-      document.getElementById('owner-warning-text').textContent = warning.text;
+      const textEl = document.getElementById('owner-warning-text');
+      if (textEl) textEl.textContent = warning.text;
       openModal('modal-owner-warning');
     }
   });
 }
-document.getElementById('owner-warning-ok').addEventListener('click', () => {
+const ownerWarningOk = document.getElementById('owner-warning-ok');
+if (ownerWarningOk) ownerWarningOk.addEventListener('click', () => {
   closeModal('modal-owner-warning');
   restRef.child('warning').remove();
 });
@@ -200,7 +212,7 @@ if (isAdminMode) {
       if (!snap.exists()) {
         const tabs = {};
         ALL_TABS.forEach(t => { tabs[t] = true; });
-        const data = { rol: isOwner ? 'eigenaar' : 'gejoined', naam: mijnEntry.mijnNaam || 'Naamloos', tabs: tabs, toegevoegdOp: Date.now() };
+        const data = { rol: isOwner ? 'eigenaar' : 'gejoined', userId: window.BESTELSYSTEEM_USER_ID || '', naam: mijnEntry.mijnNaam || getUsername() || 'Naamloos', tabs: tabs, toegevoegdOp: Date.now() };
         return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
       }
       return snap.val().tabs;
@@ -225,6 +237,13 @@ if (isAdminMode) {
         return;
       }
       const lid = snap.val();
+      if (window.BESTELSYSTEEM_USER_ID && lid.userId !== window.BESTELSYSTEEM_USER_ID) {
+        restRef.child('leden/' + myMemberId + '/userId').set(window.BESTELSYSTEEM_USER_ID);
+      }
+      const username = getUsername();
+      if (username && lid.naam !== username) {
+        restRef.child('leden/' + myMemberId + '/naam').set(username);
+      }
       applyTabPermissions(lid.tabs);
       updateMyNameBadge(lid.naam, lid.rolNaam);
     });
@@ -233,10 +252,14 @@ if (isAdminMode) {
 
 // ==================== Eigen naam bovenaan ====================
 function updateMyNameBadge(naam, rolNaam) {
+  const username = getUsername() || naam || '';
   const badge = document.getElementById('my-name-badge');
-  if (badge) badge.textContent = naam ? `👤 ${naam}${rolNaam ? ' · ' + rolNaam : ''}` : '';
+  const label = document.getElementById('my-username-label');
+  if (label) label.textContent = username;
+  else if (badge) badge.textContent = username ? `👤 ${username}${rolNaam ? ' · ' + rolNaam : ''}` : '';
+  if (badge) badge.title = username ? 'Klik om je username te wijzigen' : '';
   const infoEl = document.getElementById('info-mijn-naam');
-  if (infoEl) infoEl.textContent = naam || '—';
+  if (infoEl) infoEl.textContent = username || '—';
 }
 
 if (isAdminMode) {
@@ -246,25 +269,31 @@ if (isAdminMode) {
   if (row) row.style.display = 'none';
 } else {
   document.getElementById('btn-rename-mijn-naam').addEventListener('click', () => {
-    document.getElementById('rename-mijn-naam-input').value = document.getElementById('info-mijn-naam').textContent.trim();
+    document.getElementById('rename-mijn-naam-input').value = getUsername();
     document.getElementById('rename-mijn-naam-error').textContent = '';
     openModal('modal-rename-mijn-naam');
   });
 }
-document.getElementById('rename-mijn-naam-confirm').addEventListener('click', () => {
-  const naam = document.getElementById('rename-mijn-naam-input').value.trim();
+document.getElementById('rename-mijn-naam-confirm').addEventListener('click', async () => {
+  const input = document.getElementById('rename-mijn-naam-input');
   const errorEl = document.getElementById('rename-mijn-naam-error');
-  if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+  const username = input.value.trim();
+  if (!username) { errorEl.textContent = 'Vul een username in.'; return; }
+  if (username.length > 15) { errorEl.textContent = 'Je username mag maximaal 15 tekens lang zijn.'; return; }
+
   const btn = document.getElementById('rename-mijn-naam-confirm');
   btn.disabled = true;
-  restRef.child('leden/' + myMemberId + '/naam').set(naam).then(() => {
-    btn.disabled = false;
+  try {
+    setUsername(username);
+    await restRef.child('leden/' + myMemberId + '/naam').set(username);
     closeModal('modal-rename-mijn-naam');
-  }).catch(err => {
+    await openUsernameWarning();
+  } catch (err) {
     console.error(err);
-    btn.disabled = false;
     errorEl.textContent = 'Er ging iets mis, probeer opnieuw.';
-  });
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 // ---- Ledenlijst (alleen zichtbaar/bewerkbaar voor de eigenaar) ----

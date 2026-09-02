@@ -18,7 +18,7 @@
   <header class="top">
     <div class="top-title-group">
       <h1 id="restaurant-title">Restaurant</h1>
-      <span class="my-name-badge" id="my-name-badge"></span>
+      <button type="button" class="my-name-badge username-edit-btn" id="btn-username">👤 <span id="my-username-label"></span></button>
     </div>
     <div class="header-actions">
       <span class="delete-timer-badge" id="delete-timer-badge" style="display:none;"></span>
@@ -192,7 +192,7 @@
 
     <div class="subtab-panel" id="subpanel-algemeen">
       <div class="settings-info-row" id="row-mijn-naam">
-        <span>Jouw naam</span>
+        <span>Jouw username</span>
         <span class="settings-info-value-group">
           <span id="info-mijn-naam">—</span>
           <button type="button" class="mini-btn edit" id="btn-rename-mijn-naam">Bewerken</button>
@@ -362,11 +362,37 @@
   </div>
 </div>
 
+<!-- Modal: username instellen/wijzigen -->
+<div class="modal-overlay" id="modal-username-setup">
+  <div class="modal-box">
+    <div class="modal-title">👤 Username wijzigen</div>
+    <p class="modal-text">Kies een username van maximaal 15 tekens.</p>
+    <label class="modal-label" for="username-setup-input">Username</label>
+    <input type="text" id="username-setup-input" class="modal-input" maxlength="15" autocomplete="off" placeholder="Bijv. Sam123">
+    <div class="modal-error" id="username-setup-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="username-setup-confirm">Doorgaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: username waarschuwing -->
+<div class="modal-overlay" id="modal-username-warning">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Let op</div>
+    <p class="modal-text username-warning-text">let op als de eigenaar erachter komt dat dit niet jou echte naam is of erin staat zal je account verbannen worden.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-primary" id="username-warning-ok">Begrepen</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: eigen naam wijzigen -->
 <div class="modal-overlay" id="modal-rename-mijn-naam">
   <div class="modal-box">
-    <div class="modal-title">Jouw naam wijzigen</div>
-    <input type="text" id="rename-mijn-naam-input" class="modal-input" maxlength="30">
+    <div class="modal-title">Username wijzigen</div>
+    <input type="text" id="rename-mijn-naam-input" class="modal-input" maxlength="15">
     <div class="modal-error" id="rename-mijn-naam-error"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
@@ -607,7 +633,7 @@
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['blocked-words.js', 'firebase-config.js', 'emojis.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
+    ['blocked-words.js', 'firebase-config.js', 'emojis.js', 'username.js', 'access-control.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

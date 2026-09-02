@@ -114,27 +114,29 @@ document.querySelectorAll('[data-notiftab]').forEach(btn => {
 
 // ==================== Eerdere waarschuwingen (geschiedenis, per restaurant) ====================
 let ALL_WARNING_HISTORY = {};
+let ALL_GLOBAL_WARNING_HISTORY = {};
 const warningsListEl = document.getElementById('warnings-list');
 const warningsEmptyEl = document.getElementById('warnings-empty-msg');
 
 function renderWarningHistory() {
   if (!warningsListEl) return;
-  const entries = Object.entries(ALL_WARNING_HISTORY)
-    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  const entries = Object.entries(ALL_WARNING_HISTORY).map(([id,w]) => [id,{...w, _global:false}]);
+  const globalEntries = Object.entries(ALL_GLOBAL_WARNING_HISTORY).map(([id,w]) => [id,{...w, _global:true}]);
+  const combined = entries.concat(globalEntries).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
 
   warningsListEl.innerHTML = '';
-  if (entries.length === 0) {
+  if (combined.length === 0) {
     if (warningsEmptyEl) warningsEmptyEl.style.display = 'block';
     return;
   }
   if (warningsEmptyEl) warningsEmptyEl.style.display = 'none';
 
-  entries.forEach(([id, w]) => {
+  combined.forEach(([id, w]) => {
     const item = document.createElement('div');
     item.className = 'announcement-item';
     item.innerHTML = `
       <div class="announcement-item-head">
-        <span class="announcement-item-title">⚠️ ${escapeHtmlAnnouncements(w.restaurantNaam || 'Restaurant')}</span>
+        <span class="announcement-item-title">⚠️ ${escapeHtmlAnnouncements(w._global ? 'Sitewaarschuwing' : (w.restaurantNaam || 'Restaurant'))}</span>
         <span class="announcement-item-date">${escapeHtmlAnnouncements(formatAankondigingDatumTijd(w.createdAt))}</span>
       </div>
       <div class="announcement-item-info">${escapeHtmlAnnouncements(w.text)}</div>
@@ -144,6 +146,7 @@ function renderWarningHistory() {
 }
 
 if (typeof db !== 'undefined') {
+  if (window.BESTELSYSTEEM_USER_ID) db.ref('users/' + window.BESTELSYSTEEM_USER_ID + '/warnings').on('value', snap => { ALL_GLOBAL_WARNING_HISTORY = snap.val() || {}; renderWarningHistory(); });
   db.ref('warningHistory').on('value', snap => {
     ALL_WARNING_HISTORY = snap.val() || {};
     renderWarningHistory();

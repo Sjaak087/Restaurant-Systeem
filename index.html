@@ -14,6 +14,8 @@
 
 <div class="landing-wrap">
   <div class="landing-topbar">
+    <button type="button" class="username-top-btn" id="btn-username">👤 <span id="username-top-label">Username</span></button>
+    <span class="landing-topbar-spacer"></span>
     <button type="button" class="updates-btn" id="btn-updates">🆕 Update log</button>
     <button type="button" class="bell-btn" id="btn-announcements" aria-label="Announcements">
       🔔<span class="bell-badge" id="announcement-badge" style="display:none;"></span>
@@ -44,8 +46,7 @@
     <div class="modal-title">Nieuw restaurant</div>
     <label class="modal-label">Naam van je restaurant</label>
     <input type="text" id="create-name" class="modal-input" placeholder="Bijv. Het Goedkoop" maxlength="40">
-    <label class="modal-label">Jouw naam</label>
-    <input type="text" id="create-my-name" class="modal-input" placeholder="Bijv. Sam" maxlength="30">
+    <p class="modal-text username-used-note">Je username wordt automatisch gebruikt voor dit restaurant.</p>
     <div class="modal-error" id="create-error"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
@@ -60,12 +61,36 @@
     <div class="modal-title">Restaurant joinen</div>
     <label class="modal-label">Code van de eigenaar</label>
     <input type="text" id="join-code" class="modal-input code-input" placeholder="BIJV. AB12CD" maxlength="8" autocapitalize="characters">
-    <label class="modal-label">Jouw naam</label>
-    <input type="text" id="join-my-name" class="modal-input" placeholder="Bijv. Sam" maxlength="30">
+    <p class="modal-text username-used-note">Je username wordt automatisch gebruikt voor dit restaurant.</p>
     <div class="modal-error" id="join-error"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="join-confirm">Joinen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: username instellen -->
+<div class="modal-overlay" id="modal-username-setup">
+  <div class="modal-box">
+    <div class="modal-title">👤 Kies je username</div>
+    <p class="modal-text">Dit is de eerste keer dat je op dit apparaat inlogt. Kies een username van maximaal 15 tekens.</p>
+    <label class="modal-label" for="username-setup-input">Username</label>
+    <input type="text" id="username-setup-input" class="modal-input" maxlength="15" autocomplete="off" placeholder="Bijv. Sam123">
+    <div class="modal-error" id="username-setup-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-primary" id="username-setup-confirm">Doorgaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: username waarschuwing -->
+<div class="modal-overlay" id="modal-username-warning">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Let op</div>
+    <p class="modal-text username-warning-text">let op als de eigenaar erachter komt dat dit niet jou echte naam is of erin staat zal je account verbannen worden.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-primary" id="username-warning-ok">Begrepen</button>
     </div>
   </div>
 </div>
@@ -104,7 +129,8 @@
     <div class="modal-title">📢 Announcements</div>
     <div class="tab-nav" style="margin-bottom:16px;">
       <button type="button" class="tab-btn active" data-notiftab="announcements">Announcements</button>
-      <button type="button" class="tab-btn" data-notiftab="warnings">Eerdere waarschuwingen</button>
+      <button type="button" class="tab-btn" data-notiftab="warnings">Eerdere waarschuwingen <span class="tab-count" id="warnings-tab-badge" style="display:none"></span></button>
+      <button type="button" class="tab-btn" data-notiftab="messages">Berichten <span class="tab-count" id="messages-tab-badge" style="display:none"></span></button>
     </div>
     <div id="notiftab-announcements" class="tab-panel active">
       <div class="updates-list" id="announcements-list"></div>
@@ -114,8 +140,48 @@
       <div class="updates-list" id="warnings-list"></div>
       <div class="empty-msg" id="warnings-empty-msg" style="display:none;">Nog geen waarschuwingen verstuurd.</div>
     </div>
+    <div id="notiftab-messages" class="tab-panel">
+      <div class="message-toolbar">
+        <button type="button" class="btn-primary" id="btn-new-user-message">✉️ Nieuw bericht</button>
+      </div>
+      <div class="updates-list" id="user-messages-list"></div>
+      <div class="empty-msg" id="user-messages-empty" style="display:none;">Je hebt nog geen berichten.</div>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nieuw bericht -->
+<div class="modal-overlay" id="modal-new-user-message">
+  <div class="modal-box wide">
+    <div class="modal-title">✉️ Nieuw bericht</div>
+    <label class="modal-label" for="message-recipient-search">Username zoeken</label>
+    <input type="text" id="message-recipient-search" class="modal-input" maxlength="15" autocomplete="off" placeholder="Typ een username...">
+    <div id="message-recipient-results" class="user-search-results"></div>
+    <div id="message-recipient-selected" class="selected-user" style="display:none"></div>
+    <label class="modal-label" for="message-title-input">Titel</label>
+    <input type="text" id="message-title-input" class="modal-input" maxlength="100" placeholder="Titel van je bericht">
+    <label class="modal-label" for="message-body-input">Bericht</label>
+    <textarea id="message-body-input" class="modal-input" rows="7" maxlength="3000" placeholder="Schrijf je bericht..."></textarea>
+    <div class="modal-error" id="message-compose-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="send-user-message">Versturen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: bericht lezen -->
+<div class="modal-overlay" id="modal-read-user-message">
+  <div class="modal-box wide">
+    <div class="modal-title" id="read-user-message-title"></div>
+    <div class="modal-text" id="read-user-message-meta"></div>
+    <div class="message-full-text" id="read-user-message-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+      <button type="button" class="btn-danger" id="delete-user-message">Verwijderen</button>
     </div>
   </div>
 </div>
@@ -158,7 +224,7 @@
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
     var v = Date.now();
-    ['blocked-words.js', 'firebase-config.js', 'admin-config.js', 'landing.js', 'admin-login.js', 'updates.js', 'announcements.js'].forEach(function (file) {
+    ['blocked-words.js', 'firebase-config.js', 'admin-config.js', 'username.js', 'access-control.js', 'landing.js', 'admin-login.js', 'updates.js', 'announcements.js', 'user-messages.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();
