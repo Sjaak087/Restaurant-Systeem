@@ -6,7 +6,7 @@
 <title>Bestelsysteem</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Work+Sans:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Caveat:wght@500;700&family=Bebas+Neue&family=Abril+Fatface&family=Roboto+Slab:wght@400;600;700&family=Josefin+Sans:wght@400;600;700&family=Dancing+Script:wght@500;700&family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Work+Sans:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Caveat:wght@500;700&family=Bebas+Neue&family=Abril+Fatface&family=Roboto+Slab:wght@400;600;700&family=Josefin+Sans:wght@400;600;700&family=Dancing+Script:wght@500;700&family=Crimson+Text:wght@400;600;700&family=Nunito:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Quicksand:wght@400;500;700&family=Libre+Baskerville:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" id="app-style-link">
 <script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + Date.now());</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -31,18 +31,18 @@
   </header>
 
   <nav class="tab-nav">
-    <button type="button" class="tab-btn active" data-tab="bestellen">🍽 Bestellen</button>
-    <button type="button" class="tab-btn" data-tab="notities">📝 Notities</button>
-    <button type="button" class="tab-btn" data-tab="voorraad">📦 Voorraad</button>
-    <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken<span class="tab-badge" id="tab-badge-keuken"></span></button>
-    <button type="button" class="tab-btn" data-tab="bar">🍸 Bar<span class="tab-badge" id="tab-badge-bar"></span></button>
+    <button type="button" class="tab-btn active" data-tab="notities">📝 Notities</button>
+    <button type="button" class="tab-btn" data-tab="bestellen">🍽 Bestellen</button>
     <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed<span class="tab-badge" id="tab-badge-gereed"></span></button>
+    <button type="button" class="tab-btn" data-tab="bar">🍸 Bar<span class="tab-badge" id="tab-badge-bar"></span></button>
+    <button type="button" class="tab-btn" data-tab="keuken">🔔 Keuken<span class="tab-badge" id="tab-badge-keuken"></span></button>
+    <button type="button" class="tab-btn" data-tab="voorraad">📦 Voorraad</button>
     <button type="button" class="tab-btn" data-tab="historie">🧾 Historie</button>
     <button type="button" class="tab-btn" data-tab="instellingen">⚙️ Instellingen</button>
   </nav>
 
   <!-- ===== BESTELLEN ===== -->
-  <section class="tab-panel active" id="panel-bestellen">
+  <section class="tab-panel" id="panel-bestellen">
     <div class="fp-legend">
       <span class="fp-dot vrij"></span> Vrij &nbsp;&nbsp;<span class="fp-dot bezet"></span> Bezet — tik op een tafel om te bestellen
     </div>
@@ -53,7 +53,7 @@
   </section>
 
   <!-- ===== NOTITIES ===== -->
-  <section class="tab-panel" id="panel-notities">
+  <section class="tab-panel active" id="panel-notities">
     <p class="modal-text" style="margin-top:0;">Notities worden gedeeld met het hele restaurant. Typ iets en druk op Enter om het als vinkje toe te voegen. Afgevinkte notities verdwijnen na 5 seconden.</p>
     <div class="notes-input-row">
       <input type="text" id="notes-input" class="modal-input" maxlength="750" placeholder="Typ een notitie en druk op Enter...">
@@ -133,16 +133,16 @@
   <!-- ===== INSTELLINGEN ===== -->
   <section class="tab-panel" id="panel-instellingen">
     <div class="settings-subnav">
-      <button type="button" class="subtab-btn active" data-subtab="plattegrond">Plattegrond</button>
+      <button type="button" class="subtab-btn active" data-subtab="algemeen">Algemeen</button>
+      <button type="button" class="subtab-btn" data-subtab="plattegrond">Plattegrond</button>
       <button type="button" class="subtab-btn" data-subtab="producten">Producten</button>
       <button type="button" class="subtab-btn" data-subtab="categorieen">Categorieën</button>
       <button type="button" class="subtab-btn" data-subtab="services">Services</button>
       <button type="button" class="subtab-btn" id="subtab-btn-leden" data-subtab="leden">Leden</button>
-      <button type="button" class="subtab-btn" data-subtab="algemeen">Algemeen</button>
       <button type="button" class="subtab-btn" data-subtab="zelfservice">Zelfservice QR</button>
     </div>
 
-    <div class="subtab-panel active" id="subpanel-plattegrond">
+    <div class="subtab-panel" id="subpanel-plattegrond">
       <div class="fp-toolbar">
         <button type="button" class="fp-tool-btn" id="tool-add-area">📍 Gebied</button>
         <button type="button" class="fp-tool-btn" id="tool-add-table">🪑 Tafel</button>
@@ -190,7 +190,7 @@
       <div class="leden-list" id="leden-list"></div>
     </div>
 
-    <div class="subtab-panel" id="subpanel-algemeen">
+    <div class="subtab-panel active" id="subpanel-algemeen">
       <div class="settings-info-row" id="row-mijn-naam">
         <span>Jouw username</span>
         <span class="settings-info-value-group">
@@ -220,6 +220,13 @@
         </span>
       </div>
       <div class="settings-info-row">
+        <span>Achtergrondpatroon</span>
+        <span class="settings-info-value-group">
+          <span id="info-bg-pattern">Geen</span>
+          <button type="button" class="mini-btn edit" id="btn-bg-pattern">Wijzigen</button>
+        </span>
+      </div>
+      <div class="settings-info-row">
         <span>Lettertype</span>
         <span class="settings-info-value-group">
           <span id="info-font">Standaard</span>
@@ -234,8 +241,12 @@
           <span>🔕 Geen geluid</span>
         </button>
         <button type="button" class="sound-choice-btn" id="sound-choice-default">
-          <span>🔔 Standaardgeluid</span>
+          <span>🔔 Melding geluid 1</span>
           <span class="mini-btn edit sound-preview-btn" id="sound-preview-default">▶ Beluisteren</span>
+        </button>
+        <button type="button" class="sound-choice-btn" id="sound-choice-second">
+          <span>🔔 Melding geluid 2</span>
+          <span class="mini-btn edit sound-preview-btn" id="sound-preview-second">▶ Beluisteren</span>
         </button>
         <button type="button" class="sound-choice-btn" id="sound-choice-custom" disabled>
           <span id="sound-custom-label">🎵 Mijn geüploade geluid</span>
@@ -480,6 +491,17 @@
   </div>
 </div>
 
+<!-- Modal: achtergrondpatroon kiezen -->
+<div class="modal-overlay" id="modal-bg-pattern">
+  <div class="modal-box wide">
+    <div class="modal-title">Achtergrondpatroon</div>
+    <p class="modal-text">Kies een patroon dat subtiel maar duidelijk zichtbaar op de achtergrond van je restaurant wordt geplaatst.</p>
+    <button type="button" class="color-swatch color-swatch-default" id="pattern-default" title="Geen patroon">↺</button>
+    <div class="pattern-palette" id="pattern-palette"></div>
+    <div class="modal-actions"><button type="button" class="btn-secondary" data-close>Sluiten</button></div>
+  </div>
+</div>
+
 <!-- Modal: lettertype kiezen -->
 <div class="modal-overlay" id="modal-font">
   <div class="modal-box wide">
@@ -526,18 +548,32 @@
   </div>
 </div>
 
-<!-- Modal: rol instellen voor een lid -->
-<div class="modal-overlay" id="modal-member-role">
+<!-- Modal: lid beheren -->
+<div class="modal-overlay" id="modal-member-manage">
   <div class="modal-box">
-    <div class="modal-title" id="member-role-modal-title">Rol instellen</div>
-    <div class="product-option-picker-existing" id="member-role-existing"></div>
-    <label class="modal-label" style="margin-top:0;">Nieuwe rol</label>
+    <div class="modal-title" id="member-manage-modal-title">Lid beheren</div>
+    <div class="product-option-picker-existing" id="member-manage-existing"></div>
+
+    <label class="modal-label">Rol</label>
     <input type="text" id="member-role-input" class="modal-input" placeholder="Bijv. Ober" maxlength="30">
+
+    <label class="modal-label">Custom naam</label>
+    <input type="text" id="member-custom-name-input" class="modal-input" placeholder="Naam die in het restaurant wordt getoond" maxlength="30">
+
+    <label class="member-permission-row" style="margin-top:12px;">
+      <input type="checkbox" id="member-can-create-input">
+      <span>Producten en alles kunnen aanmaken</span>
+    </label>
+    <div class="member-permission-hint">Standaard staat dit op nee.</div>
+
     <div class="modal-error" id="member-role-error"></div>
     <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="member-role-clear">Geen rol</button>
+      <button type="button" class="btn-secondary" id="member-role-clear">Rol wissen</button>
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="member-role-confirm">Opslaan</button>
+    </div>
+    <div class="modal-actions" style="margin-top:8px;">
+      <button type="button" class="btn-danger" id="member-manage-remove">Verwijderen uit restaurant</button>
     </div>
   </div>
 </div>

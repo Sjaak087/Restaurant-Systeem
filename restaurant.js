@@ -137,7 +137,7 @@ function saveMyRestaurantsLocal(list) {
 }
 
 // ==================== Leden & rechten per tabblad ====================
-const ALL_TABS = ['bestellen', 'notities', 'voorraad', 'keuken', 'bar', 'gereed', 'historie', 'instellingen'];
+const ALL_TABS = ['notities', 'bestellen', 'gereed', 'bar', 'keuken', 'voorraad', 'historie', 'instellingen'];
 const TAB_LABELS = { bestellen: 'Bestellen', notities: 'Notities', voorraad: 'Voorraad', keuken: 'Keuken', bar: 'Bar', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
 
 function genLidId() {
@@ -212,7 +212,7 @@ if (isAdminMode) {
       if (!snap.exists()) {
         const tabs = {};
         ALL_TABS.forEach(t => { tabs[t] = true; });
-        const data = { rol: isOwner ? 'eigenaar' : 'gejoined', userId: window.BESTELSYSTEEM_USER_ID || '', naam: mijnEntry.mijnNaam || getUsername() || 'Naamloos', tabs: tabs, toegevoegdOp: Date.now() };
+        const data = { rol: isOwner ? 'eigenaar' : 'gejoined', userId: window.BESTELSYSTEEM_USER_ID || '', naam: mijnEntry.mijnNaam || getUsername() || 'Naamloos', tabs: tabs, canAanmaken: true, toegevoegdOp: Date.now() };
         return restRef.child('leden/' + myMemberId).set(data).then(() => tabs);
       }
       return snap.val().tabs;
@@ -223,7 +223,7 @@ if (isAdminMode) {
     if (isOwner) {
       // Zorg dat de eigenaar zichzelf meteen in de ledenlijst ziet, ook nog vóórdat
       // het live-abonnement op /leden zijn eerste update heeft binnengekregen.
-      LEDEN_STATE[myMemberId] = LEDEN_STATE[myMemberId] || { rol: 'eigenaar', tabs: tabs, toegevoegdOp: Date.now() };
+      LEDEN_STATE[myMemberId] = LEDEN_STATE[myMemberId] || { rol: 'eigenaar', tabs: tabs, canAanmaken: true, toegevoegdOp: Date.now() };
       renderLedenList();
     }
     // Pas ná het aanmaken/ophalen van dit lid-record live gaan luisteren, anders kan het
@@ -245,7 +245,7 @@ if (isAdminMode) {
         restRef.child('leden/' + myMemberId + '/naam').set(username);
       }
       applyTabPermissions(lid.tabs);
-      updateMyNameBadge(lid.naam, lid.rolNaam);
+      updateMyNameBadge(lid.customNaam || lid.naam, lid.rolNaam);
     });
   });
 }
@@ -319,7 +319,7 @@ function renderLedenList() {
     const isEigenaarRow = lid.rol === 'eigenaar';
     const isMe = mid === myMemberId;
     const icon = isEigenaarRow ? '👑' : '👤';
-    const naam = `${icon} ${lid.naam || 'Naamloos'}`;
+    const naam = `${icon} ${lid.customNaam || lid.naam || 'Naamloos'}`;
     const tabs = lid.tabs || {};
     const row = document.createElement('div');
     row.className = 'lid-row';
@@ -331,7 +331,7 @@ function renderLedenList() {
       <div class="lid-row-head">
         <span class="lid-row-name">${escapeHtml(naam)}${isMe ? ' <span class="lid-me-tag">(jij)</span>' : ''}${lid.rolNaam ? ` <span class="ice-badge">🏷️ ${escapeHtml(lid.rolNaam)}</span>` : ''}</span>
         <span class="settings-product-actions">
-          <button type="button" class="mini-btn edit" data-role="${mid}">Rol instellen</button>
+          <button type="button" class="mini-btn edit" data-role="${mid}">Lid beheren</button>
           ${isEigenaarRow ? '' : `<button type="button" class="mini-btn danger" data-kick="${mid}">Verwijderen</button>`}
         </span>
       </div>
@@ -372,23 +372,22 @@ let editingRoleMemberId = null;
 function openMemberRoleModal(mid) {
   editingRoleMemberId = mid;
   const lid = LEDEN_STATE[mid] || {};
-  document.getElementById('member-role-modal-title').textContent = `Rol voor ${lid.naam || 'lid'}`;
-  document.getElementById('member-role-input').value = '';
+  document.getElementById('member-manage-modal-title').textContent = `Lid beheren: ${lid.naam || 'lid'}`;
+  document.getElementById('member-role-input').value = lid.rolNaam || '';
+  document.getElementById('member-custom-name-input').value = lid.customNaam || '';
+  document.getElementById('member-can-create-input').checked = lid.canAanmaken === true;
   document.getElementById('member-role-error').textContent = '';
   renderExistingRolesPicker();
-  openModal('modal-member-role');
+  const removeBtn = document.getElementById('member-manage-remove');
+  removeBtn.style.display = lid.rol === 'eigenaar' ? 'none' : '';
+  openModal('modal-member-manage');
 }
 
-// Toont de al eerder gebruikte rollen als klikbare chips, zodat je ze in
-// één klik kunt toewijzen zonder opnieuw te typen.
 function renderExistingRolesPicker() {
-  const wrap = document.getElementById('member-role-existing');
+  const wrap = document.getElementById('member-manage-existing');
   if (!wrap) return;
   const known = allKnownRoles();
-  if (known.length === 0) {
-    wrap.innerHTML = '';
-    return;
-  }
+  if (known.length === 0) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = '<div class="modal-label" style="margin-top:0;">Al bestaande rollen (klik om te kiezen)</div>';
   const row = document.createElement('div');
   row.className = 'product-options-list';
@@ -397,36 +396,47 @@ function renderExistingRolesPicker() {
     chip.type = 'button';
     chip.className = 'product-option-chip existing';
     chip.textContent = naam;
-    chip.addEventListener('click', () => saveMemberRole(naam));
+    chip.addEventListener('click', () => { document.getElementById('member-role-input').value = naam; });
     row.appendChild(chip);
   });
   wrap.appendChild(row);
 }
 
-function saveMemberRole(naam) {
+async function saveMemberManagement() {
   if (!editingRoleMemberId) return;
-  restRef.child('leden/' + editingRoleMemberId + '/rolNaam').set(naam).then(() => {
-    closeModal('modal-member-role');
-  }).catch(err => {
-    console.error(err);
-    document.getElementById('member-role-error').textContent = 'Er ging iets mis, probeer opnieuw.';
-  });
+  const role = document.getElementById('member-role-input').value.trim();
+  const customNaam = document.getElementById('member-custom-name-input').value.trim();
+  const canAanmaken = document.getElementById('member-can-create-input').checked === true;
+  const err = document.getElementById('member-role-error');
+  const lid = LEDEN_STATE[editingRoleMemberId] || {};
+  const updates = {};
+  if (role) updates[`leden/${editingRoleMemberId}/rolNaam`] = role;
+  else updates[`leden/${editingRoleMemberId}/rolNaam`] = null;
+  if (customNaam) updates[`leden/${editingRoleMemberId}/customNaam`] = customNaam;
+  else updates[`leden/${editingRoleMemberId}/customNaam`] = null;
+  // Expliciet opslaan: false is de standaard voor bestaande én nieuwe leden.
+  updates[`leden/${editingRoleMemberId}/canAanmaken`] = canAanmaken;
+  try {
+    await restRef.update(updates);
+    closeModal('modal-member-manage');
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Opslaan mislukt, probeer opnieuw.';
+  }
 }
 
-document.getElementById('member-role-confirm').addEventListener('click', () => {
-  const naam = document.getElementById('member-role-input').value.trim();
-  if (!naam) { document.getElementById('member-role-error').textContent = 'Vul een rolnaam in.'; return; }
-  saveMemberRole(naam);
-});
+document.getElementById('member-role-confirm').addEventListener('click', saveMemberManagement);
 
 document.getElementById('member-role-clear').addEventListener('click', () => {
   if (!editingRoleMemberId) return;
-  restRef.child('leden/' + editingRoleMemberId + '/rolNaam').remove().then(() => {
-    closeModal('modal-member-role');
-  }).catch(err => {
-    console.error(err);
-    document.getElementById('member-role-error').textContent = 'Er ging iets mis, probeer opnieuw.';
-  });
+  document.getElementById('member-role-input').value = '';
+});
+
+document.getElementById('member-manage-remove').addEventListener('click', () => {
+  if (!editingRoleMemberId) return;
+  if (!confirm('Weet je zeker dat je dit lid uit het restaurant wilt verwijderen? De join-code wordt daarna automatisch vernieuwd.')) return;
+  kickLid(editingRoleMemberId, document.getElementById('member-manage-remove'));
+  closeModal('modal-member-manage');
 });
 
 async function kickLid(mid, btn) {
@@ -476,7 +486,7 @@ restRef.child('code').on('value', snap => {
 });
 
 // ==================== Tabs ====================
-let activeTab = 'bestellen';
+let activeTab = 'notities';
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -486,6 +496,25 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('panel-' + activeTab).classList.add('active');
   });
 });
+
+// ==================== Rechten voor leden: aanmaken ====================
+// Alleen de eigenaar of een lid met canAanmaken=true mag nieuwe onderdelen aanmaken.
+let canAanmaken = isOwner;
+if (!isAdminMode && !isOwner) {
+  restRef.child('leden/' + myMemberId + '/canAanmaken').on('value', snap => {
+    canAanmaken = snap.val() === true;
+    applyCreatePermissions();
+  });
+}
+function applyCreatePermissions() {
+  if (isOwner || isAdminMode || canAanmaken) return;
+  ['btn-add-product','btn-add-category','btn-add-service','tool-add-area','tool-add-table','tool-add-bank','tool-add-bar','tool-add-keuken'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  ['producten-readonly-note','categorieen-readonly-note','services-readonly-note'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'block';
+  });
+}
 
 // ==================== Rechten (alleen eigenaar mag plattegrond/producten aanpassen) ====================
 if (!isOwner) {
@@ -507,10 +536,35 @@ if (!isOwner) {
   document.getElementById('btn-rename-restaurant').style.display = '';
   document.getElementById('btn-header-color').style.display = '';
   document.getElementById('btn-title-color').style.display = '';
+  document.getElementById('btn-bg-pattern').style.display = '';
   document.getElementById('btn-font').style.display = '';
   document.getElementById('row-join-code').style.display = '';
   document.getElementById('join-code-hint').style.display = 'block';
 }
+
+// Een lid met de instelling 'Producten en alles kunnen aanmaken' mag de
+// aanmaakacties gebruiken. Layout-aanpassingen blijven verder alleen voor de eigenaar.
+function refreshCreateControlsForMember() {
+  if (isOwner || isAdminMode || !canAanmaken) return;
+  ['btn-add-product','btn-add-category','btn-add-service'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = '';
+  });
+  ['producten-readonly-note','categorieen-readonly-note','services-readonly-note'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  ['tool-add-area','tool-add-table','tool-add-bank','tool-add-bar','tool-add-keuken'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = '';
+  });
+  const hint = document.getElementById('fp-hint');
+  if (hint) hint.textContent = 'Je hebt toestemming om onderdelen aan te maken.';
+}
+
+const _oldApplyCreatePermissions = applyCreatePermissions;
+applyCreatePermissions = function() {
+  _oldApplyCreatePermissions();
+  refreshCreateControlsForMember();
+};
+applyCreatePermissions();
 
 // ==================== Restaurant verlaten ====================
 if (isAdminMode) {
@@ -599,7 +653,9 @@ const HEADER_COLORS = [
   '#6f8f5c', '#3f6b4f', '#2f6e6e', '#356b8c', '#2c4a75',
   '#3a3a75', '#5c3a75', '#7a3a63', '#8c4a63', '#b05f7a',
   '#4a4438', '#5a5a5a', '#787066', '#2a2115', '#f2e8d5',
-  '#1a2f4d', '#4b2e83', '#7c1f3d', '#1f4d3a', '#b8895c'
+  '#1a2f4d', '#4b2e83', '#7c1f3d', '#1f4d3a', '#b8895c',
+  '#12343b', '#284b63', '#3b5b92', '#6b4e71', '#8a5a7d',
+  '#9b3d5a', '#b85c5c', '#d17a5a', '#d6a04d', '#e2c15a'
 ];
 
 function hexToRgb(hex) {
@@ -787,7 +843,12 @@ const FONT_OPTIONS = [
   { label: 'Bebas Neue', family: '"Bebas Neue", "Arial Narrow", sans-serif' },
   { label: 'Abril Fatface', family: '"Abril Fatface", Georgia, serif' },
   { label: 'Caveat', family: '"Caveat", cursive' },
-  { label: 'Dancing Script', family: '"Dancing Script", cursive' }
+  { label: 'Dancing Script', family: '"Dancing Script", cursive' },
+  { label: 'Nunito', family: '"Nunito", sans-serif' },
+  { label: 'DM Sans', family: '"DM Sans", sans-serif' },
+  { label: 'Quicksand', family: '"Quicksand", sans-serif' },
+  { label: 'Libre Baskerville', family: '"Libre Baskerville", Georgia, serif' },
+  { label: 'Space Grotesk', family: '"Space Grotesk", sans-serif' }
 ];
 const FONT_SAMPLE_TEXT = 'Voorbeeld';
 
@@ -1148,6 +1209,7 @@ document.getElementById('product-option-open-btn').addEventListener('click', () 
 });
 
 document.getElementById('btn-add-product').addEventListener('click', () => {
+  if (!canAanmaken && !isOwner && !isAdminMode) { alert('Je hebt geen toestemming om producten aan te maken.'); return; }
   editingProductKey = null;
   document.getElementById('product-modal-title').textContent = 'Nieuw product';
   document.getElementById('product-name-input').value = '';
@@ -1328,6 +1390,7 @@ function renderSettingsCategories() {
 let editingCategoryKey = null;
 
 document.getElementById('btn-add-category').addEventListener('click', () => {
+  if (!canAanmaken && !isOwner && !isAdminMode) { alert('Je hebt geen toestemming om categorieën aan te maken.'); return; }
   editingCategoryKey = null;
   document.getElementById('category-modal-title').textContent = 'Nieuwe categorie';
   document.getElementById('category-name-input').value = '';
@@ -1419,6 +1482,7 @@ function renderSettingsServices() {
 let editingServiceKey = null;
 
 document.getElementById('btn-add-service').addEventListener('click', () => {
+  if (!canAanmaken && !isOwner && !isAdminMode) { alert('Je hebt geen toestemming om services aan te maken.'); return; }
   editingServiceKey = null;
   document.getElementById('service-modal-title').textContent = 'Nieuwe service';
   document.getElementById('service-title-input').value = '';
@@ -2566,6 +2630,7 @@ function itemsToLinesHtml(order) {
 // Instelbaar per restaurant: geen geluid, het standaardgeluid, of een zelf
 // geüpload geluid (max 400 KB, als base64 data-URL opgeslagen in Firebase).
 const meldingGeluidStandaard = new Audio('melding%20geluid.mp3');
+const meldingGeluid2 = new Audio('melding%20geluid%202.mp3');
 const betaalGeluid = new Audio('betaal%20geluid.mp3');
 function speelBetaalGeluid() {
   try {
@@ -2595,8 +2660,9 @@ function speelMeldingGeluid() {
       customGeluidAudio.play().catch(() => {});
       return;
     }
-    meldingGeluidStandaard.currentTime = 0;
-    meldingGeluidStandaard.play().catch(() => {});
+    const audio = soundSettings.mode === 'second' ? meldingGeluid2 : meldingGeluidStandaard;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
   } catch (e) { /* geluid niet beschikbaar */ }
 }
 
@@ -2608,6 +2674,7 @@ function renderSoundSettingsUi() {
   const hasCustom = !!soundSettings.data;
   const btnNone = document.getElementById('sound-choice-none');
   const btnDefault = document.getElementById('sound-choice-default');
+  const btnSecond = document.getElementById('sound-choice-second');
   const btnCustom = document.getElementById('sound-choice-custom');
   const previewCustom = document.getElementById('sound-preview-custom');
   const removeBtn = document.getElementById('sound-upload-remove');
@@ -2617,6 +2684,7 @@ function renderSoundSettingsUi() {
   btnNone.classList.toggle('selected', mode === 'none');
   btnDefault.classList.toggle('selected', mode === 'default');
   btnCustom.classList.toggle('selected', mode === 'custom');
+  if (btnSecond) btnSecond.classList.toggle('selected', mode === 'second');
   btnCustom.disabled = !hasCustom;
   customLabel.textContent = hasCustom
     ? `🎵 ${soundSettings.name || 'Mijn geüploade geluid'}`
@@ -2625,68 +2693,69 @@ function renderSoundSettingsUi() {
   if (removeBtn) removeBtn.style.display = hasCustom ? '' : 'none';
 }
 
-if (!isOwner) {
-  document.getElementById('sound-choice-none').disabled = true;
-  document.getElementById('sound-choice-default').disabled = true;
-  document.getElementById('sound-choice-custom').disabled = true;
-  document.getElementById('sound-upload-row').style.display = 'none';
-  document.getElementById('sound-readonly-note').style.display = 'block';
-} else {
-  document.getElementById('sound-choice-none').addEventListener('click', () => {
-    restRef.child('settings/notificationSound/mode').set('none');
-  });
-  document.getElementById('sound-choice-default').addEventListener('click', () => {
-    restRef.child('settings/notificationSound/mode').set('default');
-  });
-  document.getElementById('sound-choice-custom').addEventListener('click', () => {
+// Keuze van meldingsgeluid: eigenaar kan kiezen. We bepalen de eigenaar robuust via de
+// bestaande restaurantleden-data; als isOwner nog niet geïnitialiseerd is, wachten we kort
+// en initialiseren de knoppen alsnog zodra de pagina klaar is.
+function initSoundChoiceControls() {
+  const none = document.getElementById('sound-choice-none');
+  const def = document.getElementById('sound-choice-default');
+  const second = document.getElementById('sound-choice-second');
+  const custom = document.getElementById('sound-choice-custom');
+  const uploadRow = document.getElementById('sound-upload-row');
+  const note = document.getElementById('sound-readonly-note');
+  if (!none || !def || !second || !custom) return;
+
+  const owner = (typeof isOwner !== 'undefined') ? !!isOwner : false;
+  [none, def, second, custom].forEach(btn => { btn.disabled = !owner; });
+  if (uploadRow) uploadRow.style.display = owner ? 'flex' : 'none';
+  if (note) note.style.display = owner ? 'none' : 'block';
+
+  if (!owner) return;
+  if (none.dataset.soundBound) return;
+  none.dataset.soundBound = def.dataset.soundBound = second.dataset.soundBound = custom.dataset.soundBound = '1';
+
+  none.addEventListener('click', () => restRef.child('settings/notificationSound/mode').set('none'));
+  def.addEventListener('click', () => restRef.child('settings/notificationSound/mode').set('default'));
+  second.addEventListener('click', () => restRef.child('settings/notificationSound/mode').set('second'));
+  custom.addEventListener('click', () => {
     if (!soundSettings.data) return;
     restRef.child('settings/notificationSound/mode').set('custom');
   });
-  document.getElementById('sound-preview-default').addEventListener('click', (e) => {
-    e.stopPropagation();
-    meldingGeluidStandaard.currentTime = 0;
-    meldingGeluidStandaard.play().catch(() => {});
-  });
-  document.getElementById('sound-preview-custom').addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!soundSettings.data) return;
-    const a = new Audio(soundSettings.data);
-    a.play().catch(() => {});
-  });
-  document.getElementById('sound-upload-remove').addEventListener('click', (e) => {
-    e.stopPropagation();
-    restRef.child('settings/notificationSound').set({ mode: 'default' });
-  });
-  document.getElementById('sound-upload-input').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    e.target.value = '';
-    const errorEl = document.getElementById('sound-upload-error');
-    errorEl.textContent = '';
-    if (!file) return;
-    if (!file.type.startsWith('audio/')) {
-      errorEl.textContent = 'Kies een geluidsbestand.';
-      return;
-    }
-    if (file.size > MAX_SOUND_BYTES) {
-      errorEl.textContent = `Dit bestand is te groot (${Math.round(file.size / 1024)} KB). Maximaal 400 KB toegestaan.`;
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      restRef.child('settings/notificationSound').set({
-        mode: 'custom',
-        data: reader.result,
-        name: file.name,
-        size: file.size
-      }).catch(err => {
-        console.error(err);
-        errorEl.textContent = 'Uploaden mislukt, probeer opnieuw.';
-      });
-    };
-    reader.onerror = () => { errorEl.textContent = 'Bestand kon niet worden gelezen.'; };
-    reader.readAsDataURL(file);
-  });
+
+  // De knop 'Beluisteren' zit binnen de keuze-knop. Stop de klik hier,
+  // zodat luisteren niet tegelijk de meldingsgeluid-keuze verandert.
+  const previewDefault = document.getElementById('sound-preview-default');
+  const previewSecond = document.getElementById('sound-preview-second');
+  const previewCustom = document.getElementById('sound-preview-custom');
+  const playPreview = (audio, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  };
+  if (previewDefault && !previewDefault.dataset.previewBound) {
+    previewDefault.dataset.previewBound = '1';
+    previewDefault.addEventListener('click', e => playPreview(meldingGeluidStandaard, e));
+  }
+  if (previewSecond && !previewSecond.dataset.previewBound) {
+    previewSecond.dataset.previewBound = '1';
+    previewSecond.addEventListener('click', e => playPreview(meldingGeluid2, e));
+  }
+  if (previewCustom && !previewCustom.dataset.previewBound) {
+    previewCustom.dataset.previewBound = '1';
+    previewCustom.addEventListener('click', e => {
+      if (!soundSettings.data) return playPreview(null, e);
+      if (!customGeluidAudio) customGeluidAudio = new Audio(soundSettings.data);
+      playPreview(customGeluidAudio, e);
+    });
+  }
 }
+
+initSoundChoiceControls();
+setTimeout(initSoundChoiceControls, 250);
+setTimeout(initSoundChoiceControls, 1000);
 
 // Bepaalt of een bestelling in de Keuken- of de Bar-tab thuishoort. Een
 // bestelling gaat alleen naar de Bar als ÁL zijn producten daar besteld
@@ -3062,3 +3131,30 @@ notesRef.on('value', (snap) => {
     if (n.afgevinkt) scheduleNoteRemoval(id, n.afgevinktOp);
   });
 });
+
+// ==================== Achtergrondpatronen ====================
+const BG_PATTERNS = [
+  {id:'cupcakes',label:'🧁 Cupcakes',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik0xOCAyOWMwLTcgNi0xMiAxMy0xMiAzLTUgOS02IDEzLTEgNy0xIDEyIDQgMTIgMTEgMCA2LTUgOS0xMSA5SDI5Yy02IDAtMTEtMi0xMS03eiIgZmlsbD0iI2YzYTZjNyIvPjxwYXRoIGQ9Ik0yMiAzNmgzNGwtNSAyMEgyN3oiIGZpbGw9IiNkNzhmNjIiLz48cGF0aCBkPSJNMjYgNDFoMjZNMjggNDdoMjJNMzAgNTNoMTgiIHN0cm9rZT0iIzhmNWQ0MiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9nPjwvc3ZnPg==")',size:'80px 70px'},
+  {id:'coffee',label:'☕ Koffie',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik0yMCAyMGgzNHYyNWMwIDgtNyAxMy0xNyAxM1MyMCA1MyAyMCA0NXoiIGZpbGw9IiNjNThhNTgiLz48cGF0aCBkPSJNNTQgMjdoN2M2IDAgOCA1IDggOXMtMyA5LTkgOWgtNnYtNmg1YzIgMCAzLTEgMy0zcy0xLTMtMy0zaC01eiIgZmlsbD0iIzlhNjg0NSIvPjxwYXRoIGQ9Ik0yNiAxNWMtMy01IDMtNiAwLTExTTM3IDE1Yy0zLTUgMy02IDAtMTFNNDggMTVjLTMtNSAzLTYgMC0xMSIgc3Ryb2tlPSIjZWFkOGJkIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiLz48L2c+PC9zdmc+")',size:'80px 70px'},
+  {id:'pizza',label:'🍕 Pizza',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik0xOCAxNWMyMCAyIDM5IDEzIDQ3IDI5TDMxIDU3eiIgZmlsbD0iI2U4YjM0ZiIvPjxwYXRoIGQ9Ik0xOCAxNWMxOSAxIDM3IDEwIDQ3IDI5IiBzdHJva2U9IiNkODViNDMiIHN0cm9rZS13aWR0aD0iNyIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjM0IiBjeT0iMjkiIHI9IjQiIGZpbGw9IiNiOTRkM2UiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjM1IiByPSI0IiBmaWxsPSIjYjk0ZDNlIi8+PGNpcmNsZSBjeD0iMzgiIGN5PSI0MyIgcj0iNCIgZmlsbD0iI2I5NGQzZSIvPjwvZz48L3N2Zz4=")',size:'80px 70px'},
+  {id:'hearts',label:'♥ Hartjes',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik00MCA1NUMzNSA1MCAxNSAzOCAxNSAyNWMwLTcgOS0xMSAxNS01IDQtNyAxNS00IDE1IDQgMCAxMy0yMCAyNi01IDMxeiIgZmlsbD0iI2Q0Nzc4YyIvPjwvZz48L3N2Zz4=")',size:'80px 70px'},
+  {id:'stars',label:'✦ Sterren',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik00MCAxMGw2IDIwIDIxIDAtMTcgMTIgNyAyMS0xNy0xMy0xNyAxMyA3LTIxLTE3LTEyaDIxeiIgZmlsbD0iI2Q5YWQ0ZiIvPjwvZz48L3N2Zz4=")',size:'80px 70px'},
+  {id:'flowers',label:'✿ Bloemen',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxjaXJjbGUgY3g9IjQwIiBjeT0iMzUiIHI9IjgiIGZpbGw9IiNlM2IwNWUiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjIwIiByPSIxMCIgZmlsbD0iI2Q5OWFiMyIvPjxjaXJjbGUgY3g9IjU1IiBjeT0iMzUiIHI9IjEwIiBmaWxsPSIjZDk5YWIzIi8+PGNpcmNsZSBjeD0iNDAiIGN5PSI1MCIgcj0iMTAiIGZpbGw9IiNkOTlhYjMiLz48Y2lyY2xlIGN4PSIyNSIgY3k9IjM1IiByPSIxMCIgZmlsbD0iI2Q5OWFiMyIvPjwvZz48L3N2Zz4=")',size:'80px 70px'},
+  {id:'leaves',label:'🍃 Bladeren',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik0xOCA1MGM0LTI1IDI0LTM0IDQ1LTM0LTMgMjItMTggMzgtNDUgMzR6IiBmaWxsPSIjNzVhNTZkIi8+PHBhdGggZD0iTTIwIDQ4YzEzLTExIDI1LTE5IDQwLTI4IiBzdHJva2U9IiM0NTZhNDEiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjwvZz48L3N2Zz4=")',size:'80px 70px'},
+  {id:'dots',label:'• Stippen',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjUiIGZpbGw9IiNkOWI4NmEiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjUwIiByPSI1IiBmaWxsPSIjZDliODZhIi8+PGNpcmNsZSBjeD0iNTUiIGN5PSIxNSIgcj0iMyIgZmlsbD0iI2Q5Yjg2YSIvPjxjaXJjbGUgY3g9IjI1IiBjeT0iNTUiIHI9IjMiIGZpbGw9IiNkOWI4NmEiLz48L2c+PC9zdmc+")',size:'80px 70px'},
+  {id:'burger',label:'🍔 Burgers',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxyZWN0IHg9IjE4IiB5PSIyNSIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iI2Q3YTA1YiIvPjxyZWN0IHg9IjIwIiB5PSIzNiIgd2lkdGg9IjQwIiBoZWlnaHQ9IjYiIHJ4PSIyIiBmaWxsPSIjNmI4ZjRlIi8+PHJlY3QgeD0iMjAiIHk9IjQzIiB3aWR0aD0iNDAiIGhlaWdodD0iNyIgcng9IjIiIGZpbGw9IiNhOTRmM2UiLz48cGF0aCBkPSJNMTggMjNjMi0xMSAxMi0xNiAyMi0xNnMyMCA1IDIyIDE2eiIgZmlsbD0iI2Q3YTA1YiIvPjxyZWN0IHg9IjIyIiB5PSI1MSIgd2lkdGg9IjM2IiBoZWlnaHQ9IjYiIHJ4PSIyIiBmaWxsPSIjZTRiZDY1Ii8+PC9nPjwvc3ZnPg==")',size:'80px 70px'},
+  {id:'fries',label:'🍟 Friet',bg:'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgdmlld0JveD0iMCAwIDgwIDcwIj48ZyBvcGFjaXR5PSIwLjMyIiBzdHJva2U9Im5vbmUiPjxwYXRoIGQ9Ik0yNSAxN2w0IDI3TTM0IDE0bDMgMzBNNDMgMTRsLTEgMzBNNTIgMTdsLTQgMjciIHN0cm9rZT0iI2U0YmQ1ZSIgc3Ryb2tlLXdpZHRoPSI2IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTIyIDM3aDM2bC01IDIySDI3eiIgZmlsbD0iI2M4NWI0ZSIvPjwvZz48L3N2Zz4=")',size:'80px 70px'}
+];
+const BG_COLORS_EXTRA = ['#171310','#2a1c18','#17231d','#1b2430','#29201a','#30251e','#221b2d','#14272a','#31221d','#f0e5d1'];
+function applyBgPattern(pattern){
+  const root=document.documentElement.style, body=document.body;
+  if(!pattern){ root.removeProperty('--bg-pattern'); body.classList.remove('pattern-active'); document.getElementById('info-bg-pattern')?.replaceChildren(document.createTextNode('Geen')); return; }
+  const p=BG_PATTERNS.find(x=>x.id===pattern.id)||BG_PATTERNS.find(x=>x.id===pattern); if(!p)return;
+  root.setProperty('--bg-pattern',p.bg); root.setProperty('--bg-pattern-size',p.size); body.style.backgroundSize=p.size; body.classList.add('pattern-active');
+  const info=document.getElementById('info-bg-pattern'); if(info) info.textContent=p.label;
+}
+const patternPaletteEl=document.getElementById('pattern-palette');
+if(patternPaletteEl){ patternPaletteEl.innerHTML=BG_PATTERNS.map(p=>`<button type="button" class="pattern-swatch" data-pattern="${p.id}" style="background-image:${p.bg};background-size:${p.size};"><span class="pattern-label">${p.label}</span></button>`).join(''); patternPaletteEl.querySelectorAll('.pattern-swatch').forEach(b=>b.addEventListener('click',()=>restRef.child('backgroundPattern').set(b.dataset.pattern).then(()=>closeModal('modal-bg-pattern')))); }
+const patternDefault=document.getElementById('pattern-default'); if(patternDefault) patternDefault.addEventListener('click',()=>restRef.child('backgroundPattern').remove().then(()=>closeModal('modal-bg-pattern')));
+restRef.child('backgroundPattern').on('value',snap=>{const v=snap.val(); applyBgPattern(v); patternPaletteEl?.querySelectorAll('.pattern-swatch').forEach(b=>b.classList.toggle('selected',b.dataset.pattern===v)); patternDefault?.classList.toggle('selected',!v);});
+const btnBgPattern=document.getElementById('btn-bg-pattern'); if(btnBgPattern) btnBgPattern.addEventListener('click',()=>openModal('modal-bg-pattern'));
