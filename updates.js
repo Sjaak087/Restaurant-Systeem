@@ -19,6 +19,12 @@ const UPDATES = [
     date: '03-09-2026', 
     time: '21:15', 
     info: 'ik heb een paar dingen toegevoegd ten eerste kun je nu een custom naam voor je leden bij het restaurant instellen want nu werdt dat je username die je zelf had ingesteld ook kan de eigenaar bepalen of je het restaurant kan aanpassen of niet ook heb ik achtergrond patronen toegevoegd het zijn 10 patronen van eten en een paar andere dingen ik heb ook nog 10 achtergrond kleuren toegevoegd en 5 lettertypen ook heb ik nog een 2e standaard melding geluid toegevoegd je kunt nu kiezen tussen die 2 of je eigen geuploadde geluid er zijn ook nog een paar bugs gefixt tot morgen!'
+  },       
+  { 
+    title: 'Mega update!', 
+    date: '02-09-2026', 
+    time: '20:45', 
+    info: 'Dit is echt een mega update met veel grote toevoegingen zoals ten eerste heb ik toegevoegd dat je nu een username moet instellen als je voor het eerst online komt je kunt deze ook veranderen maar let op: als ik erachter kom dat dit niet je eigen naam is of dat je eigen naam erin zit dan krijg je een time out of wordt je gebanned want dit heb ik namelijk ook toegevoegd ik kan nu mensen bannen, een time out geven of een waarschuwing geven een timeout dat is tijdelijk dan kun je niks een ban is voor altijd als ik je niet unban je zou een klacht kunnen indienen en dan unban ik je misschien ik heb ook nog toegevoegd dat je nu berichten naar elkaar kunt sturen zoek de username typ een titel in en de tekst die je wilt sturen en stuur het bericht de berichten zijn te vinden bij de plek waar ook de announcements staan dus bij het belletje bovenin als laatste heb ik ook nog een aantal geblokkeerde woorden toegevoegd en verschillende versies ervan misschien komt er morgen nog een update maar dat weet ik nog niet misschien tot morgen!'
   },     
   {
     title: 'Geblokkeerde woorden', 
