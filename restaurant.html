@@ -8,9 +8,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Work+Sans:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&family=Lora:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Caveat:wght@500;700&family=Bebas+Neue&family=Abril+Fatface&family=Roboto+Slab:wght@400;600;700&family=Josefin+Sans:wght@400;600;700&family=Dancing+Script:wght@500;700&family=Crimson+Text:wght@400;600;700&family=Nunito:wght@400;600;700&family=DM+Sans:wght@400;500;700&family=Quicksand:wght@400;500;700&family=Libre+Baskerville:wght@400;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" id="app-style-link">
-<script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + Date.now());</script>
+<script>document.getElementById('app-style-link').setAttribute('href', 'style.css?v=' + '20260904');</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>document.write('<script src="i18n.js?v=' + '20260904-de2' + '"><\/script>');</script>
+<script src="auto-translator.js?v=3"></script>
 </head>
 <body>
 
@@ -668,8 +670,8 @@
   // Laadt onze eigen bestanden altijd vers, zodat je nooit meer handmatig een
   // versienummer hoeft te verhogen om cache-problemen te voorkomen.
   (function () {
-    var v = Date.now();
-    ['blocked-words.js', 'firebase-config.js', 'emojis.js', 'username.js', 'access-control.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
+    var v = '20260904';
+    ['auto-translator.js', 'blocked-words.js', 'firebase-config.js', 'emojis.js', 'username.js', 'access-control.js', 'restaurant.js', 'updates.js', 'announcements.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

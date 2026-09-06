@@ -319,9 +319,15 @@ if (feedbackSendButton) {
     feedbackSendButton.disabled = true;
     feedbackSendButton.textContent = 'Versturen...';
     try {
+      const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
+      const translated = window.AutoTranslator
+        ? await window.AutoTranslator.buildBilingual(text, sourceLang)
+        : { nl:text, en:text, de:text, sourceLang };
       await db.ref('feedback').push({
         name: name,
         text: text,
+        textTranslations: translated,
+        sourceLang,
         createdAt: Date.now()
       });
       localStorage.setItem(feedbackLimitKey, String(Date.now()));

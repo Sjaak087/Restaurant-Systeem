@@ -106,12 +106,12 @@ function renderTables() {
     const kind = t.kind || 'tafel';
     return kind === 'tafel' || kind === 'bank';
   }).sort((a,b) => (a[1].number || 0) - (b[1].number || 0));
-  el.innerHTML = tables.length ? '' : '<div class="selfservice-muted">Er zijn nog geen tafels ingesteld.</div>';
+  el.innerHTML = tables.length ? '' : `<div class="selfservice-muted">${window.I18N ? window.I18N.t('Er zijn nog geen tafels ingesteld.') : 'Er zijn nog geen tafels ingesteld.'}</div>`;
   tables.forEach(([id,t]) => {
     const isBank = t.kind === 'bank';
     const b = document.createElement('button');
     b.className = 'selfservice-table' + (selectedTable === t.number ? ' active' : '');
-    b.textContent = (isBank ? '🛋️ Bank ' : '🪑 Tafel ') + t.number;
+    b.textContent = (isBank ? '🛋️ ' + (localStorage.getItem('appLanguage') === 'en' ? 'Bench ' : 'Bank ') : '🪑 ' + (localStorage.getItem('appLanguage') === 'en' ? 'Table ' : 'Tafel ')) + t.number;
     b.onclick = () => { selectedTable = (selectedTable === t.number) ? null : t.number; renderTables(); };
     el.appendChild(b);
   });
@@ -128,12 +128,12 @@ function renderServiceTables() {
     const kind = t.kind || 'tafel';
     return kind === 'tafel' || kind === 'bank';
   }).sort((a,b) => (a[1].number || 0) - (b[1].number || 0));
-  el.innerHTML = tables.length ? '' : '<div class="selfservice-muted">Er zijn nog geen tafels ingesteld.</div>';
+  el.innerHTML = tables.length ? '' : `<div class="selfservice-muted">${window.I18N ? window.I18N.t('Er zijn nog geen tafels ingesteld.') : 'Er zijn nog geen tafels ingesteld.'}</div>`;
   tables.forEach(([id,t]) => {
     const isBank = t.kind === 'bank';
     const b = document.createElement('button');
     b.className = 'selfservice-table' + (selectedServiceTable === t.number ? ' active' : '');
-    b.textContent = (isBank ? '🛋️ Bank ' : '🪑 Tafel ') + t.number;
+    b.textContent = (isBank ? '🛋️ ' + (localStorage.getItem('appLanguage') === 'en' ? 'Bench ' : 'Bank ') : '🪑 ' + (localStorage.getItem('appLanguage') === 'en' ? 'Table ' : 'Tafel ')) + t.number;
     b.onclick = () => { selectedServiceTable = (selectedServiceTable === t.number) ? null : t.number; renderServiceTables(); };
     el.appendChild(b);
   });
@@ -147,7 +147,7 @@ function renderServices() {
   const el = document.getElementById('services');
   if (!el) return;
   const items = serviceList();
-  el.innerHTML = items.length ? '' : '<div class="selfservice-muted">Dit restaurant heeft nog geen services ingesteld.</div>';
+  el.innerHTML = items.length ? '' : `<div class="selfservice-muted">${window.I18N ? window.I18N.t('Dit restaurant heeft nog geen services ingesteld.') : 'Dit restaurant heeft nog geen services ingesteld.'}</div>`;
   items.forEach(s => {
     const b = document.createElement('button');
     b.className = 'selfservice-table';
@@ -162,7 +162,7 @@ function requestService(s) {
   const confirmEl = document.getElementById('service-confirm');
   errorEl.textContent = '';
   confirmEl.style.display = 'none';
-  if (!selectedServiceTable) { errorEl.textContent = 'Kies eerst je tafel.'; return; }
+  if (!selectedServiceTable) { errorEl.textContent = window.I18N ? window.I18N.t('Kies eerst je tafel.') : 'Kies eerst je tafel.'; return; }
 
   const tableEntry = Object.values(TABLES).find(t => t.number === selectedServiceTable);
   const kind = tableEntry?.kind === 'bank' ? 'bank' : 'tafel';
@@ -174,11 +174,11 @@ function requestService(s) {
     deviceId,
     kind,
   }).then(() => {
-    confirmEl.textContent = `✅ "${s.titel}" is aangevraagd bij tafel ${selectedServiceTable}. Het personeel komt zo naar je toe.`;
+    confirmEl.textContent = localStorage.getItem('appLanguage') === 'en' ? `✅ "${s.titel}" has been requested at table ${selectedServiceTable}. Staff will be with you shortly.` : `✅ "${s.titel}" is aangevraagd bij tafel ${selectedServiceTable}. Het personeel komt zo naar je toe.`;
     confirmEl.style.display = 'block';
   }).catch(err => {
     console.error(err);
-    errorEl.textContent = 'Het aanvragen is niet gelukt, probeer opnieuw.';
+    errorEl.textContent = localStorage.getItem('appLanguage') === 'en' ? 'The request could not be submitted, please try again.' : 'Het aanvragen is niet gelukt, probeer opnieuw.';
   });
 }
 
@@ -193,14 +193,14 @@ restRef.child('serviceRequests').on('value', snap => {
   if (!el) return;
 
   if (mijnAanvragen.length === 0) {
-    el.innerHTML = '<div class="selfservice-muted">Nog geen services aangevraagd.</div>';
+    el.innerHTML = `<div class="selfservice-muted">${window.I18N ? window.I18N.t('Nog geen services aangevraagd.') : 'Nog geen services aangevraagd.'}</div>`;
     return;
   }
   mijnAanvragen.sort((a, b) => (a[1].tijd || 0) - (b[1].tijd || 0));
   el.innerHTML = mijnAanvragen.map(([, s]) => `
     <div class="selfservice-my-service">
-      <span class="selfservice-my-service-title">🛎️ ${esc(s.titel)} — ${(s.kind === 'bank' ? 'Bank' : 'Tafel')} ${esc(s.tableNumber)}</span>
-      <span class="selfservice-my-service-status">Medewerker is onderweg</span>
+      <span class="selfservice-my-service-title">🛎️ ${esc(s.titel)} — ${(s.kind === 'bank' ? (localStorage.getItem('appLanguage') === 'en' ? 'Bench' : 'Bank') : (localStorage.getItem('appLanguage') === 'en' ? 'Table' : 'Tafel'))} ${esc(s.tableNumber)}</span>
+      <span class="selfservice-my-service-status">${localStorage.getItem('appLanguage') === 'en' ? 'Staff member is on the way' : 'Medewerker is onderweg'}</span>
     </div>
   `).join('');
 });

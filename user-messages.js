@@ -40,7 +40,7 @@
     if(empty) empty.style.display='none';
     entries.forEach(([id,m])=>{
       const item=document.createElement('div'); item.className='announcement-item user-message-item'+(m.read===true?'':' unread');
-      item.innerHTML=`<div class="announcement-item-head"><span class="announcement-item-title">✉️ ${esc(m.title||'Zonder titel')}</span><span class="announcement-item-date">${esc(fmt(m.createdAt))}</span></div><div class="announcement-item-info">Van: ${esc(m.fromUsername||'Onbekend')}</div>`;
+      item.innerHTML=`<div class="announcement-item-head"><span class="announcement-item-title">✉️ ${esc((window.AutoTranslator && m.titleTranslations) ? window.AutoTranslator.pickBilingual(m.titleTranslations) : (m.title||'Zonder titel'))}</span><span class="announcement-item-date">${esc(fmt(m.createdAt))}</span></div><div class="announcement-item-info">Van: ${esc(m.fromUsername||'Onbekend')}</div>`;
       item.addEventListener('click',()=>openMessage(id,m));
       list.appendChild(item);
     });
@@ -49,9 +49,18 @@
 
   async function openMessage(id,m){
     selectedMessageId=id;
-    document.getElementById('read-user-message-title').textContent=m.title||'Zonder titel';
+    const lang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
+    let title = (window.AutoTranslator && m.titleTranslations) ? window.AutoTranslator.pickBilingual(m.titleTranslations, lang) : (m.title||'Zonder titel');
+    let body = (window.AutoTranslator && m.textTranslations) ? window.AutoTranslator.pickBilingual(m.textTranslations, lang) : (m.text||'');
+    if(window.AutoTranslator && (!m.titleTranslations || !m.textTranslations) && m.sourceLang && m.sourceLang !== lang){
+      [title, body] = await Promise.all([
+        window.AutoTranslator.translateLegacy(m.title||'', m.sourceLang, lang),
+        window.AutoTranslator.translateLegacy(m.text||'', m.sourceLang, lang)
+      ]);
+    }
+    document.getElementById('read-user-message-title').textContent=title;
     document.getElementById('read-user-message-meta').textContent=`Van ${m.fromUsername||'Onbekend'} · ${fmt(m.createdAt)}`;
-    document.getElementById('read-user-message-body').textContent=m.text||'';
+    document.getElementById('read-user-message-body').textContent=body;
     openModal('modal-read-user-message');
     if(m.read!==true){
       try{ await db.ref('users/'+userId+'/messages/'+id+'/read').set(true); }catch(e){ console.warn('Bericht als gelezen markeren mislukt',e); }
@@ -105,8 +114,12 @@
     if(!text){err.textContent='Vul een bericht in.';return;}
     const btn=document.getElementById('send-user-message'); btn.disabled=true; err.textContent='';
     const msgId=db.ref('messages').push().key;
-    const msg={id:msgId,fromUserId:userId,fromUsername:getUsername(),toUserId:selectedRecipient.id,toUsername:selectedRecipient.username,title,text,createdAt:Date.now(),read:false};
     try{
+      const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
+      const translated = window.AutoTranslator
+        ? await window.AutoTranslator.translateFieldSet({ title, text }, sourceLang)
+        : { title:{nl:title,en:title,de:title}, text:{nl:text,en:text,de:text} };
+      const msg={id:msgId,fromUserId:userId,fromUsername:getUsername(),toUserId:selectedRecipient.id,toUsername:selectedRecipient.username,title,text,titleTranslations:translated.title,textTranslations:translated.text,sourceLang,createdAt:Date.now(),read:false};
       // De inbox van de ontvanger is de primaire opslag.
       await db.ref('users/'+selectedRecipient.id+'/messages/'+msgId).set(msg);
       // Centrale kopie voor beheer/diagnostiek; geen sent-folder in de speler.

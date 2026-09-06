@@ -15,6 +15,8 @@
     window.location.href = 'index.html';
   }
 </script>
+<script src="i18n.js?v=20260904-de2"></script>
+<script src="auto-translator.js?v=3"></script>
 </head>
 <body>
 
@@ -109,6 +111,7 @@
     <input type="text" id="admin-announcement-title-input" class="modal-input" maxlength="60" placeholder="Bijv. Nieuwe update beschikbaar">
     <label class="modal-label">Info</label>
     <textarea id="admin-announcement-info-input" class="modal-input" rows="5" maxlength="600" placeholder="Bijv. Er is een nieuwe functie toegevoegd, bekijk de update log voor meer info."></textarea>
+    <p class="modal-text auto-translate-hint">🌐 Announcement-tekst wordt automatisch vertaald naar Nederlands en Engels.</p>
     <p class="modal-text" style="margin-bottom:0;">Dit announcement is voor iedereen zichtbaar via het belletje naast de update log, totdat ze zelf op Gelezen drukken.</p>
     <div class="modal-error" id="admin-announcement-error"></div>
     <div class="modal-actions">
@@ -145,8 +148,22 @@
     <p class="modal-text" id="admin-user-timeout-name"></p>
     <label class="modal-label">Time out tot</label>
     <input type="datetime-local" id="admin-user-timeout-input" class="modal-input">
+    <label class="modal-label">Reden voor de time-out</label>
+    <textarea id="admin-user-timeout-reason-input" class="modal-input" rows="4" maxlength="1000" placeholder="Typ de reden..."></textarea>
     <div class="modal-error" id="admin-user-timeout-error"></div>
     <div class="modal-actions"><button type="button" class="btn-secondary" data-close>Annuleren</button><button type="button" class="btn-primary" id="admin-user-timeout-confirm">Time out geven</button></div>
+  </div>
+</div>
+
+<!-- Modal: gebruiker verbannen -->
+<div class="modal-overlay" id="modal-admin-user-ban">
+  <div class="modal-box">
+    <div class="modal-title">⛔ Verbannen</div>
+    <p class="modal-text" id="admin-user-ban-name"></p>
+    <label class="modal-label">Reden voor de verbanning</label>
+    <textarea id="admin-user-ban-input" class="modal-input" rows="5" maxlength="1000" placeholder="Typ de reden..."></textarea>
+    <div class="modal-error" id="admin-user-ban-error"></div>
+    <div class="modal-actions"><button type="button" class="btn-secondary" data-close>Annuleren</button><button type="button" class="btn-primary" id="admin-user-ban-confirm">Verbannen</button></div>
   </div>
 </div>
 
@@ -177,7 +194,7 @@
 <script>
   (function () {
     var v = Date.now();
-    ['blocked-words.js', 'firebase-config.js', 'admin.js', 'admin-user-management.js'].forEach(function (file) {
+    ['auto-translator.js', 'blocked-words.js', 'firebase-config.js', 'admin.js', 'admin-user-management.js'].forEach(function (file) {
       document.write('<script src="' + file + '?v=' + v + '"><' + '/script>');
     });
   })();

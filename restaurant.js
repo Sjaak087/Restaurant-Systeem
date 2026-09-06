@@ -1782,7 +1782,8 @@ function renderCanvas(canvasEl, { editable, onTableClick }) {
 
 // ---- Woord/label helpers voor tafel vs. bank ----
 function kindWoord(table) {
-  return (table && table.kind === 'bank') ? 'Bank' : 'Tafel';
+  const bank = (table && table.kind === 'bank');
+  return localStorage.getItem('appLanguage') === 'en' ? (bank ? 'Bench' : 'Table') : (bank ? 'Bank' : 'Tafel');
 }
 function tableKindByNumber(number) {
   const found = Object.values(TABLES_STATE).find(t =>
@@ -1791,7 +1792,7 @@ function tableKindByNumber(number) {
   return found ? (found.kind || 'tafel') : 'tafel';
 }
 function kindWoordByNumber(number) {
-  return tableKindByNumber(number) === 'bank' ? 'Bank' : 'Tafel';
+  return localStorage.getItem('appLanguage') === 'en' ? (tableKindByNumber(number) === 'bank' ? 'Bench' : 'Table') : (tableKindByNumber(number) === 'bank' ? 'Bank' : 'Tafel');
 }
 function kindIconByNumber(number) {
   return tableKindByNumber(number) === 'bank' ? '🛋️' : '🪑';
@@ -2038,10 +2039,11 @@ function attachEditHandlers() {
 
 function itemDeleteLabel(item) {
   const kind = (item && item.kind) || 'tafel';
-  if (kind === 'bank') return `bank ${item.number}`;
-  if (kind === 'bar') return `bar "${item.name}"`;
-  if (kind === 'keuken') return `keuken "${item.name}"`;
-  return `tafel ${item.number}`;
+  const en = localStorage.getItem('appLanguage') === 'en';
+  if (kind === 'bank') return `${en ? 'bench' : 'bank'} ${item.number}`;
+  if (kind === 'bar') return `${en ? 'bar' : 'bar'} "${item.name}"`;
+  if (kind === 'keuken') return `${en ? 'kitchen' : 'keuken'} "${item.name}"`;
+  return `${en ? 'table' : 'tafel'} ${item.number}`;
 }
 
 function onDragStart(e) {
@@ -2771,16 +2773,26 @@ function orderBestemming(order) {
   return allesBar ? 'bar' : 'keuken';
 }
 
+function uiText(nl, en) {
+  return (window.I18N && localStorage.getItem('appLanguage') === 'en') ? en : nl;
+}
+
+function kindLabel(kind, number) {
+  const en = localStorage.getItem('appLanguage') === 'en';
+  const label = kind === 'bar' ? (en ? 'Bar' : 'Bar') : kind === 'keuken' ? (en ? 'Kitchen' : 'Keuken') : (en ? 'Table' : 'Tafel');
+  return `${label} ${number}`;
+}
+
 function renderOrderCardHtml(id, order, actionHtml) {
   const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
   const badgeHtml = order.bar
     ? `🍸 ${escapeHtml(order.barName || 'Bar')}`
-    : `${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}`;
+    : `${kindIconByNumber(order.tableNumber)} ${kindLabel(kindWoordByNumber(order.tableNumber), order.tableNumber)}`;
   return `
     <div class="table-badge">${badgeHtml}</div>
     <div class="items-block">${itemsToLinesHtml(order)}</div>
     ${noteHtml}
-    <div class="time-line">Binnengekomen om ${formatTime(order.tijd)}</div>
+    <div class="time-line">${uiText('Binnengekomen om','Received at')} ${formatTime(order.tijd)}</div>
     ${actionHtml}
   `;
 }
@@ -2801,8 +2813,8 @@ function renderPrepTab(bestemming) {
   const bereiden = relevant.filter(([, o]) => o.status === 'bereiden').sort((a, b) => a[1].tijd - b[1].tijd);
 
   countEl.textContent = (nieuw.length === 0 && bereiden.length === 0)
-    ? 'Nieuwe bestellingen worden hier automatisch getoond.'
-    : `${nieuw.length} nieuw · ${bereiden.length} in bereiding`;
+    ? uiText('Nieuwe bestellingen worden hier automatisch getoond.', 'New orders will appear here automatically.')
+    : `${nieuw.length} ${uiText('nieuw','new')} · ${bereiden.length} ${uiText('in bereiding','preparing')}`;
 
   if (badgeEl) {
     const totaal = nieuw.length + bereiden.length;
@@ -2810,13 +2822,13 @@ function renderPrepTab(bestemming) {
   }
 
   if (nieuw.length === 0) {
-    nieuwList.innerHTML = '<div class="empty-msg">Nog geen nieuwe bestellingen</div>';
+    nieuwList.innerHTML = `<div class="empty-msg">${uiText('Nog geen nieuwe bestellingen','No new orders yet')}</div>`;
   } else {
     nieuwList.innerHTML = '';
     nieuw.forEach(([id, order]) => {
       const card = document.createElement('div');
       card.className = 'order-card nieuw';
-      card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn prepare" data-id="${id}">Start bereiden</button></div>`);
+      card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn prepare" data-id="${id}">${window.I18N ? window.I18N.t('Start bereiden') : 'Start bereiden'}</button></div>`);
       nieuwList.appendChild(card);
     });
     nieuwList.querySelectorAll('.chip-btn.prepare').forEach(btn => {
@@ -2827,13 +2839,13 @@ function renderPrepTab(bestemming) {
   }
 
   if (bereiden.length === 0) {
-    bereidenList.innerHTML = '<div class="empty-msg">Nog niets in bereiding</div>';
+    bereidenList.innerHTML = `<div class="empty-msg">${uiText('Nog niets in bereiding','Nothing being prepared yet')}</div>`;
   } else {
     bereidenList.innerHTML = '';
     bereiden.forEach(([id, order]) => {
       const card = document.createElement('div');
       card.className = 'order-card bereiden';
-      card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn ready" data-id="${id}">Klaar</button></div>`);
+      card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn ready" data-id="${id}">${window.I18N ? window.I18N.t('Klaar') : 'Klaar'}</button></div>`);
       bereidenList.appendChild(card);
     });
     bereidenList.querySelectorAll('.chip-btn.ready').forEach(btn => {
@@ -2859,17 +2871,17 @@ function renderReady() {
   if (readyBadge) readyBadge.textContent = klaar.length > 0 ? klaar.length : '';
 
   if (klaar.length === 0) {
-    readyList.innerHTML = '<div class="empty-msg">Geen klaargemaakte bestellingen</div>';
-    readyCount.textContent = 'Klaargemaakte bestellingen wachtend op bezorging.';
+    readyList.innerHTML = `<div class="empty-msg">${uiText('Geen klaargemaakte bestellingen','No prepared orders')}</div>`;
+    readyCount.textContent = uiText('Klaargemaakte bestellingen wachtend op bezorging.', 'Prepared orders waiting for delivery.');
     return;
   }
-  readyCount.textContent = `${klaar.length} klaar voor bezorging`;
+  readyCount.textContent = `${klaar.length} ${uiText('klaar voor bezorging','ready for delivery')}`;
   readyList.innerHTML = '';
 
   klaar.forEach(([id, order]) => {
     const card = document.createElement('div');
     card.className = 'order-card';
-    card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn delivered" data-id="${id}">Bezorgd</button></div>`);
+    card.innerHTML = renderOrderCardHtml(id, order, `<div class="actions"><button class="chip-btn delivered" data-id="${id}">${window.I18N ? window.I18N.t('Bezorgd') : 'Bezorgd'}</button></div>`);
     readyList.appendChild(card);
   });
 
@@ -2905,13 +2917,13 @@ function renderHistory() {
   const entries = Object.entries(HISTORY_STATE).sort((a, b) => (b[1].betaaldOp || b[1].tijd || 0) - (a[1].betaaldOp || a[1].tijd || 0));
 
   if (entries.length === 0) {
-    list.innerHTML = '<div class="empty-msg">Nog geen historie</div>';
-    countEl.textContent = 'Alle afgerekende bestellingen verschijnen hier.';
+    list.innerHTML = `<div class="empty-msg">${uiText('Nog geen historie','No history yet')}</div>`;
+    countEl.textContent = uiText('Alle afgerekende bestellingen verschijnen hier.', 'All paid orders appear here.');
     summaryEl.innerHTML = '';
     return;
   }
 
-  countEl.textContent = `${entries.length} afgerekende bestelling${entries.length === 1 ? '' : 'en'}`;
+  countEl.textContent = `${entries.length} ${uiText(entries.length === 1 ? 'afgerekende bestelling' : 'afgerekende bestellingen', entries.length === 1 ? 'paid order' : 'paid orders')}`;
   list.innerHTML = '';
   let totaalOmzet = 0;
   const perProduct = {};
@@ -2921,15 +2933,15 @@ function renderHistory() {
     const card = document.createElement('div');
     card.className = 'order-card';
     const noteHtml = order.opmerking ? `<div class="note-line">"${escapeHtml(order.opmerking)}"</div>` : '';
-    const betaaldHtml = order.betaaldOp ? ` · betaald om ${formatTime(order.betaaldOp)}` : '';
+    const betaaldHtml = order.betaaldOp ? ` · ${uiText('betaald om','paid at')} ${formatTime(order.betaaldOp)}` : '';
     const badgeHtml = order.bar
       ? `🍸 ${escapeHtml(order.barName || 'Bar')}`
-      : `${kindIconByNumber(order.tableNumber)} ${kindWoordByNumber(order.tableNumber)} ${order.tableNumber}`;
+      : `${kindIconByNumber(order.tableNumber)} ${kindLabel(kindWoordByNumber(order.tableNumber), order.tableNumber)}`;
     card.innerHTML = `
       <div class="table-badge">${badgeHtml}</div>
       <div class="items-block">${itemsToLinesHtml(order)}</div>
       ${noteHtml}
-      <div class="time-line">Besteld om ${formatTime(order.tijd)}${betaaldHtml}</div>
+      <div class="time-line">${uiText('Besteld om','Ordered at')} ${formatTime(order.tijd)}${betaaldHtml}</div>
     `;
     list.appendChild(card);
 
@@ -2949,14 +2961,14 @@ function renderHistory() {
     });
   });
 
-  let summaryHtml = `<div class="history-summary-title">Totaaloverzicht</div>`;
+  let summaryHtml = `<div class="history-summary-title">${uiText('Totaaloverzicht','Summary')}</div>`;
   Object.values(perProduct).sort((a, b) => b.aantal - a.aantal).forEach(p => {
     summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(p.label)}</span><span>${p.aantal}x</span></div>`;
   });
-  summaryHtml += `<div class="history-summary-row"><span>Totale omzet</span><span>${formatPrice(totaalOmzet)}</span></div>`;
+  summaryHtml += `<div class="history-summary-row"><span>${uiText('Totale omzet','Total revenue')}</span><span>${formatPrice(totaalOmzet)}</span></div>`;
 
   if (Object.keys(CATEGORIES_STATE).length > 0) {
-    summaryHtml += `<div class="history-summary-title" style="margin-top:16px;">Per categorie</div>`;
+    summaryHtml += `<div class="history-summary-title" style="margin-top:16px;">${uiText('Per categorie','By category')}</div>`;
     Object.values(perCategory).sort((a, b) => b.aantal - a.aantal).forEach(c => {
       summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(c.naam)}</span><span>${c.aantal}x</span></div>`;
     });

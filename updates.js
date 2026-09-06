@@ -14,6 +14,12 @@
 // },
 
 const UPDATES = [
+  {
+    title: 'Verschillende talen!', 
+    date: '06-09-2026', 
+    time: '20:30', 
+    info: 'Nog een allerlaatste mega update we hebben 2 grote nieuwe featurs toegevoegd ten eerste verschillende talen je kunt kiezen ui engels en duits alle tekst zal automatisch vertaald worden naar die taal die jij kiest behalve de dingen die jij zelf insteld in je restaurants ook de updates in de update log worden die taal gemaakt en zelfs de announcements of waarschuwingen die ik typ als er fouten in de taal zitten geef het dqan meteen door via de feedback dan zal ik het proberen te fixen doe hetzelfde als iets niet vertaald is ook heb ik nog toegevoegd dat ik nu een reden kan geven voor je verbanning of timeout zodat iedereen weet waarom hij verbannen is of een timeout heeft gekregen ik heb ook nog een paar geblokkeerde woorden toegevoegd en wat bugs gefixt ik zal vanaf nu wat minder updates gaan doen ik zal niet aankondigen als er een dag geen update komt tot de volgende update!'
+  },    
   { 
     title: 'Achtergrond patronen', 
     date: '03-09-2026', 
@@ -113,17 +119,23 @@ const UPDATES = [
 ];
 
 // ==================== Weergave (niet nodig om aan te passen) ====================
+function getUpdatesForLanguage() {
+  const lang = localStorage.getItem('appLanguage') || 'nl';
+  if (lang === 'en' && Array.isArray(window.UPDATES_EN)) return window.UPDATES_EN;
+  if (lang === 'de' && Array.isArray(window.UPDATES_DE) && window.UPDATES_DE_READY) return window.UPDATES_DE;
+  return UPDATES;
+}
+
 function renderUpdatesList() {
   const list = document.getElementById('updates-list');
   if (!list) return;
-
-  if (UPDATES.length === 0) {
-    list.innerHTML = '<div class="empty-msg">Nog geen updates.</div>';
+  const updates = getUpdatesForLanguage();
+  if (updates.length === 0) {
+    list.innerHTML = localStorage.getItem('appLanguage') === 'de' ? '<div class="empty-msg">Noch keine Updates.</div>' : (localStorage.getItem('appLanguage') === 'en' ? '<div class="empty-msg">No updates yet.</div>' : '<div class="empty-msg">Nog geen updates.</div>');
     return;
   }
-
   list.innerHTML = '';
-  UPDATES.forEach(u => {
+  updates.forEach(u => {
     const item = document.createElement('div');
     item.className = 'update-item';
     item.innerHTML = `
@@ -136,9 +148,7 @@ function renderUpdatesList() {
       </button>
       <div class="update-item-info">${escapeHtmlUpdates(u.info)}</div>
     `;
-    item.querySelector('.update-item-head').addEventListener('click', () => {
-      item.classList.toggle('open');
-    });
+    item.querySelector('.update-item-head').addEventListener('click', () => item.classList.toggle('open'));
     list.appendChild(item);
   });
 }
@@ -149,7 +159,19 @@ function escapeHtmlUpdates(str) {
   return div.innerHTML;
 }
 
-renderUpdatesList();
+function loadUpdateLanguage(){
+  const lang=localStorage.getItem('appLanguage')||'nl';
+  if(lang==='en'){
+    const script=document.createElement('script'); script.src='updates-en.js?v='+Date.now(); script.onload=renderUpdatesList; document.head.appendChild(script);
+  } else if(lang==='de'){
+    const en=document.createElement('script'); en.src='updates-en.js?v='+Date.now();
+    en.onload=()=>{ const de=document.createElement('script'); de.src='updates-de.js?v='+Date.now(); de.onload=()=>{ if(window.UPDATES_DE_READY) renderUpdatesList(); }; document.head.appendChild(de); window.addEventListener('updates-de-ready',renderUpdatesList,{once:true}); };
+    document.head.appendChild(en);
+  } else renderUpdatesList();
+}
+
+loadUpdateLanguage();
+window.addEventListener('updates-de-ready',()=>{if(localStorage.getItem('appLanguage')==='de')renderUpdatesList();});
 
 // Gebruikt de openModal-functie die al door landing.js / restaurant.js is gedefinieerd.
 const btnUpdates = document.getElementById('btn-updates');
