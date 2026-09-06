@@ -43,6 +43,24 @@ const announcementBadgeEl = document.getElementById('announcement-badge');
 const announcementsListEl = document.getElementById('announcements-list');
 const announcementsEmptyEl = document.getElementById('announcements-empty-msg');
 
+async function ensureAnnouncementTranslations(id, a) {
+  if (!window.AutoTranslator || !a) return;
+  const patch = {};
+  try {
+    if (!a.titelTranslations && a.titel) {
+      patch.titelTranslations = await window.AutoTranslator.buildBilingual(a.titel, a.sourceLang);
+    }
+    if (!a.infoTranslations && a.info) {
+      patch.infoTranslations = await window.AutoTranslator.buildBilingual(a.info, a.sourceLang);
+    }
+    if (Object.keys(patch).length && typeof db !== 'undefined') {
+      await db.ref('announcements/' + id).update(patch);
+    }
+  } catch (e) {
+    console.warn('Announcement translation failed:', e);
+  }
+}
+
 function renderAnnouncements() {
   const gelezen = getGelezenAankondigingen();
   const entries = Object.entries(ALL_ANNOUNCEMENTS)
@@ -68,14 +86,15 @@ function renderAnnouncements() {
   if (announcementsEmptyEl) announcementsEmptyEl.style.display = 'none';
 
   entries.forEach(([id, a]) => {
+    ensureAnnouncementTranslations(id, a);
     const item = document.createElement('div');
     item.className = 'announcement-item';
     item.innerHTML = `
       <div class="announcement-item-head">
-        <span class="announcement-item-title">📢 ${escapeHtmlAnnouncements(a.titel)}</span>
+        <span class="announcement-item-title">📢 ${escapeHtmlAnnouncements(window.AutoTranslator && a.titelTranslations ? window.AutoTranslator.pickBilingual(a.titelTranslations) : a.titel)}</span>
         <span class="announcement-item-date">${escapeHtmlAnnouncements(formatAankondigingDatumTijd(a.aangemaakt))}</span>
       </div>
-      <div class="announcement-item-info">${escapeHtmlAnnouncements(a.info)}</div>
+      <div class="announcement-item-info">${escapeHtmlAnnouncements(window.AutoTranslator && a.infoTranslations ? window.AutoTranslator.pickBilingual(a.infoTranslations) : a.info)}</div>
       <div class="announcement-item-actions">
         <button type="button" class="btn-primary announcement-read-btn">Gelezen</button>
       </div>
@@ -139,7 +158,7 @@ function renderWarningHistory() {
         <span class="announcement-item-title">⚠️ ${escapeHtmlAnnouncements(w._global ? 'Sitewaarschuwing' : (w.restaurantNaam || 'Restaurant'))}</span>
         <span class="announcement-item-date">${escapeHtmlAnnouncements(formatAankondigingDatumTijd(w.createdAt))}</span>
       </div>
-      <div class="announcement-item-info">${escapeHtmlAnnouncements(w.text)}</div>
+      <div class="announcement-item-info">${escapeHtmlAnnouncements(window.AutoTranslator && w.textTranslations ? window.AutoTranslator.pickBilingual(w.textTranslations) : w.text)}</div>
     `;
     warningsListEl.appendChild(item);
   });

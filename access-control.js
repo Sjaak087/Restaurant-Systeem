@@ -62,6 +62,8 @@
   function renderLock(type, until) {
     if (document.getElementById('global-access-lock')) return;
     const banned = type === 'ban';
+    const stateReason = banned ? (window.__ACCESS_USER__ && (window.__ACCESS_USER__.banReasonTranslations || window.__ACCESS_USER__.banReason)) : (window.__ACCESS_USER__ && (window.__ACCESS_USER__.timeoutReasonTranslations || window.__ACCESS_USER__.timeoutReason));
+    const reasonText = window.AutoTranslator ? window.AutoTranslator.pickBilingual(stateReason) : (typeof stateReason === 'string' ? stateReason : '');
     const overlay = document.createElement('div');
     overlay.id = 'global-access-lock';
     overlay.className = 'global-access-lock';
@@ -69,6 +71,7 @@
       <div class="global-access-lock-icon">${banned ? '⛔' : '⏱️'}</div>
       <h1>${banned ? 'Je bent verbannen van deze website' : 'Je hebt een time out gekregen'}</h1>
       <p>${banned ? 'Je hebt momenteel geen toegang tot deze website.' : `Je hebt een time out gekregen tot <strong>${esc(fmt(until))}</strong>.`}</p>
+      ${reasonText ? `<p><strong>Reden:</strong> ${esc(reasonText)}</p>` : ''}
       ${banned ? '<div class="global-access-lock-actions"><button type="button" class="btn-secondary" id="global-access-admin">🔧 Sitebeheer</button><button type="button" class="btn-primary" id="global-access-message">✉️ Stuur bericht naar owner</button></div>' : ''}
     </div>`;
     document.body.appendChild(overlay);
@@ -116,7 +119,9 @@
         if (!text) { err.textContent = 'Typ eerst een bericht.'; return; }
         const btn = document.getElementById('global-user-message-send'); btn.disabled = true;
         try {
-          const message = { userId, username: username() || 'Onbekend', text, createdAt: Date.now(), read: false };
+          const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
+          const translated = window.AutoTranslator ? await window.AutoTranslator.buildBilingual(text, sourceLang) : { nl:text, en:text, sourceLang };
+          const message = { userId, username: username() || 'Onbekend', text, textTranslations: translated, sourceLang, createdAt: Date.now(), read: false };
           // Bewaar het bericht ook onder de eigen gebruiker. Dit werkt met
           // dezelfde gebruikersrechten als de bestaande gebruikersstatus.
           const msgRef = userRef().child('ownerMessages').push();
@@ -135,7 +140,7 @@
   function showPendingWarning(warningId, warning) {
     if (!warning || !warning.text || document.getElementById('global-warning-lock')) return;
     const overlay=document.createElement('div'); overlay.id='global-warning-lock'; overlay.className='global-access-lock';
-    overlay.innerHTML=`<div class="global-access-lock-card"><div class="global-access-lock-icon">⚠️</div><h1>Waarschuwing</h1><p style="white-space:pre-wrap">${esc(warning.text)}</p><button type="button" class="btn-primary" id="global-warning-ok">Begrepen</button></div>`;
+    overlay.innerHTML=`<div class="global-access-lock-card"><div class="global-access-lock-icon">⚠️</div><h1>Waarschuwing</h1><p style="white-space:pre-wrap">${esc(window.AutoTranslator && warning.textTranslations ? window.AutoTranslator.pickBilingual(warning.textTranslations) : warning.text)}</p><button type="button" class="btn-primary" id="global-warning-ok">Begrepen</button></div>`;
     document.body.appendChild(overlay);
     document.getElementById('global-warning-ok').onclick=async()=>{ overlay.remove(); await userRef().child('warnings/'+warningId+'/read').set(true); };
   }
@@ -160,6 +165,7 @@
 
   function enforceUserState(user) {
     if (!user) return;
+    window.__ACCESS_USER__ = user || {};
     if (user.banned) { removeLock(); renderLock('ban'); return; }
     const until=Number(user.timeoutUntil||0);
     if (until && until>Date.now()) { removeLock(); renderLock('timeout',until); return; }
