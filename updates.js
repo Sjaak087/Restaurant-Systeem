@@ -1,17 +1,6 @@
 // ==================== Update log ====================
 // Voeg hier nieuwe updates toe met een titel, datum, tijd en info.
 // Belangrijk: de NIEUWSTE update moet BOVENAAN in de lijst staan.
-//
-// De tijd (bijv. '14:30') komt naast de datum te staan, in het kopje van de
-// update — dus die is altijd zichtbaar, ook zonder de update uit te klappen.
-//
-// Voorbeeld van een nieuwe update (kopieer dit blokje en zet het bovenaan):
-// {
-//   title: 'Korte titel van de update',
-//   date: '20-08-2026',
-//   time: '14:30',
-//   info: 'Iets langere uitleg over wat er precies is veranderd of toegevoegd.'
-// },
 
 const UPDATES = [
   {
@@ -118,12 +107,51 @@ const UPDATES = [
   },
 ];
 
-// ==================== Weergave (niet nodig om aan te passen) ====================
+let FIREBASE_UPDATES = {};
+
+function parseUpdateDateTime(dateStr, timeStr) {
+  if (!dateStr) return 0;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return 0;
+  // Let op: onderstaande assumes DD-MM-YYYY
+  const d = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const y = parseInt(parts[2], 10);
+  const tParts = (timeStr || '00:00').split(':');
+  const h = parseInt(tParts[0] || 0, 10);
+  const min = parseInt(tParts[1] || 0, 10);
+  return new Date(y, m, d, h, min).getTime();
+}
+
 function getUpdatesForLanguage() {
   const lang = localStorage.getItem('appLanguage') || 'nl';
-  if (lang === 'en' && Array.isArray(window.UPDATES_EN)) return window.UPDATES_EN;
-  if (lang === 'de' && Array.isArray(window.UPDATES_DE) && window.UPDATES_DE_READY) return window.UPDATES_DE;
-  return UPDATES;
+  let list = [];
+
+  // Voeg hardcoded updates toe
+  if (lang === 'en' && Array.isArray(window.UPDATES_EN)) list = window.UPDATES_EN;
+  else if (lang === 'de' && Array.isArray(window.UPDATES_DE) && window.UPDATES_DE_READY) list = window.UPDATES_DE;
+  else list = [...UPDATES];
+
+  // Voeg Firebase updates toe
+  Object.values(FIREBASE_UPDATES).forEach(u => {
+    let uTitle = u.title;
+    let uInfo = u.info;
+    if (window.AutoTranslator && u.titleTranslations) uTitle = window.AutoTranslator.pickBilingual(u.titleTranslations);
+    if (window.AutoTranslator && u.infoTranslations) uInfo = window.AutoTranslator.pickBilingual(u.infoTranslations);
+
+    list.push({
+      title: uTitle,
+      date: u.date,
+      time: u.time,
+      info: uInfo,
+      _isFirebase: true
+    });
+  });
+
+  // Sorteer: nieuwste bovenaan
+  list.sort((a, b) => parseUpdateDateTime(b.date, b.time) - parseUpdateDateTime(a.date, a.time));
+
+  return list;
 }
 
 function renderUpdatesList() {
@@ -170,10 +198,17 @@ function loadUpdateLanguage(){
   } else renderUpdatesList();
 }
 
+// Luister naar Firebase updates
+if (typeof db !== 'undefined') {
+  db.ref('appUpdates').on('value', snap => {
+    FIREBASE_UPDATES = snap.val() || {};
+    renderUpdatesList();
+  });
+}
+
 loadUpdateLanguage();
 window.addEventListener('updates-de-ready',()=>{if(localStorage.getItem('appLanguage')==='de')renderUpdatesList();});
 
-// Gebruikt de openModal-functie die al door landing.js / restaurant.js is gedefinieerd.
 const btnUpdates = document.getElementById('btn-updates');
 if (btnUpdates) {
   btnUpdates.addEventListener('click', () => openModal('modal-updates'));

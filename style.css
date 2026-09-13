@@ -976,7 +976,7 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   background: rgba(10, 8, 6, 0.72);
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 2500;
   padding: 20px;
 }
 .modal-overlay.open { display: flex; }

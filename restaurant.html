@@ -282,6 +282,10 @@
         <span>Zelfservice link</span>
         <span class="settings-info-value-group"><span id="selfservice-url" style="word-break:break-all;">—</span></span>
       </div>
+      <div class="settings-info-row">
+        <span>Zelfservice code</span>
+        <span class="settings-info-value-group"><strong id="info-ss-code">—</strong></span>
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;">
         <button type="button" class="mini-btn edit" id="btn-selfservice-scan">📱 Openen / scannen</button>
         <button type="button" class="mini-btn edit" id="btn-selfservice-pdf">📄 QR downloaden als PDF</button>
@@ -375,17 +379,50 @@
   </div>
 </div>
 
-<!-- Modal: username instellen/wijzigen -->
-<div class="modal-overlay" id="modal-username-setup">
+<!-- Modal: Auth (Inloggen / Registreren) -->
+<div class="modal-overlay" id="modal-auth" style="z-index: 2000;">
   <div class="modal-box">
-    <div class="modal-title">👤 Username wijzigen</div>
-    <p class="modal-text">Kies een username van maximaal 15 tekens.</p>
-    <label class="modal-label" for="username-setup-input">Username</label>
-    <input type="text" id="username-setup-input" class="modal-input" maxlength="15" autocomplete="off" placeholder="Bijv. Sam123">
-    <div class="modal-error" id="username-setup-error"></div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" data-close>Annuleren</button>
-      <button type="button" class="btn-primary" id="username-setup-confirm">Doorgaan</button>
+    <div id="auth-choice-view">
+      <div class="modal-title">Welkom</div>
+      <p class="modal-text">Log in op je account of maak een nieuw account aan.</p>
+      <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+        <button type="button" class="btn-primary" id="btn-choice-login" style="width: 100%; margin: 0;">Inloggen</button>
+        <button type="button" class="btn-secondary" id="btn-choice-register" style="width: 100%; margin: 0;">Account maken</button>
+      </div>
+    </div>
+    <div id="auth-form-view" style="display: none;">
+      <div class="modal-title" id="auth-title">Inloggen</div>
+      <div class="tab-nav" style="margin-bottom: 20px;">
+        <button type="button" class="tab-btn active" id="auth-tab-login">Inloggen</button>
+        <button type="button" class="tab-btn" id="auth-tab-register">Registreren</button>
+      </div>
+      <div id="auth-fields">
+        <label class="modal-label">E-mailadres</label>
+        <input type="email" id="auth-email" class="modal-input" placeholder="bijv. naam@email.com">
+        <label class="modal-label">Wachtwoord</label>
+        <input type="password" id="auth-password" class="modal-input" placeholder="Minimaal 6 tekens">
+        <div id="register-only-fields" style="display: none;">
+          <label class="modal-label">Username</label>
+          <input type="text" id="auth-username" class="modal-input" maxlength="15" placeholder="Kies een leuke naam">
+        </div>
+      </div>
+      <div class="modal-error" id="auth-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="auth-back">Terug</button>
+        <button type="button" class="btn-primary" id="auth-confirm">Doorgaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Accountbeheer (Uitloggen) -->
+<div class="modal-overlay" id="modal-profile" style="z-index: 2000;">
+  <div class="modal-box">
+    <div class="modal-title">👤 Jouw Account</div>
+    <div class="modal-text" style="text-align: center; margin-bottom: 20px;">Je bent ingelogd als <strong id="profile-username-label">...</strong></div>
+    <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+      <button type="button" class="btn-danger" id="btn-logout" style="width: 100%; margin: 0;">Uitloggen</button>
+      <button type="button" class="btn-secondary" data-close style="width: 100%; margin: 0;">Sluiten</button>
     </div>
   </div>
 </div>

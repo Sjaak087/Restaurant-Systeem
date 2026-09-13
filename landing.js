@@ -1,12 +1,20 @@
 const MAX_RESTAURANTS = 2;
 const STORAGE_KEY = 'mijnRestaurants';
 
+// Helpers voor modals (globaal beschikbaar maken)
+window.openModal = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+window.closeModal = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
 function requireUsername() {
   const username = getUsername();
   if (username) return username;
-  openModal('modal-username-setup');
-  const input = document.getElementById('username-setup-input');
-  if (input) input.focus();
+  openModal('modal-auth');
   return '';
 }
 
@@ -19,20 +27,16 @@ function getMyRestaurants() {
   }
 }
 
-function saveMyRestaurants(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
-
 function addMyRestaurant(entry) {
   const list = getMyRestaurants();
   if (list.some(r => r.id === entry.id)) return list;
   list.push(entry);
-  saveMyRestaurants(list);
+  window.saveMyRestaurants(list);
   return list;
 }
 
 function genCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // zonder verwarrende tekens (0/O, 1/I)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
@@ -40,6 +44,10 @@ function genCode() {
 
 function genMemberId() {
   return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function genSelfserviceCode() {
+  return Math.floor(10000 + Math.random() * 90000).toString();
 }
 
 async function genUniqueCode() {
@@ -52,14 +60,9 @@ async function genUniqueCode() {
 }
 
 // ---- Opruimen: spookrestaurants & verlopen verwijdertimers ----
-// index.html is de pagina die vrijwel iedereen als eerste opent (leden,
-// niet alleen sitebeheerders). Door dit hier ook te checken, wordt een
-// verlopen restaurant al opgeruimd zodra ÉÉN willekeurig iemand de site
-// bezoekt, in plaats van pas wanneer specifiek dat restaurant of het
-// sitebeheer geopend wordt. Draait één keer per bezoek, op de achtergrond,
-// zonder de pagina te blokkeren.
-(async function cleanupExpiredRestaurants() {
+async function cleanupExpiredRestaurants() {
   try {
+    if (typeof db === 'undefined') return;
     const snap = await db.ref('restaurants').get();
     const data = snap.val() || {};
     const nu = Date.now();
@@ -69,27 +72,39 @@ async function genUniqueCode() {
       const isGhost = !r.leden || Object.keys(r.leden).length === 0;
       const isExpired = !!(r.autoDelete && r.autoDelete.deleteAt && r.autoDelete.deleteAt <= nu);
       if (!isGhost && !isExpired) continue;
-
       updates[`restaurants/${id}`] = null;
       if (r.code) updates[`restaurantCodes/${r.code}`] = null;
     }
+    if (Object.keys(updates).length > 0) await db.ref().update(updates);
 
-    if (Object.keys(updates).length > 0) {
-      await db.ref().update(updates);
+    // Check of de restaurants in MIJN lijst nog bestaan.
+    const mijnLijst = getMyRestaurants();
+    if (mijnLijst.length === 0) return;
+
+    const nieuweLijst = [];
+    let veranderd = false;
+
+    for (const r of mijnLijst) {
+      if (data[r.id]) {
+        nieuweLijst.push(r);
+      } else {
+        veranderd = true;
+      }
+    }
+
+    if (veranderd) {
+      window.saveMyRestaurants(nieuweLijst);
     }
   } catch (e) {
-    // Stil falen: dit is opruimen op de achtergrond, geen kernfunctionaliteit
-    // van de pagina, dus een foutje hierin mag de rest niet verstoren.
     console.error('Opruimen mislukt:', e);
   }
-})();
+}
 
-// ---- Render "Mijn restaurants" ----
 const myRestaurantsEl = document.getElementById('my-restaurants');
 const maxMsgEl = document.getElementById('max-msg');
-const landingActionsEl = document.getElementById('landing-actions');
 
-function renderMyRestaurants() {
+window.renderMyRestaurants = function() {
+  if (!myRestaurantsEl) return;
   const list = getMyRestaurants();
   const aangemaakt = list.filter(r => r.rol === 'eigenaar');
   const gejoined = list.filter(r => r.rol !== 'eigenaar');
@@ -104,9 +119,9 @@ function renderMyRestaurants() {
         <div class="restaurant-card-role">${r.rol === 'eigenaar' ? '👑 Eigenaar' : '👤 Gejoined'}</div>
       </div>
     `;
-    card.addEventListener('click', () => {
+    card.onclick = () => {
       window.location.href = `restaurant.html?id=${encodeURIComponent(r.id)}`;
-    });
+    };
     return card;
   }
 
@@ -129,12 +144,10 @@ function renderMyRestaurants() {
     }
   }
 
-  // Alleen het ZELF AANMAKEN is aan een maximum van 2 gebonden; joinen mag
-  // onbeperkt. Het "Restaurant maken"-knopje verdwijnt dus op zichzelf zodra
-  // dat maximum bereikt is, terwijl "Restaurant joinen" altijd zichtbaar blijft.
   const createAtMax = aangemaakt.length >= MAX_RESTAURANTS;
-  maxMsgEl.style.display = createAtMax ? 'block' : 'none';
-  document.getElementById('btn-open-create').style.display = createAtMax ? 'none' : '';
+  if (maxMsgEl) maxMsgEl.style.display = createAtMax ? 'block' : 'none';
+  const btnCreate = document.getElementById('btn-open-create');
+  if (btnCreate) btnCreate.style.display = createAtMax ? 'none' : '';
 }
 
 function escapeHtml(str) {
@@ -143,137 +156,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-renderMyRestaurants();
-
-// ---- Modals ----
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-document.querySelectorAll('[data-close]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
-  });
-});
-
-// ---- Restaurant maken ----
-document.getElementById('btn-open-create').addEventListener('click', () => {
-  if (!requireUsername()) return;
-  document.getElementById('create-name').value = '';
-    document.getElementById('create-error').textContent = '';
-  openModal('modal-create');
-});
-
-document.getElementById('create-confirm').addEventListener('click', async () => {
-  const naam = document.getElementById('create-name').value.trim();
-  const mijnNaam = getUsername();
-  const errorEl = document.getElementById('create-error');
-  if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
-  if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
-  if (getMyRestaurants().filter(r => r.rol === 'eigenaar').length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je hebt al 2 zelf aangemaakte restaurants. Verwijder er eerst één om een nieuwe te maken.'; return; }
-
-  const btn = document.getElementById('create-confirm');
-  btn.disabled = true;
-  btn.textContent = 'Bezig...';
-
-  try {
-    const code = await genUniqueCode();
-    const newRef = db.ref('restaurants').push();
-    const id = newRef.key;
-
-    await newRef.set({
-      naam: naam,
-      code: code,
-      aangemaakt: Date.now()
-    });
-    await db.ref('restaurantCodes/' + code).set(id);
-
-    const memberId = genMemberId();
-    await newRef.child('leden/' + memberId).set({
-      rol: 'eigenaar',
-      userId: window.BESTELSYSTEEM_USER_ID || '',
-      naam: mijnNaam,
-      tabs: { bestellen: true, voorraad: true, keuken: true, gereed: true, historie: true, instellingen: true },
-      toegevoegdOp: Date.now()
-    });
-
-    addMyRestaurant({ id, naam, code, rol: 'eigenaar', memberId });
-    closeModal('modal-create');
-
-    document.getElementById('code-display').textContent = code;
-    window.pendingRestaurantId = id;
-    openModal('modal-code-shown');
-  } catch (e) {
-    console.error(e);
-    errorEl.textContent = 'Er ging iets mis, probeer het opnieuw.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Aanmaken';
-  }
-});
-
-document.getElementById('code-shown-ok').addEventListener('click', () => {
-  const id = window.pendingRestaurantId;
-  window.location.href = `restaurant.html?id=${encodeURIComponent(id)}`;
-});
-
-// ---- Restaurant joinen ----
-document.getElementById('btn-open-join').addEventListener('click', () => {
-  if (!requireUsername()) return;
-  document.getElementById('join-code').value = '';
-    document.getElementById('join-error').textContent = '';
-  openModal('modal-join');
-});
-
-document.getElementById('join-confirm').addEventListener('click', async () => {
-  const code = document.getElementById('join-code').value.trim().toUpperCase();
-  const mijnNaam = getUsername();
-  const errorEl = document.getElementById('join-error');
-  if (!code) { errorEl.textContent = 'Vul een code in.'; return; }
-  if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
-
-  const btn = document.getElementById('join-confirm');
-  btn.disabled = true;
-  btn.textContent = 'Bezig...';
-
-  try {
-    const snap = await db.ref('restaurantCodes/' + code).get();
-    if (!snap.exists()) {
-      errorEl.textContent = 'Geen restaurant gevonden met deze code.';
-      return;
-    }
-    const id = snap.val();
-    const infoSnap = await db.ref('restaurants/' + id + '/naam').get();
-    const naam = infoSnap.exists() ? infoSnap.val() : 'Restaurant';
-
-    if (getMyRestaurants().some(r => r.id === id)) {
-      errorEl.textContent = 'Je zit al in dit restaurant.';
-      return;
-    }
-
-    const memberId = genMemberId();
-    await db.ref('restaurants/' + id + '/leden/' + memberId).set({
-      rol: 'gejoined',
-      userId: window.BESTELSYSTEEM_USER_ID || '',
-      naam: mijnNaam,
-      tabs: { bestellen: true, voorraad: false, keuken: false, gereed: false, historie: false, instellingen: false },
-      toegevoegdOp: Date.now()
-    });
-
-    addMyRestaurant({ id, naam, code, rol: 'gejoined', memberId });
-    window.location.href = `restaurant.html?id=${encodeURIComponent(id)}`;
-  } catch (e) {
-    console.error(e);
-    errorEl.textContent = 'Er ging iets mis, probeer het opnieuw.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Joinen';
-  }
-});
-
-
-// ---- Feedback ----
-const feedbackButton = document.getElementById('btn-feedback');
-const feedbackSendButton = document.getElementById('send-feedback');
+// ---- Feedback Systeem ----
 const feedbackLimitKey = 'feedbackLastSentAt';
 const FEEDBACK_COOLDOWN_MS = 5 * 60 * 1000;
 
@@ -282,63 +165,180 @@ function getFeedbackCooldownRemaining() {
   return Math.max(0, FEEDBACK_COOLDOWN_MS - (Date.now() - lastSent));
 }
 
-if (feedbackButton) {
-  feedbackButton.addEventListener('click', () => {
-    const errorEl = document.getElementById('feedback-error');
-    errorEl.textContent = '';
-    document.getElementById('feedback-name').value = getUsername();
-    document.getElementById('feedback-text').value = '';
-    const remaining = getFeedbackCooldownRemaining();
-    if (remaining > 0) {
-      const minutes = Math.ceil(remaining / 60000);
-      errorEl.textContent = `Je kunt over ${minutes} minuut${minutes === 1 ? '' : 'en'} opnieuw feedback geven.`;
-    }
-    openModal('modal-feedback');
-  });
-}
+function initLanding() {
+  window.renderMyRestaurants();
+  cleanupExpiredRestaurants();
 
-if (feedbackSendButton) {
-  feedbackSendButton.addEventListener('click', async () => {
-    const nameEl = document.getElementById('feedback-name');
-    const textEl = document.getElementById('feedback-text');
-    const errorEl = document.getElementById('feedback-error');
-    const name = nameEl.value.trim();
-    const text = textEl.value.trim();
-
-    errorEl.textContent = '';
-    if (!name) { errorEl.textContent = 'Vul je naam in.'; nameEl.focus(); return; }
-    if (!text) { errorEl.textContent = 'Vul je feedback in.'; textEl.focus(); return; }
-
-    const remaining = getFeedbackCooldownRemaining();
-    if (remaining > 0) {
-      const minutes = Math.ceil(remaining / 60000);
-      errorEl.textContent = `Je kunt over ${minutes} minuut${minutes === 1 ? '' : 'en'} opnieuw feedback geven.`;
-      return;
-    }
-
-    feedbackSendButton.disabled = true;
-    feedbackSendButton.textContent = 'Versturen...';
-    try {
-      const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
-      const translated = window.AutoTranslator
-        ? await window.AutoTranslator.buildBilingual(text, sourceLang)
-        : { nl:text, en:text, de:text, sourceLang };
-      await db.ref('feedback').push({
-        name: name,
-        text: text,
-        textTranslations: translated,
-        sourceLang,
-        createdAt: Date.now()
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.modal-overlay').forEach(m => {
+        if (m.id !== 'modal-auth' || getUsername()) m.classList.remove('open');
       });
-      localStorage.setItem(feedbackLimitKey, String(Date.now()));
-      closeModal('modal-feedback');
-      alert('Bedankt voor je feedback!');
-    } catch (e) {
-      console.error('Feedback versturen mislukt:', e);
-      errorEl.textContent = 'Er ging iets mis bij het versturen. Probeer het opnieuw.';
-    } finally {
-      feedbackSendButton.disabled = false;
-      feedbackSendButton.textContent = 'Versturen';
-    }
+    };
   });
+
+  const btnOpenCreate = document.getElementById('btn-open-create');
+  if (btnOpenCreate) {
+    btnOpenCreate.onclick = () => {
+      if (!requireUsername()) return;
+      document.getElementById('create-name').value = '';
+      document.getElementById('create-error').textContent = '';
+      openModal('modal-create');
+    };
+  }
+
+  const btnCreateConfirm = document.getElementById('create-confirm');
+  if (btnCreateConfirm) {
+    btnCreateConfirm.onclick = async () => {
+      const naam = document.getElementById('create-name').value.trim();
+      const mijnNaam = getUsername();
+      const errorEl = document.getElementById('create-error');
+      if (!naam) { errorEl.textContent = 'Vul een naam in.'; return; }
+      if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
+      if (getMyRestaurants().filter(r => r.rol === 'eigenaar').length >= MAX_RESTAURANTS) { errorEl.textContent = 'Je hebt al 2 restaurants.'; return; }
+
+      btnCreateConfirm.disabled = true;
+      btnCreateConfirm.textContent = 'Bezig...';
+      try {
+        const code = await genUniqueCode();
+        const ssCode = genSelfserviceCode();
+        const newRef = db.ref('restaurants').push();
+        const id = newRef.key;
+        await newRef.set({ naam: naam, code: code, selfserviceCode: ssCode, aangemaakt: Date.now() });
+        await db.ref('restaurantCodes/' + code).set(id);
+        const memberId = genMemberId();
+        await newRef.child('leden/' + memberId).set({
+          rol: 'eigenaar',
+          userId: window.BESTELSYSTEEM_USER_ID || '',
+          naam: mijnNaam,
+          tabs: { bestellen: true, voorraad: true, keuken: true, gereed: true, historie: true, instellingen: true },
+          toegevoegdOp: Date.now()
+        });
+        addMyRestaurant({ id, naam, code, rol: 'eigenaar', memberId });
+        closeModal('modal-create');
+        document.getElementById('code-display').textContent = code;
+        window.pendingRestaurantId = id;
+        openModal('modal-code-shown');
+      } catch (e) {
+        console.error(e);
+        errorEl.textContent = 'Fout bij aanmaken.';
+      } finally {
+        btnCreateConfirm.disabled = false;
+        btnCreateConfirm.textContent = 'Aanmaken';
+      }
+    };
+  }
+
+  const btnCodeShownOk = document.getElementById('code-shown-ok');
+  if (btnCodeShownOk) {
+    btnCodeShownOk.onclick = () => {
+      const id = window.pendingRestaurantId;
+      if (id) window.location.href = `restaurant.html?id=${encodeURIComponent(id)}`;
+    };
+  }
+
+  const btnOpenJoin = document.getElementById('btn-open-join');
+  if (btnOpenJoin) {
+    btnOpenJoin.onclick = () => {
+      if (!requireUsername()) return;
+      document.getElementById('join-code').value = '';
+      document.getElementById('join-error').textContent = '';
+      openModal('modal-join');
+    };
+  }
+
+  const btnJoinConfirm = document.getElementById('join-confirm');
+  if (btnJoinConfirm) {
+    btnJoinConfirm.onclick = async () => {
+      const code = document.getElementById('join-code').value.trim().toUpperCase();
+      const mijnNaam = getUsername();
+      const errorEl = document.getElementById('join-error');
+      if (!code) { errorEl.textContent = 'Vul een code in.'; return; }
+      if (!mijnNaam) { errorEl.textContent = 'Vul je eigen naam in.'; return; }
+
+      btnJoinConfirm.disabled = true;
+      btnJoinConfirm.textContent = 'Bezig...';
+      try {
+        const snap = await db.ref('restaurantCodes/' + code).get();
+        if (!snap.exists()) { errorEl.textContent = 'Code onbekend.'; btnJoinConfirm.disabled = false; return; }
+        const id = snap.val();
+        const infoSnap = await db.ref('restaurants/' + id + '/naam').get();
+        const naam = infoSnap.exists() ? infoSnap.val() : 'Restaurant';
+        if (getMyRestaurants().some(r => r.id === id)) { errorEl.textContent = 'Je zit al in dit restaurant.'; btnJoinConfirm.disabled = false; return; }
+        const memberId = genMemberId();
+        await db.ref('restaurants/' + id + '/leden/' + memberId).set({
+          rol: 'gejoined',
+          userId: window.BESTELSYSTEEM_USER_ID || '',
+          naam: mijnNaam,
+          tabs: { bestellen: true, voorraad: false, keuken: false, gereed: false, historie: false, instellingen: false },
+          toegevoegdOp: Date.now()
+        });
+        addMyRestaurant({ id, naam, code, rol: 'gejoined', memberId });
+        window.location.href = `restaurant.html?id=${encodeURIComponent(id)}`;
+      } catch (e) {
+        console.error(e);
+        errorEl.textContent = 'Fout bij joinen.';
+      } finally {
+        btnJoinConfirm.disabled = false;
+        btnJoinConfirm.textContent = 'Joinen';
+      }
+    };
+  }
+
+  const btnFeedback = document.getElementById('btn-feedback');
+  if (btnFeedback) {
+    btnFeedback.onclick = () => {
+      const errorEl = document.getElementById('feedback-error');
+      if (errorEl) errorEl.textContent = '';
+      const nameEl = document.getElementById('feedback-name');
+      if (nameEl) nameEl.value = getUsername();
+      const textEl = document.getElementById('feedback-text');
+      if (textEl) textEl.value = '';
+
+      const remaining = getFeedbackCooldownRemaining();
+      if (remaining > 0 && errorEl) {
+        const minutes = Math.ceil(remaining / 60000);
+        errorEl.textContent = `Je kunt over ${minutes} minuut${minutes === 1 ? '' : 'en'} opnieuw feedback geven.`;
+      }
+      openModal('modal-feedback');
+    };
+  }
+
+  const btnSendFeedback = document.getElementById('send-feedback');
+  if (btnSendFeedback) {
+    btnSendFeedback.onclick = async () => {
+      const nameEl = document.getElementById('feedback-name');
+      const textEl = document.getElementById('feedback-text');
+      const errorEl = document.getElementById('feedback-error');
+      const name = nameEl.value.trim();
+      const text = textEl.value.trim();
+
+      if (errorEl) errorEl.textContent = '';
+      if (!name) { if (errorEl) errorEl.textContent = 'Vul je naam in.'; nameEl.focus(); return; }
+      if (!text) { if (errorEl) errorEl.textContent = 'Vul je feedback in.'; textEl.focus(); return; }
+
+      const remaining = getFeedbackCooldownRemaining();
+      if (remaining > 0) return;
+
+      btnSendFeedback.disabled = true;
+      btnSendFeedback.textContent = 'Versturen...';
+      try {
+        const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
+        const translated = window.AutoTranslator ? await window.AutoTranslator.buildBilingual(text, sourceLang) : { nl:text, en:text, sourceLang };
+        await db.ref('feedback').push({ name, text, textTranslations: translated, sourceLang, createdAt: Date.now() });
+        localStorage.setItem(feedbackLimitKey, String(Date.now()));
+        closeModal('modal-feedback');
+        alert('Bedankt voor je feedback!');
+      } catch (e) {
+        console.error(e);
+        if (errorEl) errorEl.textContent = 'Fout bij versturen.';
+      } finally {
+        btnSendFeedback.disabled = false;
+        btnSendFeedback.textContent = 'Versturen';
+      }
+    };
+  }
 }
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLanding);
+else initLanding();
