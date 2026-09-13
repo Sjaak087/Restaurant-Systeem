@@ -36,9 +36,6 @@ function renderAdminRestaurants(data) {
   const list = document.getElementById('admin-restaurant-list');
   const emptyMsg = document.getElementById('admin-empty-msg');
 
-  // Restaurants zonder leden zijn "spookrestaurants" (bijv. overgebleven na een
-  // fout, of nog in het proces van verwijderd worden) en gelden niet als een
-  // echt bestaand restaurant, dus die tonen we niet in het beheer.
   const entries = Object.entries(data)
     .filter(([, r]) => r.leden && Object.keys(r.leden).length > 0)
     .sort((a, b) => (b[1].aangemaakt || 0) - (a[1].aangemaakt || 0));
@@ -69,8 +66,6 @@ function renderAdminRestaurants(data) {
         <button type="button" class="mini-btn danger" data-delete="${id}">Verwijderen</button>
       </div>
     `;
-    // Klik op de kaart zelf opent de volledige restaurant-weergave, met alle
-    // rechten van een eigenaar (plattegrond, producten, voorraad, leden, enz).
     card.addEventListener('click', () => openAdminRestaurantView(id));
     card.querySelector('[data-view]').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -126,10 +121,6 @@ document.getElementById('admin-rename-confirm').addEventListener('click', () => 
 });
 
 // ==================== Waarschuwing naar restaurant sturen ====================
-// De waarschuwing wordt in Firebase gezet en verschijnt de eerstvolgende keer
-// dat de eigenaar (niet de admin zelf) het restaurant opent, groot in beeld.
-// Zodra de eigenaar op "Oké" drukt, wordt de waarschuwing verwijderd en komt
-// hij dus nooit meer terug (tenzij er een nieuwe wordt verstuurd).
 let editingWarningRestaurantId = null;
 let editingWarningRestaurantNaam = '';
 
@@ -156,9 +147,6 @@ document.getElementById('admin-warning-confirm').addEventListener('click', () =>
       text: tekst,
       createdAt: createdAt
     }),
-    // Blijvende geschiedenis: dit blijft staan ook nadat de eigenaar de
-    // waarschuwing zelf heeft weggeklikt, zodat sitebeheerders kunnen
-    // terugzien wat er wanneer naar welk restaurant is gestuurd.
     db.ref('warningHistory').push({
       restaurantId: editingWarningRestaurantId,
       restaurantNaam: editingWarningRestaurantNaam || 'Restaurant',
@@ -175,7 +163,7 @@ document.getElementById('admin-warning-confirm').addEventListener('click', () =>
   });
 });
 
-// ==================== Aankondigingen (sitebreed, via belletje op index.html) ====================
+// ==================== Aankondigingen (sitebreed) ====================
 db.ref('announcements').on('value', snap => {
   renderAdminAnnouncements(snap.val() || {});
 });
@@ -290,6 +278,112 @@ function deleteAdminAnnouncement(id, a) {
   });
 }
 
+// ==================== Update Log Beheer ====================
+db.ref('appUpdates').on('value', snap => {
+  renderAdminUpdates(snap.val() || {});
+});
+
+function parseUpdateDateTimeAdmin(dateStr, timeStr) {
+  if (!dateStr) return 0;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return 0;
+  const d = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, y = parseInt(parts[2], 10);
+  const tParts = (timeStr || '00:00').split(':');
+  const h = parseInt(tParts[0] || 0, 10), min = parseInt(tParts[1] || 0, 10);
+  return new Date(y, m, d, h, min).getTime();
+}
+
+function renderAdminUpdates(data) {
+  const list = document.getElementById('admin-update-list');
+  const emptyMsg = document.getElementById('admin-update-empty-msg');
+  if (!list) return;
+
+  const entries = Object.entries(data)
+    .sort((a, b) => parseUpdateDateTimeAdmin(b[1].date, b[1].time) - parseUpdateDateTimeAdmin(a[1].date, a[1].time));
+
+  if (entries.length === 0) {
+    list.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+  list.innerHTML = '';
+
+  entries.forEach(([id, u]) => {
+    const card = document.createElement('div');
+    card.className = 'restaurant-card admin-restaurant-card';
+    card.innerHTML = `
+      <div class="restaurant-card-main">
+        <div class="restaurant-card-name">🔄 ${escapeHtmlAdmin(u.title)}</div>
+        <div class="restaurant-card-role">${escapeHtmlAdmin(u.date)} · ${escapeHtmlAdmin(u.time)}</div>
+        <div class="restaurant-card-role" style="margin-top:4px; font-size:0.9em; opacity:0.8;">${escapeHtmlAdmin(u.info).substring(0, 100)}...</div>
+      </div>
+      <div class="admin-restaurant-actions">
+        <button type="button" class="mini-btn danger" data-delete-update="${id}">Verwijderen</button>
+      </div>
+    `;
+    card.querySelector('[data-delete-update]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Update "${u.title}" verwijderen uit de log?`)) {
+        db.ref('appUpdates/' + id).remove();
+      }
+    });
+    list.appendChild(card);
+  });
+}
+
+document.getElementById('btn-admin-new-update').addEventListener('click', () => {
+  const now = new Date();
+  const d = String(now.getDate()).padStart(2, '0');
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const y = now.getFullYear();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+
+  document.getElementById('admin-update-title-input').value = '';
+  document.getElementById('admin-update-date-input').value = `${d}-${m}-${y}`;
+  document.getElementById('admin-update-time-input').value = `${hh}:${min}`;
+  document.getElementById('admin-update-info-input').value = '';
+  document.getElementById('admin-update-error').textContent = '';
+  openModal('modal-admin-update');
+});
+
+document.getElementById('admin-update-confirm').addEventListener('click', async () => {
+  const title = document.getElementById('admin-update-title-input').value.trim();
+  const date = document.getElementById('admin-update-date-input').value.trim();
+  const time = document.getElementById('admin-update-time-input').value.trim();
+  const info = document.getElementById('admin-update-info-input').value.trim();
+  const errorEl = document.getElementById('admin-update-error');
+
+  if (!title || !date || !time || !info) { errorEl.textContent = 'Vul alle velden in.'; return; }
+  if (!/^\d{2}-\d{2}-\d{4}$/.test(date)) { errorEl.textContent = 'Datum moet DD-MM-YYYY zijn.'; return; }
+  if (!/^\d{2}:\d{2}$/.test(time)) { errorEl.textContent = 'Tijd moet HH:MM zijn.'; return; }
+
+  const btn = document.getElementById('admin-update-confirm');
+  btn.disabled = true;
+  try {
+    const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
+    const translated = window.AutoTranslator
+      ? await window.AutoTranslator.translateFieldSet({ title, info }, sourceLang)
+      : { title: { nl: title, en: title }, info: { nl: info, en: info } };
+
+    await db.ref('appUpdates').push().set({
+      title, date, time, info,
+      titleTranslations: translated.title,
+      infoTranslations: translated.info,
+      sourceLang,
+      createdAt: Date.now()
+    });
+    closeModal('modal-admin-update');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'Er ging iets mis bij het opslaan.';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+
 function deleteAdminRestaurant(id, r) {
   const naam = r.naam || 'dit restaurant';
   if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit verwijdert het HELE restaurant definitief, inclusief alle leden, tafels, producten en geschiedenis. Dit kan niet ongedaan gemaakt worden.`)) return;
@@ -303,11 +397,6 @@ function deleteAdminRestaurant(id, r) {
 }
 
 // ==================== Automatische verwijdertimer ====================
-// Stelt in na hoeveel uur/minuten een restaurant automatisch verwijderd
-// wordt. Het restaurant zelf toont hierboven een countdown en verwijdert
-// zichzelf zodra de tijd om is (zie restaurant.js). Dit sitebeheer ruimt
-// daarnaast, zolang deze pagina open is, ook verlopen/leeggelopen
-// restaurants op als niemand het restaurant zelf open heeft staan.
 let editingTimerRestaurantId = null;
 
 function openAdminDeleteTimer(id, naam, autoDelete) {
@@ -352,10 +441,6 @@ document.getElementById('admin-timer-cancel').addEventListener('click', () => {
 });
 
 // ==================== Opruimen: spookrestaurants & verlopen timers ====================
-// Draait elke keer dat de restaurantenlijst binnenkomt (dus zolang deze
-// sitebeheerpagina open staat). Een restaurant zonder leden (bijv. door een
-// mislukte aanmaak, of omdat iedereen 'm heeft verlaten) of waarvan de
-// verwijdertimer is verstreken, wordt dan definitief uit Firebase gehaald.
 function cleanupGhostAndExpiredRestaurants(data) {
   const nu = Date.now();
   Object.entries(data).forEach(([id, r]) => {

@@ -481,6 +481,12 @@ restRef.child('naam').on('value', snap => {
     localStorage.setItem('mijnRestaurants', JSON.stringify(list));
   }
 });
+
+restRef.child('selfserviceCode').on('value', snap => {
+  selfserviceCode = snap.val() || "";
+  const el = document.getElementById('info-ss-code');
+  if (el) el.textContent = selfserviceCode || "—";
+});
 restRef.child('code').on('value', snap => {
   document.getElementById('info-code').textContent = snap.val() || '—';
 });
@@ -952,6 +958,7 @@ restRef.child('products').on('value', snap => {
   renderOrderModalIfOpen();
   renderVoorraadProducts();
   renderVoorraadOpmerkingen();
+  syncSelfserviceConfig();
 });
 
 function productList() {
@@ -1325,6 +1332,7 @@ restRef.child('categories').on('value', snap => {
   populateCategorySelect();
   renderOrderModalIfOpen();
   renderHistory();
+  syncSelfserviceConfig();
 });
 
 // Sorteert op plaats (1 boven, 255 onder). Bij gelijke plaats alfabetisch.
@@ -1678,6 +1686,7 @@ restRef.child('floorplan/tables').on('value', snap => {
   TABLES_STATE = snap.val() || {};
   renderEditCanvas();
   renderOrderCanvas();
+  syncSelfserviceConfig();
 });
 
 // ---- Actieve tafel-status (bezet = heeft open bestelling) ----
@@ -2440,6 +2449,7 @@ document.getElementById('order-confirm').addEventListener('click', () => {
       tableNumber: currentOrderTable.number,
       items: groepItems,
       status: 'nieuw',
+      bestemming: bestemming,
       tijd: nu
     };
     if (opmerking) orderData.opmerking = opmerking;
@@ -2480,6 +2490,7 @@ document.getElementById('order-bar-confirm-pay').addEventListener('click', () =>
       tableNumber: null,
       items: groepItems,
       status: 'nieuw',
+      bestemming: bestemming,
       tijd: nu,
       betaaldOp: nu
     };
@@ -2764,7 +2775,8 @@ setTimeout(initSoundChoiceControls, 1000);
 // moeten worden; zit er ook maar één keuken-product bij, dan gaat de hele
 // bestelling (net als vroeger) naar de Keuken.
 function orderBestemming(order) {
-  const keys = Object.keys(order.items || {});
+  if (order && order.bestemming) return order.bestemming;
+  const keys = Object.keys(order?.items || {});
   if (keys.length === 0) return 'keuken';
   const allesBar = keys.every(key => {
     const p = PRODUCTS_STATE[key];
@@ -2990,6 +3002,7 @@ ordersRef.on('child_added', snap => {
   renderKitchen();
   renderReady();
   herbereken_actieve_tafels();
+  syncOrdersMirror();
   if (isNew && (activeTab === 'keuken' || activeTab === 'bar') && orderBestemming(order) === activeTab) speelMeldingGeluid();
 });
 ordersRef.on('child_changed', snap => {
@@ -3000,6 +3013,7 @@ ordersRef.on('child_changed', snap => {
   renderKitchen();
   renderReady();
   herbereken_actieve_tafels();
+  syncOrdersMirror();
   if (werdKlaar && activeTab === 'gereed') speelMeldingGeluid();
 });
 ordersRef.on('child_removed', snap => {
@@ -3007,20 +3021,113 @@ ordersRef.on('child_removed', snap => {
   renderKitchen();
   renderReady();
   herbereken_actieve_tafels();
+  syncOrdersMirror();
 });
 
+// ==================== Mirror voor externe systemen ====================
+function sanitizeMirrorKey(s) {
+  return String(s || '').replace(/[.#$[\]/]/g, '_');
+}
+
+function syncSelfserviceConfig() {
+  if (typeof db === 'undefined' || !restaurantId) return;
+
+  // Sync Producten
+  const productsMirror = {};
+  Object.entries(PRODUCTS_STATE).forEach(([id, p]) => {
+    if (!p.label) return;
+    const k = sanitizeMirrorKey(p.label);
+    productsMirror[k] = {
+      originalId: id,
+      label: p.label,
+      emoji: p.emoji || '',
+      price: p.price || 0,
+      bestemming: p.bestemming || 'keuken',
+      categorie: (p.categorie && CATEGORIES_STATE[p.categorie]) ? CATEGORIES_STATE[p.categorie].naam : 'Overig',
+      opties: productOptions(p) // Gebruikt de bestaande functie die {label, emoji} teruggeeft
+    };
+  });
+  restRef.child('selfserviceconfig/producten').set(productsMirror);
+
+  // Sync Plattegrond
+  const fpMirror = {};
+  Object.entries(TABLES_STATE).forEach(([id, t]) => {
+    const isOrderable = t.kind === 'tafel' || t.kind === 'bank';
+    if (!isOrderable) return;
+
+    const kindWoord = t.kind === 'bank' ? 'Bank' : 'Tafel';
+    const label = kindWoord + ' ' + (t.number || 'Onbekend');
+    const k = sanitizeMirrorKey(label);
+
+    fpMirror[k] = {
+      originalId: id,
+      label: label,
+      number: t.number || 0,
+      kind: t.kind,
+      x: t.x,
+      y: t.y
+    };
+  });
+  restRef.child('selfserviceconfig/plattegrond').set(fpMirror);
+}
+
+function syncOrdersMirror() {
+  if (typeof db === 'undefined' || !restaurantId) return;
+
+  const kitchen = {};
+  const bar = {};
+  const ready = {};
+
+  Object.entries(ALLE_ORDERS).forEach(([id, o]) => {
+    const dest = orderBestemming(o);
+    const mirrorOrder = {
+      ...o,
+      orderId: id,
+      bestemming: dest,
+      kind: o.tableNumber ? kindWoordByNumber(o.tableNumber) : 'Bar',
+      icon: o.tableNumber ? kindIconByNumber(o.tableNumber) : '🍸'
+    };
+
+    if (o.status === 'klaar') {
+      ready[id] = mirrorOrder;
+    } else if (o.status === 'nieuw' || o.status === 'bereiden') {
+      if (dest === 'bar') bar[id] = mirrorOrder;
+      else kitchen[id] = mirrorOrder;
+    }
+  });
+
+  const mirror = {
+    bar: bar,
+    keuken: kitchen,
+    gereed: ready
+  };
+
+  restRef.child('bestelde bestellingen').set(mirror);
+  restRef.child('selfserviceconfig/bestelde bestellingen').set(mirror);
+}
+
 // ==================== Zelfservice QR ====================
+let selfserviceCode = "";
+
 function getSelfserviceUrl() {
-  const base = window.location.href.split('?')[0].split('#')[0].replace(/restaurant\.html$/i, 'selfservice.html');
-  return base + '?id=' + encodeURIComponent(restaurantId);
+  // Gebruik de live web-URL in plaats van de lokale file:/// URL.
+  // Hierdoor opent de browser van de klant direct de website via de QR-code.
+  const baseUrl = "https://sjaak087.github.io/Zelfservice";
+  let url = baseUrl + '?id=' + encodeURIComponent(restaurantId);
+  if (selfserviceCode) url += '&code=' + encodeURIComponent(selfserviceCode);
+  return url;
 }
 
 function renderSelfserviceQr() {
   const box = document.getElementById('selfservice-qr');
   const urlEl = document.getElementById('selfservice-url');
+  const ssCodeEl = document.getElementById('info-ss-code');
   if (!box || !urlEl) return;
+
   const url = getSelfserviceUrl();
   urlEl.textContent = url;
+  if (ssCodeEl) ssCodeEl.textContent = selfserviceCode || '—';
+
   box.innerHTML = '';
   if (window.QRCode) {
     new QRCode(box, { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
@@ -3034,22 +3141,81 @@ if (selfserviceSubtabBtn) {
 document.getElementById('btn-selfservice-scan')?.addEventListener('click', () => {
   window.open(getSelfserviceUrl(), '_blank', 'noopener');
 });
-document.getElementById('btn-selfservice-pdf')?.addEventListener('click', () => {
+document.getElementById('btn-selfservice-pdf')?.addEventListener('click', function() {
   const url = getSelfserviceUrl();
-  if (!window.jspdf) { alert('PDF-module kon niet worden geladen. Controleer je internetverbinding.'); return; }
-  const QRCanvas = document.querySelector('#selfservice-qr canvas');
-  if (!QRCanvas) { renderSelfserviceQr(); setTimeout(() => document.getElementById('btn-selfservice-pdf').click(), 150); return; }
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
-  const title = document.getElementById('restaurant-title')?.textContent || 'Restaurant';
-  pdf.setFontSize(24);
-  pdf.text(title, 105, 35, { align: 'center' });
-  pdf.setFontSize(16);
-  pdf.text('Scan om zelf te bestellen', 105, 50, { align: 'center' });
-  pdf.addImage(QRCanvas.toDataURL('image/png'), 'PNG', 55, 65, 100, 100);
-  pdf.setFontSize(10);
-  pdf.text('Kies je tafel, bestel je producten en volg je bestelling.', 105, 180, { align: 'center' });
-  pdf.save('zelfservice-qr-' + (restaurantId || 'restaurant') + '.pdf');
+  if (!window.jspdf) {
+    alert('PDF-module kon niet worden geladen. Controleer je internetverbinding of herlaad de pagina.');
+    return;
+  }
+
+  // Zorg dat de QR-code container gevuld is.
+  let box = document.getElementById('selfservice-qr');
+  if (box && box.innerHTML.trim() === '') {
+    renderSelfserviceQr();
+  }
+
+  // Zoek naar de QR-code (canvas heeft de voorkeur).
+  let qrCanvas = document.querySelector('#selfservice-qr canvas');
+  let qrImg = document.querySelector('#selfservice-qr img');
+
+  // Als er nog geen element is, even wachten en opnieuw proberen.
+  if (!qrCanvas && (!qrImg || !qrImg.src || qrImg.src.length < 100)) {
+    renderSelfserviceQr();
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Bezig met genereren...';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = '📄 QR downloaden als PDF';
+      btn.click();
+    }, 800);
+    return;
+  }
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const restaurantNaam = document.getElementById('restaurant-title')?.textContent || 'Restaurant';
+
+    // Pagina opmaak
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(26);
+    pdf.text(restaurantNaam, 105, 40, { align: 'center' });
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(18);
+    pdf.text('Scan deze code om direct te bestellen', 105, 55, { align: 'center' });
+
+    // Haal de afbeeldingsdata op
+    let qrData;
+    if (qrCanvas) {
+      qrData = qrCanvas.toDataURL('image/png');
+    } else {
+      qrData = qrImg.src;
+    }
+
+    // Voeg QR-code toe (gecentreerd)
+    pdf.addImage(qrData, 'PNG', 55, 75, 100, 100);
+
+    // Voetnoot
+    pdf.setFontSize(12);
+    pdf.setTextColor(120);
+    pdf.text('Bedankt voor je bezoek!', 105, 190, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.text('Gegenereerd door Restaurant Systeem', 105, 200, { align: 'center' });
+
+    // Sla de PDF op of trigger de download
+    if (navigator.userAgent.match(/Android/i)) {
+      // Gebruik een data URI voor Android WebView om de DownloadListener te triggeren
+      const dataUri = pdf.output('datauristring');
+      window.location.href = dataUri;
+    } else {
+      pdf.save('QR-Code-' + restaurantNaam.replace(/\s+/g, '-') + '.pdf');
+    }
+  } catch (err) {
+    console.error('PDF Error:', err);
+    alert('Fout bij het maken van de PDF: ' + err.message);
+  }
 });
 
 // ==================== Notities ====================

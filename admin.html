@@ -25,7 +25,8 @@
     <a href="index.html" class="admin-back-link">← Terug</a>
     <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
       <button type="button" class="updates-btn" id="btn-admin-messages">✉️ Berichten <span id="admin-message-badge" style="display:none;"></span></button>
-      <button type="button" class="updates-btn" id="btn-admin-new-announcement">📢 New announcement</button>
+      <button type="button" class="updates-btn" id="btn-admin-new-announcement">📢 Nieuw announcement</button>
+      <button type="button" class="updates-btn" id="btn-admin-new-update">🔄 Nieuwe update</button>
       <button type="button" class="updates-btn" id="btn-admin-logout">🚪 Uitloggen</button>
     </div>
   </div>
@@ -37,6 +38,7 @@
     <button type="button" class="tab-btn active" data-admin-tab="restaurants" role="tab" aria-selected="true">Restaurants</button>
     <button type="button" class="tab-btn" data-admin-tab="feedback" role="tab" aria-selected="false">Gegeven feedback</button>
     <button type="button" class="tab-btn" data-admin-tab="announcements" role="tab" aria-selected="false">Announcements</button>
+    <button type="button" class="tab-btn" data-admin-tab="updates" role="tab" aria-selected="false">Update log</button>
     <button type="button" class="tab-btn" data-admin-tab="users" role="tab" aria-selected="false">Username beheer</button>
   </div>
 
@@ -61,6 +63,14 @@
       <div class="landing-section-title">Announcements</div>
       <div id="admin-announcement-list" class="my-restaurants"></div>
       <div class="empty-msg" id="admin-announcement-empty-msg" style="display:none;">Nog geen announcements verstuurd.</div>
+    </div>
+  </div>
+
+  <div id="admin-tab-updates" class="tab-panel">
+    <div class="landing-section">
+      <div class="landing-section-title">Update log beheer</div>
+      <div id="admin-update-list" class="my-restaurants"></div>
+      <div class="empty-msg" id="admin-update-empty-msg" style="display:none;">Nog geen handmatige updates toegevoegd.</div>
     </div>
   </div>
 
@@ -117,6 +127,33 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="admin-announcement-confirm">Versturen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: update toevoegen (admin) -->
+<div class="modal-overlay" id="modal-admin-update">
+  <div class="modal-box">
+    <div class="modal-title">🔄 Update toevoegen</div>
+    <label class="modal-label" style="margin-top:0;">Titel</label>
+    <input type="text" id="admin-update-title-input" class="modal-input" maxlength="60" placeholder="Bijv. Mega update!">
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1;">
+        <label class="modal-label">Datum (DD-MM-YYYY)</label>
+        <input type="text" id="admin-update-date-input" class="modal-input" placeholder="Bijv. 07-09-2026">
+      </div>
+      <div style="flex:1;">
+        <label class="modal-label">Tijd (HH:MM)</label>
+        <input type="text" id="admin-update-time-input" class="modal-input" placeholder="Bijv. 14:30">
+      </div>
+    </div>
+    <label class="modal-label">Info</label>
+    <textarea id="admin-update-info-input" class="modal-input" rows="5" maxlength="1500" placeholder="Beschrijf de update..."></textarea>
+    <p class="modal-text auto-translate-hint">🌐 Update-tekst wordt automatisch vertaald naar Nederlands en Engels.</p>
+    <div class="modal-error" id="admin-update-error"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Annuleren</button>
+      <button type="button" class="btn-primary" id="admin-update-confirm">Toevoegen</button>
     </div>
   </div>
 </div>
