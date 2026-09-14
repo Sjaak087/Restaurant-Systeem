@@ -39,7 +39,8 @@
     <button type="button" class="tab-btn" data-admin-tab="feedback" role="tab" aria-selected="false">Gegeven feedback</button>
     <button type="button" class="tab-btn" data-admin-tab="announcements" role="tab" aria-selected="false">Announcements</button>
     <button type="button" class="tab-btn" data-admin-tab="updates" role="tab" aria-selected="false">Update log</button>
-    <button type="button" class="tab-btn" data-admin-tab="users" role="tab" aria-selected="false">Username beheer</button>
+    <button type="button" class="tab-btn" data-admin-tab="users" role="tab" aria-selected="false">Userbeheer</button>
+    <button type="button" class="tab-btn" data-admin-tab="settings" role="tab" aria-selected="false">🔗 Links & 📜 Credits</button>
   </div>
 
   <div id="admin-tab-restaurants" class="tab-panel active">
@@ -80,6 +81,22 @@
       <p class="modal-text">Bekijk alle geregistreerde usernames, hun online-status, restaurants, waarschuwingen en toegangsstatus.</p>
       <div id="admin-user-list" class="my-restaurants"></div>
       <div class="empty-msg" id="admin-user-empty-msg" style="display:none;">Nog geen usernames gevonden.</div>
+    </div>
+  </div>
+
+  <div id="admin-tab-settings" class="tab-panel">
+    <div class="landing-section">
+      <div class="landing-section-title">Site instellingen</div>
+      <label class="modal-label">App/website links tekst</label>
+      <textarea id="admin-links-text-input" class="modal-input" rows="6" placeholder="Typ hier de links en info..."></textarea>
+
+      <label class="modal-label" style="margin-top: 20px;">Credits tekst</label>
+      <textarea id="admin-credits-text-input" class="modal-input" rows="6" placeholder="Typ hier de credits..."></textarea>
+
+      <div class="modal-actions" style="margin-top: 20px; justify-content: flex-start;">
+        <button type="button" class="btn-primary" id="btn-admin-save-links">✅ Alles opslaan</button>
+      </div>
+      <div id="admin-links-save-success" style="color: #4CAF50; margin-top: 15px; font-weight: bold; display: none;">✅ De wijzigingen zijn succesvol opgeslagen voor alle gebruikers!</div>
     </div>
   </div>
 </div>

@@ -1482,19 +1482,37 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
 }
 .updates-btn:hover { background: var(--gold); color: var(--bg); }
 
-.admin-link {
-  display: block;
-  margin: 22px auto 0;
-  background: transparent;
-  border: none;
+.admin-link-btn {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   color: var(--muted);
-  font-size: 0.78rem;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  padding: 12px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  opacity: 0.7;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.admin-link:hover { color: var(--gold-soft); opacity: 1; }
+.admin-link-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-soft);
+  background: var(--card);
+  transform: translateY(-1px);
+}
+.admin-link-btn.small {
+  font-size: 0.75rem;
+  padding: 10px;
+}
+
+.admin-link {
+  display: none;
+}
 
 .admin-back-link {
   color: var(--muted);

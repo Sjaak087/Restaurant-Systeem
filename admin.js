@@ -524,3 +524,50 @@ db.ref('feedback').on('value', snap => {
     feedbackListEl.appendChild(card);
   });
 });
+
+// ==================== Site Instellingen (Links & Credits) ====================
+const linksInput = document.getElementById('admin-links-text-input');
+const creditsInput = document.getElementById('admin-credits-text-input');
+const saveLinksBtn = document.getElementById('btn-admin-save-links');
+const saveLinksSuccess = document.getElementById('admin-links-save-success');
+
+if (typeof db !== 'undefined') {
+  if (linksInput) {
+    db.ref('siteSettings/linksText').once('value').then(snap => {
+      linksInput.value = snap.val() || '';
+    });
+  }
+  if (creditsInput) {
+    db.ref('siteSettings/creditsText').once('value').then(snap => {
+      creditsInput.value = snap.val() || '';
+    });
+  }
+}
+
+if (saveLinksBtn) {
+  saveLinksBtn.addEventListener('click', async () => {
+    const linksText = linksInput.value.trim();
+    const creditsText = creditsInput.value.trim();
+    saveLinksBtn.disabled = true;
+    saveLinksBtn.textContent = 'Bezig...';
+
+    try {
+      await Promise.all([
+        db.ref('siteSettings/linksText').set(linksText),
+        db.ref('siteSettings/creditsText').set(creditsText)
+      ]);
+      if (saveLinksSuccess) {
+        saveLinksSuccess.style.display = 'block';
+        setTimeout(() => {
+            saveLinksSuccess.style.display = 'none';
+        }, 5000);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Fout bij het opslaan van de instellingen.');
+    } finally {
+      saveLinksBtn.disabled = false;
+      saveLinksBtn.textContent = 'Opslaan';
+    }
+  });
+}

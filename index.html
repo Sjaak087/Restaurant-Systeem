@@ -39,7 +39,16 @@
     <button type="button" class="big-choice feedback-btn" id="btn-feedback">💬 Feedback</button>
   </div>
 
-  <button type="button" class="admin-link" id="btn-admin">🔧 Sitebeheer</button>
+  <div class="landing-section" style="margin-top: 20px; border-top: 1px solid var(--line); padding-top: 20px;">
+    <div class="landing-section-title">Informatie & Beheer</div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button type="button" class="admin-link-btn" id="btn-admin">🔧 Sitebeheer</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <button type="button" class="admin-link-btn small" id="btn-links">🔗 App links</button>
+        <button type="button" class="admin-link-btn small" id="btn-credits">📜 Credits</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal: nieuw restaurant -->
@@ -145,8 +154,8 @@
   <div class="modal-box">
     <div class="modal-title">💬 Feedback geven</div>
     <p class="modal-text">Laat ons weten wat je van het systeem vindt of wat er beter kan.</p>
-    <label class="modal-label" for="feedback-name">Naam</label>
-    <input type="text" id="feedback-name" class="modal-input" maxlength="50" placeholder="Je naam" autocomplete="name">
+    <label class="modal-label" for="feedback-name">Naam (gekoppeld aan je account)</label>
+    <input type="text" id="feedback-name" class="modal-input" readonly style="background: var(--bg); opacity: 0.8; cursor: not-allowed;">
     <label class="modal-label" for="feedback-text">Feedback</label>
     <textarea id="feedback-text" class="modal-input" rows="6" maxlength="1000" placeholder="Schrijf hier je feedback..."></textarea>
     <p class="modal-text auto-translate-hint">🌐 Feedback wordt automatisch vertaald naar Nederlands en Engels.</p>
@@ -260,6 +269,28 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="admin-login-confirm">Inloggen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: app/website links -->
+<div class="modal-overlay" id="modal-links">
+  <div class="modal-box wide">
+    <div class="modal-title">🔗 App/website links</div>
+    <div class="message-full-text" id="links-content" style="white-space: pre-wrap; text-align: left; min-height: 100px;">Bezig met laden...</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: credits -->
+<div class="modal-overlay" id="modal-credits">
+  <div class="modal-box wide">
+    <div class="modal-title">📜 Credits</div>
+    <div class="message-full-text" id="credits-content" style="white-space: pre-wrap; text-align: left; min-height: 100px;">Bezig met laden...</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
     </div>
   </div>
 </div>

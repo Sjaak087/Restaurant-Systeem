@@ -288,10 +288,13 @@ function initLanding() {
   const btnFeedback = document.getElementById('btn-feedback');
   if (btnFeedback) {
     btnFeedback.onclick = () => {
+      const username = requireUsername();
+      if (!username) return;
+
       const errorEl = document.getElementById('feedback-error');
       if (errorEl) errorEl.textContent = '';
       const nameEl = document.getElementById('feedback-name');
-      if (nameEl) nameEl.value = getUsername();
+      if (nameEl) nameEl.value = username;
       const textEl = document.getElementById('feedback-text');
       if (textEl) textEl.value = '';
 
@@ -335,6 +338,57 @@ function initLanding() {
       } finally {
         btnSendFeedback.disabled = false;
         btnSendFeedback.textContent = 'Versturen';
+      }
+    };
+  }
+
+  const btnLinks = document.getElementById('btn-links');
+  if (btnLinks) {
+    btnLinks.onclick = () => {
+      const contentEl = document.getElementById('links-content');
+      if (contentEl) contentEl.textContent = 'Bezig met laden...';
+      openModal('modal-links');
+
+      if (typeof db !== 'undefined') {
+        db.ref('siteSettings/linksText').once('value').then(snap => {
+          if (!contentEl) return;
+          const rawText = snap.val() || 'Er zijn nog geen links ingevuld. Voeg deze toe via Sitebeheer.';
+
+          // Escape HTML en maak links klikbaar
+          const div = document.createElement('div');
+          div.textContent = rawText;
+          const escaped = div.innerHTML;
+          const linkified = escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--gold-soft);text-decoration:underline;">$1</a>');
+
+          contentEl.innerHTML = linkified;
+        }).catch(err => {
+          console.error(err);
+          if (contentEl) contentEl.textContent = 'Fout bij het laden van de links.';
+        });
+      }
+    };
+  }
+
+  const btnCredits = document.getElementById('btn-credits');
+  if (btnCredits) {
+    btnCredits.onclick = () => {
+      const contentEl = document.getElementById('credits-content');
+      if (contentEl) contentEl.textContent = 'Bezig met laden...';
+      openModal('modal-credits');
+
+      if (typeof db !== 'undefined') {
+        db.ref('siteSettings/creditsText').once('value').then(snap => {
+          if (!contentEl) return;
+          const rawText = snap.val() || 'Er zijn nog geen credits ingevuld. Voeg deze toe via Sitebeheer.';
+          const div = document.createElement('div');
+          div.textContent = rawText;
+          const escaped = div.innerHTML;
+          const linkified = escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--gold-soft);text-decoration:underline;">$1</a>');
+          contentEl.innerHTML = linkified;
+        }).catch(err => {
+          console.error(err);
+          if (contentEl) contentEl.textContent = 'Fout bij het laden van de credits.';
+        });
       }
     };
   }
