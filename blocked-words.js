@@ -126,7 +126,7 @@
     'varkrachten',
     'veerkrachten',
     'evrkrachten',
-    'verkrchten',
+    'verkrachten',
     'seksen',
     'sexen',
     'seksenn',
@@ -358,19 +358,74 @@
     'pijen',
   ];
 
-  var ERROR_MESSAGE='Dit woord is niet toegestaan.';
-  var lastAllowedValue=new WeakMap();
-  var textFieldTypes=['text','search','email','url','tel','password'];
-  function isTextField(el){if(!el||el.nodeType!==1)return false;if(el.tagName==='TEXTAREA')return true;if(el.tagName==='INPUT')return textFieldTypes.indexOf((el.type||'text').toLowerCase())!==-1;return el.isContentEditable===true;}
-  function clean(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,'');}
-  function containsBlockedWord(value){var text=clean(value);if(!text)return null;for(var i=0;i<window.BLOCKED_WORDS.length;i++){var blocked=clean(window.BLOCKED_WORDS[i]);if(!blocked)continue;var escaped=blocked.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');var pattern=new RegExp('(^|[^\\p{L}\\p{N}_])'+escaped+'(?=$|[^\\p{L}\\p{N}_])','iu');if(pattern.test(text))return window.BLOCKED_WORDS[i];}return null;}
-  function getValue(el){return el.isContentEditable?(el.textContent||''):(el.value||'');}
-  function showBlockedMessage(){window.alert(ERROR_MESSAGE);}
-  function proposedInputValue(el,event){if(el.isContentEditable)return null;if(typeof el.selectionStart!=='number'||typeof el.selectionEnd!=='number')return null;var value=el.value||'',start=el.selectionStart,end=el.selectionEnd;if(event.inputType&&event.inputType.indexOf('delete')===0)return value.slice(0,start)+value.slice(end);var inserted=event.data||'';if(event.inputType==='insertLineBreak')inserted='\n';return value.slice(0,start)+inserted+value.slice(end);}
-  document.addEventListener('beforeinput',function(event){var el=event.target;if(!isTextField(el))return;var value=proposedInputValue(el,event);if(value!==null&&containsBlockedWord(value)){event.preventDefault();showBlockedMessage();}},true);
-  document.addEventListener('paste',function(event){var el=event.target;if(!isTextField(el))return;var pasted=(event.clipboardData||window.clipboardData).getData('text')||'';var value=proposedInputValue(el,{data:pasted,inputType:'insertText'});if((value!==null&&containsBlockedWord(value))||(value===null&&containsBlockedWord((getValue(el)||'')+pasted))){event.preventDefault();showBlockedMessage();}},true);
-  document.addEventListener('drop',function(event){var el=event.target;if(!isTextField(el))return;var dropped=(event.dataTransfer||{}).getData?event.dataTransfer.getData('text')||'':'';var value=proposedInputValue(el,{data:dropped,inputType:'insertText'});if((value!==null&&containsBlockedWord(value))||(value===null&&containsBlockedWord((getValue(el)||'')+dropped))){event.preventDefault();showBlockedMessage();}},true);
-  document.addEventListener('input',function(event){var el=event.target;if(!isTextField(el))return;if(containsBlockedWord(getValue(el))){var previous=lastAllowedValue.get(el)||'';if(el.isContentEditable)el.textContent=previous;else el.value=previous;showBlockedMessage();}else lastAllowedValue.set(el,getValue(el));},true);
-  document.addEventListener('focusin',function(event){if(isTextField(event.target))lastAllowedValue.set(event.target,getValue(event.target));},true);
-  window.containsBlockedWord=containsBlockedWord;
+  var ERROR_MESSAGE = 'Dit woord is niet toegestaan.';
+  var lastAllowedValue = new WeakMap();
+
+  function isTextField(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName === 'INPUT') {
+      var type = (el.type || 'text').toLowerCase();
+      return ['text', 'search', 'email', 'url', 'tel', 'password'].indexOf(type) !== -1;
+    }
+    return el.isContentEditable === true;
+  }
+
+  function cleanNormal(val) {
+    return String(val || '').normalize('NFKC').toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g, '');
+  }
+
+  function cleanCompact(val) {
+    return cleanNormal(val).replace(/\s+/g, '');
+  }
+
+  function containsBlockedWord(value) {
+    var textNormal = cleanNormal(value);
+    var textCompact = cleanCompact(value);
+    if (!textNormal) return null;
+
+    for (var i = 0; i < window.BLOCKED_WORDS.length; i++) {
+      var blockedOriginal = window.BLOCKED_WORDS[i];
+      var blockedNormal = cleanNormal(blockedOriginal);
+      var blockedCompact = cleanCompact(blockedOriginal);
+
+      if (!blockedCompact) continue;
+
+      // 1. Check op exact woord met grenzen in de normale tekst (bijv. "dit is kut")
+      var escaped = blockedNormal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // We gebruiken [^a-z0-9] als grenscontrole om woorden in zinnen te vangen
+      var regex = new RegExp('(^|[^a-z0-9])' + escaped + '($|[^a-z0-9])', 'i');
+      if (regex.test(textNormal)) return blockedOriginal;
+
+      // 2. Check of de compacte tekst het compacte woord bevat (bijv. "k u t")
+      // Alleen voor woorden >= 3 letters om valse meldingen te voorkomen.
+      if (blockedCompact.length >= 3 && textCompact.indexOf(blockedCompact) !== -1) {
+        return blockedOriginal;
+      }
+    }
+    return null;
+  }
+
+  function getValue(el) { return el.isContentEditable ? el.textContent : el.value; }
+  function setValue(el, val) { if (el.isContentEditable) el.textContent = val; else el.value = val; }
+
+  function handleInput(e) {
+    var el = e.target;
+    if (!isTextField(el)) return;
+    var val = getValue(el);
+    if (containsBlockedWord(val)) {
+      var prev = lastAllowedValue.get(el) || '';
+      setValue(el, prev);
+      alert(ERROR_MESSAGE);
+    } else {
+      lastAllowedValue.set(el, val);
+    }
+  }
+
+  document.addEventListener('input', handleInput, true);
+  document.addEventListener('focusin', function(e) {
+    if (isTextField(e.target)) lastAllowedValue.set(e.target, getValue(e.target));
+  }, true);
+
+  window.containsBlockedWord = containsBlockedWord;
 })();
