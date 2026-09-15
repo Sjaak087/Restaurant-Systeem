@@ -2640,11 +2640,18 @@ function itemsToLinesHtml(order) {
 }
 
 // ---- Meldingsgeluid ----
-// Instelbaar per restaurant: geen geluid, het standaardgeluid, of een zelf
-// geüpload geluid (max 400 KB, als base64 data-URL opgeslagen in Firebase).
-const meldingGeluidStandaard = new Audio('melding%20geluid.mp3');
-const meldingGeluid2 = new Audio('melding%20geluid%202.mp3');
-const betaalGeluid = new Audio('betaal%20geluid.mp3');
+function getAssetPath(filename) {
+  // Voor Android WebView (file://) gebruiken we het volledige pad naar de assets.
+  // Voor de website (http/https) gebruiken we het relatieve pad.
+  if (window.location.protocol === 'file:') {
+    return 'file:///android_asset/' + filename;
+  }
+  return filename;
+}
+
+const meldingGeluidStandaard = new Audio(getAssetPath('melding%20geluid.mp3'));
+const meldingGeluid2 = new Audio(getAssetPath('melding%20geluid%202.mp3'));
+const betaalGeluid = new Audio(getAssetPath('betaal%20geluid.mp3'));
 function speelBetaalGeluid() {
   try {
     betaalGeluid.currentTime = 0;
@@ -2718,7 +2725,7 @@ function initSoundChoiceControls() {
   const note = document.getElementById('sound-readonly-note');
   if (!none || !def || !second || !custom) return;
 
-  const owner = (typeof isOwner !== 'undefined') ? !!isOwner : false;
+  const owner = (typeof isOwner !== 'undefined' && isOwner) || (typeof isAdminMode !== 'undefined' && isAdminMode);
   [none, def, second, custom].forEach(btn => { btn.disabled = !owner; });
   if (uploadRow) uploadRow.style.display = owner ? 'flex' : 'none';
   if (note) note.style.display = owner ? 'none' : 'block';
@@ -2762,6 +2769,59 @@ function initSoundChoiceControls() {
       if (!soundSettings.data) return playPreview(null, e);
       if (!customGeluidAudio) customGeluidAudio = new Audio(soundSettings.data);
       playPreview(customGeluidAudio, e);
+    });
+  }
+
+  // ---- Nieuw: Upload-logica voor eigen geluid ----
+  const uploadInput = document.getElementById('sound-upload-input');
+  const removeBtn = document.getElementById('sound-upload-remove');
+  const errorEl = document.getElementById('sound-upload-error');
+
+  if (uploadInput && !uploadInput.dataset.bound) {
+    uploadInput.dataset.bound = '1';
+    uploadInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (errorEl) errorEl.textContent = '';
+
+      if (file.size > MAX_SOUND_BYTES) {
+        if (errorEl) errorEl.textContent = `Bestand is te groot (max 400 KB). Jouw bestand: ${Math.round(file.size / 1024)} KB.`;
+        uploadInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const data = ev.target.result;
+        try {
+          await restRef.child('settings/notificationSound').update({
+            data: data,
+            name: file.name,
+            mode: 'custom'
+          });
+          uploadInput.value = '';
+        } catch (err) {
+          console.error(err);
+          if (errorEl) errorEl.textContent = 'Fout bij opslaan van geluid.';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeBtn && !removeBtn.dataset.bound) {
+    removeBtn.dataset.bound = '1';
+    removeBtn.addEventListener('click', async () => {
+      if (!confirm('Weet je zeker dat je je eigen geluid wilt verwijderen?')) return;
+      try {
+        await restRef.child('settings/notificationSound').update({
+          data: null,
+          name: null,
+          mode: 'default'
+        });
+      } catch (err) {
+        console.error(err);
+      }
     });
   }
 }
