@@ -137,8 +137,8 @@ function saveMyRestaurantsLocal(list) {
 }
 
 // ==================== Leden & rechten per tabblad ====================
-const ALL_TABS = ['notities', 'bestellen', 'gereed', 'bar', 'keuken', 'voorraad', 'historie', 'instellingen'];
-const TAB_LABELS = { bestellen: 'Bestellen', notities: 'Notities', voorraad: 'Voorraad', keuken: 'Keuken', bar: 'Bar', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
+const ALL_TABS = ['chat', 'notities', 'bestellen', 'gereed', 'bar', 'keuken', 'voorraad', 'historie', 'instellingen'];
+const TAB_LABELS = { chat: 'Chat', bestellen: 'Bestellen', notities: 'Notities', voorraad: 'Voorraad', keuken: 'Keuken', bar: 'Bar', gereed: 'Gereed', historie: 'Historie', instellingen: 'Instellingen' };
 
 function genLidId() {
   return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -335,7 +335,7 @@ function renderLedenList() {
           ${isEigenaarRow ? '' : `<button type="button" class="mini-btn danger" data-kick="${mid}">Verwijderen</button>`}
         </span>
       </div>
-      <div class="lid-tabs">${tabsHtml}</div>
+      <div class="lid-tabs" style="justify-content: flex-start;">${tabsHtml}</div>
     `;
     list.appendChild(row);
   });
@@ -492,7 +492,7 @@ restRef.child('code').on('value', snap => {
 });
 
 // ==================== Tabs ====================
-let activeTab = 'notities';
+let activeTab = 'chat';
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -500,6 +500,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     activeTab = btn.dataset.tab;
     document.getElementById('panel-' + activeTab).classList.add('active');
+
+    // Reset chat badge als de chat wordt geopend
+    if (activeTab === 'chat') {
+      unreadChatCount = 0;
+      updateChatBadge();
+    }
   });
 });
 
@@ -2640,50 +2646,94 @@ function itemsToLinesHtml(order) {
 }
 
 // ---- Meldingsgeluid ----
-function getAssetPath(filename) {
-  // Voor Android WebView (file://) gebruiken we het volledige pad naar de assets.
-  // Voor de website (http/https) gebruiken we het relatieve pad.
-  if (window.location.protocol === 'file:') {
-    return 'file:///android_asset/' + filename;
+// We maken een SoundPlayer object om het afspelen op alle apparaten robuust te maken.
+const SoundPlayer = {
+  standard: new Audio('melding_geluid.mp3'),
+  second: new Audio('melding_geluid_2.mp3'),
+  betaal: new Audio('betaal_geluid.mp3'),
+  custom: null,
+
+  init() {
+    // In de app hoeven we niet te loaden via JS als we de bridge gebruiken,
+    // maar we laten het staan voor de website versie.
+    if (!window.AndroidSound) {
+      [this.standard, this.second, this.betaal].forEach(a => {
+        a.load();
+        a.onerror = (e) => console.error('Audio load error:', a.src, e);
+      });
+    }
+  },
+
+  async play(keyOrAudio) {
+    console.log('SoundPlayer.play called with:', keyOrAudio, 'AndroidSound available:', !!window.AndroidSound);
+
+    // --- 1. Native Android Bridge (Voor de App) ---
+    if (window.AndroidSound) {
+      try {
+        if (keyOrAudio === 'standard') { window.AndroidSound.playAsset('melding_geluid.mp3'); return; }
+        if (keyOrAudio === 'second') { window.AndroidSound.playAsset('melding_geluid_2.mp3'); return; }
+        if (keyOrAudio === 'betaal') { window.AndroidSound.playAsset('betaal_geluid.mp3'); return; }
+        if (keyOrAudio === 'custom' && soundSettings.data) { window.AndroidSound.playBase64(soundSettings.data); return; }
+      } catch (nativeErr) {
+        console.error('Native sound play failed, trying fallback...', nativeErr);
+      }
+    }
+
+    // --- 2. Web Audio (Voor Website & Fallback) ---
+    let audio = null;
+    if (keyOrAudio === 'standard') audio = this.standard;
+    else if (keyOrAudio === 'second') audio = this.second;
+    else if (keyOrAudio === 'betaal') audio = this.betaal;
+    else if (keyOrAudio === 'custom') audio = this.custom;
+    else if (keyOrAudio instanceof Audio) audio = keyOrAudio;
+
+    if (!audio) return;
+
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn('Web playback promise rejected:', e);
+          audio.load();
+          audio.play().catch(e2 => console.error('Web playback definitive failure:', e2));
+        });
+      }
+    } catch (err) {
+      console.warn('Web playback try-catch failed:', err);
+    }
   }
-  return filename;
+};
+
+SoundPlayer.init();
+
+function speelBetaalGeluid() {
+  SoundPlayer.play('betaal');
 }
 
-const meldingGeluidStandaard = new Audio(getAssetPath('melding%20geluid.mp3'));
-const meldingGeluid2 = new Audio(getAssetPath('melding%20geluid%202.mp3'));
-const betaalGeluid = new Audio(getAssetPath('betaal%20geluid.mp3'));
-function speelBetaalGeluid() {
-  try {
-    betaalGeluid.currentTime = 0;
-    betaalGeluid.play().catch(() => {});
-  } catch (e) { /* geluid niet beschikbaar */ }
-}
-let customGeluidAudio = null; // Audio-object voor het geüploade geluid (lazy)
 let soundSettings = { mode: 'default' };
 const paginaGeladenOp = Date.now();
 
 restRef.child('settings/notificationSound').on('value', snap => {
   soundSettings = snap.val() || { mode: 'default' };
   if (soundSettings.mode === 'custom' && soundSettings.data) {
-    customGeluidAudio = new Audio(soundSettings.data);
+    SoundPlayer.custom = new Audio(soundSettings.data);
+    SoundPlayer.custom.load();
   } else {
-    customGeluidAudio = null;
+    SoundPlayer.custom = null;
   }
   renderSoundSettingsUi();
 });
 
 function speelMeldingGeluid() {
-  try {
-    if (soundSettings.mode === 'none') return;
-    if (soundSettings.mode === 'custom' && customGeluidAudio) {
-      customGeluidAudio.currentTime = 0;
-      customGeluidAudio.play().catch(() => {});
-      return;
-    }
-    const audio = soundSettings.mode === 'second' ? meldingGeluid2 : meldingGeluidStandaard;
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch (e) { /* geluid niet beschikbaar */ }
+  if (soundSettings.mode === 'none') return;
+  if (soundSettings.mode === 'custom' && SoundPlayer.custom) {
+    SoundPlayer.play('custom');
+    return;
+  }
+  const mode = soundSettings.mode === 'second' ? 'second' : 'standard';
+  SoundPlayer.play(mode);
 }
 
 // ---- Instellingen: meldingsgeluid kiezen/uploaden (alleen eigenaar) ----
@@ -2747,29 +2797,18 @@ function initSoundChoiceControls() {
   const previewDefault = document.getElementById('sound-preview-default');
   const previewSecond = document.getElementById('sound-preview-second');
   const previewCustom = document.getElementById('sound-preview-custom');
-  const playPreview = (audio, event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  };
+
   if (previewDefault && !previewDefault.dataset.previewBound) {
     previewDefault.dataset.previewBound = '1';
-    previewDefault.addEventListener('click', e => playPreview(meldingGeluidStandaard, e));
+    previewDefault.addEventListener('click', e => { e.stopPropagation(); SoundPlayer.play('standard'); });
   }
   if (previewSecond && !previewSecond.dataset.previewBound) {
     previewSecond.dataset.previewBound = '1';
-    previewSecond.addEventListener('click', e => playPreview(meldingGeluid2, e));
+    previewSecond.addEventListener('click', e => { e.stopPropagation(); SoundPlayer.play('second'); });
   }
   if (previewCustom && !previewCustom.dataset.previewBound) {
     previewCustom.dataset.previewBound = '1';
-    previewCustom.addEventListener('click', e => {
-      if (!soundSettings.data) return playPreview(null, e);
-      if (!customGeluidAudio) customGeluidAudio = new Audio(soundSettings.data);
-      playPreview(customGeluidAudio, e);
-    });
+    previewCustom.addEventListener('click', e => { e.stopPropagation(); SoundPlayer.play('custom'); });
   }
 
   // ---- Nieuw: Upload-logica voor eigen geluid ----
@@ -3278,6 +3317,98 @@ document.getElementById('btn-selfservice-pdf')?.addEventListener('click', functi
   }
 });
 
+// ==================== Chat ====================
+const chatMessagesEl = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const btnSendChat = document.getElementById('btn-send-chat');
+const chatRef = restRef.child('chat');
+let CHAT_STATE = {};
+let unreadChatCount = 0;
+
+function updateChatBadge() {
+  const el = document.getElementById('tab-badge-chat');
+  if (el) el.textContent = unreadChatCount > 0 ? unreadChatCount : '';
+}
+
+function sendChatMessage() {
+  const text = chatInput.value.trim().slice(0, 500);
+  if (!text) return;
+  const username = getUsername() || 'Onbekend';
+  chatRef.push({
+    text: text,
+    sender: username,
+    senderId: myMemberId || 'anon',
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
+  chatInput.value = '';
+}
+
+if (chatInput) {
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+}
+if (btnSendChat) {
+  btnSendChat.addEventListener('click', sendChatMessage);
+}
+
+const MAX_CHAT_MESSAGES = 50;
+
+chatRef.on('value', snap => {
+  const oldData = CHAT_STATE;
+  CHAT_STATE = snap.val() || {};
+  const entries = Object.entries(CHAT_STATE).sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+
+  // Tel ongelezen berichten (berichten die we nog niet hadden en die na de pagina-laad kwamen)
+  if (activeTab !== 'chat') {
+    Object.keys(CHAT_STATE).forEach(key => {
+      if (!oldData[key] && CHAT_STATE[key].timestamp > paginaGeladenOp) {
+        unreadChatCount++;
+      }
+    });
+    updateChatBadge();
+  }
+
+  if (entries.length > MAX_CHAT_MESSAGES) {
+    entries.slice(0, entries.length - MAX_CHAT_MESSAGES).forEach(([id]) => {
+      chatRef.child(id).remove();
+    });
+  }
+
+  renderChat();
+});
+
+function renderChat() {
+  if (!chatMessagesEl) return;
+  const entries = Object.entries(CHAT_STATE).sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+
+  if (entries.length === 0) {
+    chatMessagesEl.innerHTML = '<div class="empty-msg">Nog geen berichten. Typ iets om de chat te starten!</div>';
+    return;
+  }
+
+  const currentUsername = getUsername();
+
+  chatMessagesEl.innerHTML = entries.map(([id, m]) => {
+    const isMine = m.sender === currentUsername || m.senderId === myMemberId;
+    const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '';
+
+    return `
+      <div class="chat-bubble ${isMine ? 'mine' : 'others'}">
+        <div class="chat-meta">${isMine ? 'Jij' : escapeHtml(m.sender)}</div>
+        <div class="chat-text">${escapeHtml(m.text)}</div>
+        <div class="chat-time">${time}</div>
+      </div>
+    `;
+  }).join('');
+
+  // Scroll naar beneden
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
 // ==================== Notities ====================
 // Vrij te typen notities (max 750 tekens), gedeeld met het hele restaurant.
 // Enter voegt een nieuw vinkje toe; afvinken verwijdert de notitie na 5 sec.
@@ -3302,15 +3433,25 @@ function scheduleNoteRemoval(id, afgevinktOp) {
   }, resterendeTijd);
 }
 
+function addNoteFromInput() {
+  const tekst = notesInput.value.trim().slice(0, 750);
+  if (!tekst) return;
+  notesRef.push({ tekst, tijd: firebase.database.ServerValue.TIMESTAMP, afgevinkt: false });
+  notesInput.value = '';
+}
+
 if (notesInput) {
   notesInput.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const tekst = notesInput.value.trim().slice(0, 750);
-    if (!tekst) return;
-    notesRef.push({ tekst, tijd: firebase.database.ServerValue.TIMESTAMP, afgevinkt: false });
-    notesInput.value = '';
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addNoteFromInput();
+    }
   });
+}
+
+const btnAddNote = document.getElementById('btn-add-note');
+if (btnAddNote) {
+  btnAddNote.addEventListener('click', addNoteFromInput);
 }
 
 if (notesListEl) {

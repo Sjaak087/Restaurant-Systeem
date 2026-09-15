@@ -33,7 +33,8 @@
   </header>
 
   <nav class="tab-nav">
-    <button type="button" class="tab-btn active" data-tab="notities">📝 Notities</button>
+    <button type="button" class="tab-btn active" data-tab="chat">💬 Chat<span class="tab-badge" id="tab-badge-chat"></span></button>
+    <button type="button" class="tab-btn" data-tab="notities">📝 Notities</button>
     <button type="button" class="tab-btn" data-tab="bestellen">🍽 Bestellen</button>
     <button type="button" class="tab-btn" data-tab="gereed">✅ Gereed<span class="tab-badge" id="tab-badge-gereed"></span></button>
     <button type="button" class="tab-btn" data-tab="bar">🍸 Bar<span class="tab-badge" id="tab-badge-bar"></span></button>
@@ -42,6 +43,19 @@
     <button type="button" class="tab-btn" data-tab="historie">🧾 Historie</button>
     <button type="button" class="tab-btn" data-tab="instellingen">⚙️ Instellingen</button>
   </nav>
+
+  <!-- ===== CHAT ===== -->
+  <section class="tab-panel active" id="panel-chat">
+    <div class="chat-container">
+      <div class="chat-messages" id="chat-messages">
+        <div class="empty-msg">Bezig met laden...</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" class="modal-input" maxlength="500" placeholder="Typ een bericht...">
+        <button type="button" class="btn-primary" id="btn-send-chat">Verstuur</button>
+      </div>
+    </div>
+  </section>
 
   <!-- ===== BESTELLEN ===== -->
   <section class="tab-panel" id="panel-bestellen">
@@ -55,10 +69,11 @@
   </section>
 
   <!-- ===== NOTITIES ===== -->
-  <section class="tab-panel active" id="panel-notities">
-    <p class="modal-text" style="margin-top:0;">Notities worden gedeeld met het hele restaurant. Typ iets en druk op Enter om het als vinkje toe te voegen. Afgevinkte notities verdwijnen na 5 seconden.</p>
+  <section class="tab-panel" id="panel-notities">
+    <p class="modal-text" style="margin-top:0;">Notities worden gedeeld met het hele restaurant. Typ iets en druk op de knop om het toe te voegen. Afgevinkte notities verdwijnen na 5 seconden.</p>
     <div class="notes-input-row">
-      <input type="text" id="notes-input" class="modal-input" maxlength="750" placeholder="Typ een notitie en druk op Enter...">
+      <input type="text" id="notes-input" class="modal-input" maxlength="750" placeholder="Typ een notitie...">
+      <button type="button" class="btn-primary" id="btn-add-note" style="margin-top: 0; padding: 12px 20px; border-radius: var(--radius);">Toevoegen</button>
     </div>
     <div class="notes-list" id="notes-list">
       <div class="empty-msg">Nog geen notities</div>
@@ -257,7 +272,7 @@
       </div>
       <div id="sound-upload-row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;">
         <label class="mini-btn edit" for="sound-upload-input" style="cursor:pointer;">⬆️ Geluid uploaden</label>
-        <input type="file" id="sound-upload-input" accept="audio/*" style="display:none;">
+        <input type="file" id="sound-upload-input" accept="audio/*">
         <button type="button" class="mini-btn danger" id="sound-upload-remove" style="display:none;">Verwijderen</button>
       </div>
       <p class="modal-text" style="margin-top:6px;">Je kunt maximaal 1 eigen geluid uploaden, van maximaal 400 KB. Een nieuw bestand vervangt het vorige.</p>
