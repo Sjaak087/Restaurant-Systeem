@@ -373,6 +373,10 @@
     </div>
     <div class="bill-confirm" id="bill-confirm" style="display:none;">
       <p class="modal-text">Bevestig de betaling van <strong id="bill-confirm-amount"></strong> voor <span id="bill-confirm-kind">tafel</span> <strong id="bill-confirm-table"></strong>.</p>
+
+      <label class="modal-label">Extra fooi toevoegen? (€)</label>
+      <input type="number" id="bill-tip-input" class="modal-input" placeholder="0,00" step="0.05" min="0" style="margin-bottom: 10px;">
+
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="bill-pay-cancel">Terug</button>
         <button type="button" class="btn-primary" id="bill-pay-confirm">✅ Betaald</button>
@@ -712,6 +716,45 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close>Annuleren</button>
       <button type="button" class="btn-primary" id="product-confirm">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Chat Acties -->
+<div class="modal-overlay" id="modal-chat-actions" style="z-index: 3000;">
+  <div class="modal-box">
+    <div class="modal-title" id="chat-actions-title">Bericht opties</div>
+
+    <!-- Acties voor eigen berichten -->
+    <div id="chat-mine-actions" style="display: none; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 15px;">
+      <div class="chat-actions-menu">
+        <button type="button" class="btn-primary" id="btn-chat-edit">✏️ Bewerken</button>
+        <button type="button" class="btn-danger" id="btn-chat-delete">🗑️ Verwijderen</button>
+      </div>
+    </div>
+
+    <!-- Reacties (voor iedereen) -->
+    <div id="chat-emoji-actions">
+      <p class="modal-text">Reageer met een emoji:</p>
+      <div class="chat-emoji-grid" id="chat-emoji-grid">
+        <!-- Wordt gevuld via JS -->
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Chat Bericht Bewerken -->
+<div class="modal-overlay" id="modal-chat-edit" style="z-index: 3001;">
+  <div class="modal-box">
+    <div class="modal-title">Bericht bewerken</div>
+    <textarea id="chat-edit-input" class="modal-input" rows="4" maxlength="500"></textarea>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="btn-chat-edit-cancel">Annuleren</button>
+      <button type="button" class="btn-primary" id="btn-chat-edit-save">Opslaan</button>
     </div>
   </div>
 </div>

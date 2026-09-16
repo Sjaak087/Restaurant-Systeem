@@ -132,8 +132,69 @@
     <div class="modal-title">👤 Jouw Account</div>
     <div class="modal-text" style="text-align: center; margin-bottom: 20px;">Je bent ingelogd als <strong id="profile-username-label">...</strong></div>
     <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+      <button type="button" class="btn-primary" id="btn-account-settings" style="width: 100%; margin: 0;">⚙️ Account instellingen</button>
       <button type="button" class="btn-danger" id="btn-logout" style="width: 100%; margin: 0;">Uitloggen</button>
       <button type="button" class="btn-secondary" data-close style="width: 100%; margin: 0;">Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Account Instellingen -->
+<div class="modal-overlay" id="modal-account-settings" style="z-index: 2001;">
+  <div class="modal-box wide">
+    <div class="modal-title">⚙️ Account instellingen</div>
+
+    <div class="tab-nav" style="margin-bottom: 20px;">
+      <button type="button" class="tab-btn active" data-acctab="info">Info</button>
+      <button type="button" class="tab-btn" data-acctab="username">Username</button>
+      <button type="button" class="tab-btn" data-acctab="email">E-mail</button>
+      <button type="button" class="tab-btn" data-acctab="password">Wachtwoord</button>
+    </div>
+
+    <!-- Tab: Info -->
+    <div id="acctab-info" class="tab-panel active">
+      <div class="settings-info-row"><span>Username</span><strong id="info-acc-username">-</strong></div>
+      <div class="settings-info-row"><span>E-mailadres</span><strong id="info-acc-email">-</strong></div>
+      <div class="settings-info-row"><span>Wachtwoord</span><strong id="info-acc-password">********</strong></div>
+      <p class="modal-text" style="margin-top: 15px; font-style: italic;">Je kunt deze gegevens aanpassen via de andere tabbladen.</p>
+    </div>
+
+    <!-- Tab: Username -->
+    <div id="acctab-username" class="tab-panel">
+      <label class="modal-label">Nieuwe username</label>
+      <input type="text" id="acc-new-username" class="modal-input" maxlength="15">
+      <div class="modal-error" id="acc-username-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="btn-acc-save-username">Username opslaan</button>
+      </div>
+    </div>
+
+    <!-- Tab: Email -->
+    <div id="acctab-email" class="tab-panel">
+      <label class="modal-label">Nieuw e-mailadres</label>
+      <input type="email" id="acc-new-email" class="modal-input">
+      <div class="modal-error" id="acc-email-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="btn-acc-save-email">E-mail opslaan</button>
+      </div>
+    </div>
+
+    <!-- Tab: Password -->
+    <div id="acctab-password" class="tab-panel">
+      <label class="modal-label">Huidig wachtwoord</label>
+      <input type="password" id="acc-old-password" class="modal-input">
+      <label class="modal-label">Nieuw wachtwoord</label>
+      <input type="password" id="acc-new-password" class="modal-input">
+      <label class="modal-label">Herhaal nieuw wachtwoord</label>
+      <input type="password" id="acc-new-password-confirm" class="modal-input">
+      <div class="modal-error" id="acc-password-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="btn-acc-save-password">Wachtwoord opslaan</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid var(--line); padding-top: 15px;">
+      <button type="button" class="btn-secondary" id="btn-acc-close">Sluiten</button>
     </div>
   </div>
 </div>
@@ -151,18 +212,40 @@
 
 <!-- Modal: feedback -->
 <div class="modal-overlay" id="modal-feedback">
-  <div class="modal-box">
-    <div class="modal-title">💬 Feedback geven</div>
-    <p class="modal-text">Laat ons weten wat je van het systeem vindt of wat er beter kan.</p>
-    <label class="modal-label" for="feedback-name">Naam (gekoppeld aan je account)</label>
-    <input type="text" id="feedback-name" class="modal-input" readonly style="background: var(--bg); opacity: 0.8; cursor: not-allowed;">
-    <label class="modal-label" for="feedback-text">Feedback</label>
-    <textarea id="feedback-text" class="modal-input" rows="6" maxlength="1000" placeholder="Schrijf hier je feedback..."></textarea>
-    <p class="modal-text auto-translate-hint">🌐 Feedback wordt automatisch vertaald naar Nederlands en Engels.</p>
-    <div class="modal-error" id="feedback-error"></div>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" data-close>Annuleren</button>
-      <button type="button" class="btn-primary" id="send-feedback">Versturen</button>
+  <div class="modal-box wide">
+    <div class="modal-title">💬 Feedback</div>
+
+    <div class="tab-nav" style="margin-bottom: 20px;">
+      <button type="button" class="tab-btn active" data-fbtab="give">Feedback geven</button>
+      <button type="button" class="tab-btn" data-fbtab="view">Mijn feedback</button>
+    </div>
+
+    <!-- Tab: Feedback geven -->
+    <div id="fbtab-give" class="tab-panel active">
+      <p class="modal-text" style="color: #d99a9a; font-weight: 600; font-size: 0.85rem;">
+        ⚠️ Feedback kan enkele dagen tot weken duren voordat het toegevoegd wordt. Geef aub niet 100 keer dezelfde feedback want dit kan leiden tot een timeout of ban!
+      </p>
+      <label class="modal-label" for="feedback-name">Naam (gekoppeld aan je account)</label>
+      <input type="text" id="feedback-name" class="modal-input" readonly style="background: var(--bg); opacity: 0.8; cursor: not-allowed;">
+      <label class="modal-label" for="feedback-text">Jouw feedback</label>
+      <textarea id="feedback-text" class="modal-input" rows="6" maxlength="1000" placeholder="Schrijf hier je feedback..."></textarea>
+      <p class="modal-text auto-translate-hint">🌐 Feedback wordt automatisch vertaald naar Nederlands en Engels.</p>
+      <div class="modal-error" id="feedback-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="send-feedback">Versturen</button>
+      </div>
+    </div>
+
+    <!-- Tab: Mijn feedback bekijken -->
+    <div id="fbtab-view" class="tab-panel">
+      <div id="my-feedback-list" class="updates-list">
+        <!-- Wordt gevuld via JS -->
+      </div>
+      <div id="my-feedback-empty" class="empty-msg" style="display:none;">Je hebt nog geen feedback verstuurd.</div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 20px; border-top: 1px solid var(--line); padding-top: 15px;">
+      <button type="button" class="btn-secondary" data-close>Sluiten</button>
     </div>
   </div>
 </div>

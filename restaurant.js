@@ -2530,6 +2530,9 @@ function openBillModal(table) {
   document.getElementById('bill-confirm').style.display = 'none';
   document.getElementById('bill-pay-btn').style.display = '';
 
+  const tipInput = document.getElementById('bill-tip-input');
+  if (tipInput) tipInput.value = '';
+
   const orders = tableOrders(table.number);
   const merged = {}; // key -> aantal
   orders.forEach(([, order]) => {
@@ -2585,10 +2588,25 @@ document.getElementById('bill-pay-confirm').addEventListener('click', () => {
   const orders = tableOrders(table.number);
   const nu = Date.now();
   const updates = {};
+
   orders.forEach(([id, order]) => {
     updates['history/' + id] = { ...order, betaaldOp: nu };
     updates['orders/' + id] = null;
   });
+
+  const tipAmount = parseFloat(document.getElementById('bill-tip-input').value) || 0;
+  if (tipAmount > 0) {
+    const tipId = restRef.child('history').push().key;
+    updates['history/' + tipId] = {
+      tableNumber: table.number,
+      items: { '__fooi__': 1 },
+      fooiAmount: tipAmount,
+      tijd: nu,
+      betaaldOp: nu,
+      status: 'klaar'
+    };
+  }
+
   const btn = document.getElementById('bill-pay-confirm');
   btn.disabled = true;
   restRef.update(updates).then(() => {
@@ -3058,14 +3076,22 @@ function renderHistory() {
 
     Object.entries(order.items || {}).forEach(([key, aantal]) => {
       const p = PRODUCTS_STATE[key];
-      const prijs = p ? p.price : 0;
+      let prijs = p ? p.price : 0;
+      let label = p ? p.label : '(verwijderd product)';
+      let catKey = (p && p.categorie && CATEGORIES_STATE[p.categorie]) ? p.categorie : '__overig__';
+
+      if (key === '__fooi__' && order.fooiAmount) {
+        label = 'Fooi';
+        prijs = Number(order.fooiAmount);
+        catKey = '__fooi__';
+      }
+
       totaalOmzet += prijs * aantal;
-      if (!perProduct[key]) perProduct[key] = { label: p ? p.label : '(verwijderd product)', aantal: 0 };
+      if (!perProduct[key]) perProduct[key] = { label: label, aantal: 0 };
       perProduct[key].aantal += aantal;
 
-      const catKey = (p && p.categorie && CATEGORIES_STATE[p.categorie]) ? p.categorie : '__overig__';
       if (!perCategory[catKey]) {
-        const catNaam = catKey === '__overig__' ? 'Overig' : CATEGORIES_STATE[catKey].naam;
+        const catNaam = catKey === '__fooi__' ? 'Fooi' : (catKey === '__overig__' ? 'Overig' : CATEGORIES_STATE[catKey].naam);
         perCategory[catKey] = { naam: catNaam, aantal: 0 };
       }
       perCategory[catKey].aantal += aantal;
@@ -3081,7 +3107,12 @@ function renderHistory() {
   if (Object.keys(CATEGORIES_STATE).length > 0) {
     summaryHtml += `<div class="history-summary-title" style="margin-top:16px;">${uiText('Per categorie','By category')}</div>`;
     Object.values(perCategory).sort((a, b) => b.aantal - a.aantal).forEach(c => {
-      summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(c.naam)}</span><span>${c.aantal}x</span></div>`;
+      let extraInfo = `${c.aantal}x`;
+      if (c.naam === 'Fooi') {
+        const fooiTotaal = entries.reduce((sum, [id, o]) => sum + (Number(o.fooiAmount) || 0), 0);
+        extraInfo = formatPrice(fooiTotaal);
+      }
+      summaryHtml += `<div class="history-summary-row"><span>${escapeHtml(c.naam)}</span><span>${extraInfo}</span></div>`;
     });
   }
   summaryEl.innerHTML = summaryHtml;
@@ -3381,6 +3412,77 @@ chatRef.on('value', snap => {
   renderChat();
 });
 
+const CHAT_EMOJIS = [
+  '👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏', '🎉', '✨',
+  '🍕', '🍔', '🍟', '🍺', '🥤', '🍦', '🍰', '🍪', '☕', '🍷',
+  '✅', '❌', '📢', '💡', '❓'
+];
+let activeChatMsgId = null;
+
+function initChatEmojiGrid() {
+  const grid = document.getElementById('chat-emoji-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  CHAT_EMOJIS.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chat-emoji-btn';
+    btn.textContent = emoji;
+    btn.onclick = () => addChatReaction(emoji);
+    grid.appendChild(btn);
+  });
+}
+
+async function addChatReaction(emoji) {
+  if (!activeChatMsgId) return;
+  const uid = myMemberId || 'anon';
+  await chatRef.child(activeChatMsgId + '/reactions/' + uid).set(emoji);
+  closeModal('modal-chat-actions');
+}
+
+window.openChatActions = function(id, isMine) {
+  activeChatMsgId = id;
+  const mineActions = document.getElementById('chat-mine-actions');
+
+  mineActions.style.display = isMine ? 'block' : 'none';
+
+  initChatEmojiGrid();
+  openModal('modal-chat-actions');
+}
+
+// Bericht verwijderen
+document.getElementById('btn-chat-delete').onclick = async () => {
+  if (!activeChatMsgId) return;
+  if (confirm('Weet je zeker dat je dit bericht voor iedereen wilt verwijderen?')) {
+    await chatRef.child(activeChatMsgId).remove();
+    closeModal('modal-chat-actions');
+  }
+};
+
+// Bericht bewerken
+document.getElementById('btn-chat-edit').onclick = () => {
+  if (!activeChatMsgId) return;
+  const msg = CHAT_STATE[activeChatMsgId];
+  if (msg) {
+    document.getElementById('chat-edit-input').value = msg.text;
+    closeModal('modal-chat-actions');
+    openModal('modal-chat-edit');
+  }
+};
+
+document.getElementById('btn-chat-edit-save').onclick = async () => {
+  const newText = document.getElementById('chat-edit-input').value.trim().slice(0, 500);
+  if (newText && activeChatMsgId) {
+    await chatRef.child(activeChatMsgId).update({
+        text: newText,
+        edited: true
+    });
+    closeModal('modal-chat-edit');
+  }
+};
+
+document.getElementById('btn-chat-edit-cancel').onclick = () => closeModal('modal-chat-edit');
+
 function renderChat() {
   if (!chatMessagesEl) return;
   const entries = Object.entries(CHAT_STATE).sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
@@ -3396,10 +3498,22 @@ function renderChat() {
     const isMine = m.sender === currentUsername || m.senderId === myMemberId;
     const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '';
 
+    // Verzamel reacties
+    const reactions = m.reactions || {};
+    const reactionCounts = {};
+    Object.values(reactions).forEach(emoji => {
+      reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+    });
+
+    const reactionsHtml = Object.entries(reactionCounts).map(([emoji, count]) => `
+      <div class="chat-reaction-badge">${emoji} ${count > 1 ? count : ''}</div>
+    `).join('');
+
     return `
-      <div class="chat-bubble ${isMine ? 'mine' : 'others'}">
+      <div class="chat-bubble ${isMine ? 'mine' : 'others'}" onclick="openChatActions('${id}', ${isMine})">
         <div class="chat-meta">${isMine ? 'Jij' : escapeHtml(m.sender)}</div>
-        <div class="chat-text">${escapeHtml(m.text)}</div>
+        <div class="chat-text">${escapeHtml(m.text)}${m.edited ? ' <small style="opacity:0.5;">(bewerkt)</small>' : ''}</div>
+        <div class="chat-reactions">${reactionsHtml}</div>
         <div class="chat-time">${time}</div>
       </div>
     `;

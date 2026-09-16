@@ -328,10 +328,20 @@ function initLanding() {
       try {
         const sourceLang = window.AutoTranslator ? window.AutoTranslator.currentLanguage() : (localStorage.getItem('appLanguage') || 'nl');
         const translated = window.AutoTranslator ? await window.AutoTranslator.buildBilingual(text, sourceLang) : { nl:text, en:text, sourceLang };
-        await db.ref('feedback').push({ name, text, textTranslations: translated, sourceLang, createdAt: Date.now() });
+        await db.ref('feedback').push({
+            name,
+            text,
+            textTranslations: translated,
+            sourceLang,
+            createdAt: Date.now(),
+            userId: window.BESTELSYSTEEM_USER_ID,
+            status: 'verzonden'
+        });
         localStorage.setItem(feedbackLimitKey, String(Date.now()));
-        closeModal('modal-feedback');
+        document.getElementById('feedback-text').value = '';
         alert('Bedankt voor je feedback!');
+        // Wissel naar de 'Mijn feedback' tab om het resultaat te zien
+        document.querySelector('[data-fbtab="view"]').click();
       } catch (e) {
         console.error(e);
         if (errorEl) errorEl.textContent = 'Fout bij versturen.';
@@ -340,6 +350,78 @@ function initLanding() {
         btnSendFeedback.textContent = 'Versturen';
       }
     };
+  }
+
+  // Tabs binnen feedback modal
+  document.querySelectorAll('[data-fbtab]').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('[data-fbtab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('#modal-feedback .tab-panel').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('fbtab-' + btn.dataset.fbtab);
+      if (target) target.classList.add('active');
+      if (btn.dataset.fbtab === 'view') loadMyFeedback();
+    };
+  });
+
+  async function loadMyFeedback() {
+    const listEl = document.getElementById('my-feedback-list');
+    const emptyEl = document.getElementById('my-feedback-empty');
+    if (!listEl || typeof db === 'undefined') return;
+
+    const uid = window.BESTELSYSTEEM_USER_ID;
+    if (!uid) {
+      listEl.innerHTML = '<div class="empty-msg">Log in om je feedback te bekijken.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '<div class="empty-msg">Bezig met laden...</div>';
+
+    try {
+      // We filteren alle feedback op de huidige userId
+      const snap = await db.ref('feedback').orderByChild('userId').equalTo(uid).once('value');
+      const data = snap.val() || {};
+      const entries = Object.entries(data).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+      if (entries.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+
+      emptyEl.style.display = 'none';
+      listEl.innerHTML = entries.map(([id, fb]) => {
+        const status = fb.status || 'verzonden';
+        const statusColors = {
+            'verzonden': '#muted',
+            'gelezen': '#gold-soft',
+            'in behandeling': '#gold',
+            'behandeld': '#green',
+            'toegevoegd': '#green-dark'
+        };
+
+        const dateText = fb.createdAt ? new Date(fb.createdAt).toLocaleDateString('nl-NL') : '-';
+
+        return `
+          <div class="announcement-item" style="border-left: 4px solid var(${statusColors[status] || '--line'});">
+            <div class="announcement-item-head">
+              <span class="announcement-item-title" style="text-transform: uppercase; font-size: 0.75rem;">Status: ${status}</span>
+              <span class="announcement-item-date">${dateText}</span>
+            </div>
+            <div class="announcement-item-info" style="color: var(--ink);">${escapeHtml(fb.text)}</div>
+            ${fb.adminResponse ? `
+              <div style="margin-top: 10px; padding: 10px; background: rgba(201,162,75,0.1); border-radius: 8px; border-left: 2px solid var(--gold);">
+                <div style="font-size: 0.7rem; font-weight: 700; color: var(--gold-soft); margin-bottom: 4px;">REACTIE VAN SITEBEHEER:</div>
+                <div style="font-size: 0.85rem; color: var(--gold-soft);">${escapeHtml(fb.adminResponse)}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      console.error(e);
+      listEl.innerHTML = '<div class="empty-msg">Fout bij laden van feedback.</div>';
+    }
   }
 
   const btnLinks = document.getElementById('btn-links');

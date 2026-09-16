@@ -492,6 +492,10 @@ db.ref('feedback').on('value', snap => {
     const dateText = createdAt ? formatDatumTijdAdmin(createdAt) : '—';
     const name = feedback.name ?? feedback.naam ?? 'Onbekend';
     const text = (window.AutoTranslator && feedback.textTranslations) ? window.AutoTranslator.pickBilingual(feedback.textTranslations) : (feedback.text ?? feedback.tekst ?? '');
+    const currentStatus = feedback.status || 'verzonden';
+    const statusOrder = ['verzonden', 'gelezen', 'in behandeling', 'behandeld', 'toegevoegd'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const nextStatus = currentIndex < statusOrder.length - 1 ? statusOrder[currentIndex + 1] : null;
 
     card.innerHTML = `
       <div class="feedback-card-main">
@@ -500,30 +504,70 @@ db.ref('feedback').on('value', snap => {
           <div class="feedback-card-date">${escapeHtmlAdmin(dateText)}</div>
         </div>
         <div class="feedback-card-text">${escapeHtmlAdmin(text).replace(/\n/g, '<br>')}</div>
+
+        <div class="admin-feedback-controls" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--line);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+             <span class="ice-badge">Huidige status: <strong>${currentStatus}</strong></span>
+             ${nextStatus ? `<button type="button" class="mini-btn edit btn-next-status" data-id="${id}">Zet op: ${nextStatus} ➔</button>` : '<span class="ice-badge" style="color:var(--green);">Voltooid</span>'}
+          </div>
+
+          <label class="modal-label">Reactie sturen</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="fb-reply-${id}" class="modal-input" placeholder="Typ een reactie..." value="${escapeHtmlAdmin(feedback.adminResponse || '')}">
+            <button type="button" class="btn-primary btn-send-reply" data-id="${id}" style="padding: 5px 15px;">Stuur</button>
+          </div>
+        </div>
       </div>
       <div class="admin-restaurant-actions">
-        <button type="button" class="mini-btn edit" data-feedback-read="${escapeHtmlAdmin(id)}">Gelezen</button>
+        <button type="button" class="mini-btn danger" data-feedback-read="${escapeHtmlAdmin(id)}">Verwijderen</button>
       </div>
     `;
 
-    card.querySelector('[data-feedback-read]').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const button = e.currentTarget;
-      button.disabled = true;
-      button.textContent = 'Verwijderen...';
-      try {
-        await db.ref('feedback/' + id).remove();
-      } catch (err) {
-        console.error('Feedback verwijderen mislukt:', err);
-        button.disabled = false;
-        button.textContent = 'Gelezen';
-        alert('Er ging iets mis bij het verwijderen van de feedback.');
-      }
-    });
+    // Event listeners toevoegen aan de nieuwe knoppen
+    const nextBtn = card.querySelector('.btn-next-status');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => updateFeedbackStatus(id, nextStatus));
+    }
+
+    const replyBtn = card.querySelector('.btn-send-reply');
+    if (replyBtn) {
+      replyBtn.addEventListener('click', () => sendFeedbackReply(id));
+    }
+
+    const deleteBtn = card.querySelector('[data-feedback-read]');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Weet je zeker dat je deze feedback wilt verwijderen?')) return;
+        try {
+          await db.ref('feedback/' + id).remove();
+        } catch (err) { console.error(err); }
+      });
+    }
 
     feedbackListEl.appendChild(card);
   });
 });
+
+async function updateFeedbackStatus(id, newStatus) {
+  try {
+    if (typeof db === 'undefined') return;
+    await db.ref('feedback/' + id).update({ status: newStatus });
+  } catch(e) { console.error(e); alert('Status aanpassen mislukt.'); }
+}
+
+async function sendFeedbackReply(id) {
+  const input = document.getElementById('fb-reply-' + id);
+  if (!input) return;
+  const replyText = input.value.trim();
+  try {
+    if (typeof db === 'undefined') return;
+    await db.ref('feedback/' + id).update({ adminResponse: replyText });
+    alert('Reactie opgeslagen!');
+  } catch(e) { console.error(e); alert('Reactie opslaan mislukt.'); }
+}
+
+
 
 // ==================== Site Instellingen (Links & Credits) ====================
 const linksInput = document.getElementById('admin-links-text-input');

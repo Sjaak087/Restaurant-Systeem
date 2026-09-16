@@ -1883,8 +1883,14 @@ header.top a:hover { color: var(--gold-soft); border-color: var(--gold); }
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
-.btn-danger:hover { background: var(--wine); color: white; }
+.btn-danger:hover {
+  background: var(--wine);
+  color: white;
+  box-shadow: 0 4px 12px var(--glow-wine);
+  transform: translateY(-1px);
+}
 
 .price-tag { font-family: var(--font-mono); font-size: 0.85rem; color: var(--gold-soft); font-weight: 600; }
 .uitverkocht-tag { font-size: 0.78rem; color: #d99a9a; font-weight: 600; }
@@ -2502,7 +2508,71 @@ body.pattern-active { background-repeat: repeat; }
   font-size: 0.95rem;
   line-height: 1.4;
   animation: modalPop 0.2s var(--ease) both;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  user-select: none;
 }
+.chat-bubble:active { transform: scale(0.98); }
+
+.chat-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 4px;
+}
+.chat-reaction-badge {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.chat-bubble.mine .chat-reaction-badge {
+  background: rgba(0,0,0,0.1);
+  border-color: rgba(0,0,0,0.1);
+}
+
+.chat-actions-menu {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: stretch;
+  margin-top: 15px;
+}
+.chat-actions-menu button {
+  flex: 1;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.chat-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+.chat-emoji-btn {
+  font-size: 1.6rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  transition: all 0.2s var(--ease);
+}
+.chat-emoji-btn:hover { background: var(--glass); transform: scale(1.18); }
+.chat-emoji-btn:active { transform: scale(0.9); }
+
 .chat-bubble.mine {
   align-self: flex-end;
   background: linear-gradient(135deg, var(--gold), #b8913f);
